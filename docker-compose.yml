@@ -16,14 +16,26 @@ services:
       timeout: 5s
       retries: 10
 
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgres://birthday:birthday@db:5432/birthday"
+
   app:
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       DATABASE_URL: "postgres://birthday:birthday@db:5432/birthday"
       AUTH_SECRET: "${AUTH_SECRET:?AUTH_SECRET is required - generate with openssl rand -base64 32}"
