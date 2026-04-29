@@ -22,7 +22,7 @@ RUN npm run build
 # 4. Migrator — used by the `migrate` service in docker-compose
 FROM srcdeps AS migrator
 ENV NODE_ENV=production
-CMD ["npx", "drizzle-kit", "push"]
+CMD ["npx", "drizzle-kit", "push", "--force"]
 
 # 5. Minimal runtime image
 FROM node:22-alpine AS runner
