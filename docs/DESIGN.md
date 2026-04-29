@@ -42,16 +42,17 @@ Non-goals (v1):
 
 ### 2.3 Product lookup (the AI part)
 For any wishlist item, "Find products" does:
-1. Sends free-text description + person context (budget, sizes, region=UK, currency=GBP) to **Gemini** (Gemini 2.0 Flash).
-2. Gemini uses **Google Search grounding** to search the live web.
-3. Gemini extracts a normalized product list: title, price (GBP), retailer, URL, image (when available), short description.
-4. Optional fallback / enrichment: **eBay Browse API** (free tier) for structured pricing on items that didn't ground cleanly.
-5. You can save any result to the wishlist item, edit, or add a fully manual entry.
+1. Sends free-text description + person context (budget, sizes, region=UK, currency=GBP) to **OpenRouter** (default model `meta-llama/llama-3.3-70b-instruct:free`).
+2. The LLM returns up to 6 product candidates as JSON: title, retailer, URL, priceGbp, image (optional), short description.
+3. **eBay Browse API** (free tier) is automatically used as a fallback if the LLM call fails or hits rate limits, and as a way to get guaranteed-real URLs.
+4. You can save any result to the wishlist item, edit it, or add a fully manual entry.
+
+**URL caveat:** without web grounding, LLM-suggested URLs may be hallucinated. The UI marks AI-saved products with an "AI" badge so you can sanity-check before clicking. Consider eBay-sourced or manually-entered products the trusted source of truth for buy links.
 
 **Manual entry path**: every AI step is optional. You can paste a URL or fill fields by hand at any point.
 
 ### 2.4 AI gift suggestions
-"Suggest gifts" uses Gemini with full context (wishlist + tags + notes + past gifts + budget + sizes + avoid list) to propose new gift ideas. Each suggestion can be promoted to a wishlist item and sent through the product lookup flow.
+"Suggest gifts" uses OpenRouter with full context (wishlist + tags + notes + past gifts + budget + sizes + avoid list) to propose new gift ideas. Each suggestion can be promoted to a wishlist item and sent through the product lookup flow.
 
 ### 2.5 Reminders (email)
 - Channel: **email** via Resend (free tier).
@@ -134,15 +135,15 @@ AIRequestLog
 
 ## 5. External services
 
-### 5.1 LLM — Google Gemini
-- **Gemini 2.0 Flash** for product lookup, suggestions, and reminder shortlists.
-- **Google Search grounding** enabled for product lookup (replaces paid product-search APIs).
-- API key from the user's Google AI Studio account. Free tier expected to cover personal use.
-- We log every call's token counts in `AIRequestLog` so cost is visible if the free tier ever runs out.
+### 5.1 LLM — OpenRouter
+- OpenAI-compatible REST endpoint, called via plain `fetch` (no SDK).
+- Default model `meta-llama/llama-3.3-70b-instruct:free`. Override with `OPENROUTER_MODEL` to try other free models (e.g. `deepseek/deepseek-chat-v3.1:free`, `qwen/qwen-2.5-72b-instruct:free`).
+- API key from the user's OpenRouter account at https://openrouter.ai. Free tier covers personal use, but is aggressively rate-limited (a few req/min).
+- Calls logged to `ai_request_log`; the orchestrator catches 429 / quota errors and falls through to eBay automatically.
 
 ### 5.2 Product search
-- **Primary:** Gemini grounded responses (returns URLs + extracted product info from live web).
-- **Fallback:** **eBay Browse API** (free) for structured listings when grounding doesn't give clean prices.
+- **Primary:** OpenRouter LLM returns JSON product candidates.
+- **Fallback:** **eBay Browse API** (free) — used when the LLM is rate-limited, errors, or returns nothing. Also the only path for guaranteed-real URLs.
 - **Manual entry** always available.
 - No SerpAPI, no Amazon PA-API, no scraping.
 
@@ -155,7 +156,7 @@ AIRequestLog
 - **Alternative:** Vercel + Neon (free tiers).
 - The DB driver (`postgres-js`) talks to either a Docker Postgres or Neon over standard wire protocol — no code change needed to switch.
 
-**Expected total monthly cost for v1: £0** (assuming Gemini free tier holds).
+**Expected total monthly cost for v1: £0** (assuming OpenRouter free-tier rate limits are tolerable; eBay catches the gap when they're not).
 
 ---
 
@@ -168,7 +169,7 @@ AIRequestLog
 - **ORM:** Drizzle.
 - **Auth:** Auth.js with email magic link (single-user via `ALLOWED_EMAIL`; scaffolding supports multi).
 - **Styling:** Tailwind + shadcn/ui.
-- **AI SDK:** `@google/genai` (Gemini, with Google Search grounding).
+- **AI:** OpenRouter via plain `fetch` to `/api/v1/chat/completions` (no SDK). Default model `meta-llama/llama-3.3-70b-instruct:free`.
 - **Email:** `resend` SDK (used for both magic-link auth and reminder emails).
 - **Cron:** local cron / a long-running scheduler in the app container (Phase 4 detail). On Vercel deploys this becomes Vercel Cron.
 - **Locale defaults:** `en-GB`, `Europe/London`, GBP.
@@ -185,16 +186,15 @@ AIRequestLog
                     │  - /api/cron/...   │
                     └──┬──────┬──────┬───┘
                        │      │      │
-              ┌────────▼┐  ┌──▼──┐ ┌─▼────────┐
-              │ Postgres│  │Gemini│ │ Resend   │
-              └─────────┘  │  +   │ │ (email)  │
-                           │Search│ └──────────┘
-                           │ground│
-                           └──────┘
-                              │
-                         ┌────▼─────┐
-                         │ eBay API │ (fallback)
-                         └──────────┘
+              ┌────────▼┐  ┌────▼──────┐ ┌─▼────────┐
+              │ Postgres│  │ OpenRouter │ │ Resend   │
+              └─────────┘  │ (LLM, free │ │ (email)  │
+                           │  tier)     │ └──────────┘
+                           └────┬───────┘
+                                │ on quota / error
+                           ┌────▼─────┐
+                           │ eBay API │  (fallback)
+                           └──────────┘
 ```
 
 ### 7.1 Docker stack
@@ -216,10 +216,10 @@ which has the full source + devDeps so `drizzle-kit` is available. The
 
 ## 8. AI cost guardrails
 
-- Stay on Gemini's free tier; log token usage in `AIRequestLog`.
+- Stay on OpenRouter's free tier; log every request in `ai_request_log`.
 - Soft cap: warn in-app if monthly request count crosses a threshold.
 - Hard cap: cron job aborts reminder generation if quota is exhausted (degrades to "no shortlist, just the reminder").
-- Cache per-person context locally (we build the prompt server-side; no special caching needed at Gemini's price point).
+- The product-search orchestrator detects 429 / "rate limit" / "quota" in error messages and falls through to eBay automatically.
 
 ---
 
@@ -238,7 +238,7 @@ which has the full source + devDeps so `drizzle-kit` is available. The
 |-------|-------|------|
 | 0 | Next.js + Tailwind + Drizzle + Auth.js + Neon + Vercel deploy | ½ day |
 | 1 | People CRUD, tags, sizes, notes, photos, wishlist CRUD with status workflow + source notes | 1–2 days |
-| 2 | Gemini product lookup (with grounding) + eBay fallback + manual entry polish | 1–2 days |
+| 2 | OpenRouter LLM product lookup + eBay fallback + manual entry polish | 1–2 days |
 | 3 | Suggestions + gift history with reaction notes | 1 day |
 | 4 | Email reminders via Resend + Vercel Cron + budget-aware shortlist | 1 day |
 | 5 | iCal feed export, mobile polish, photo uploads | ongoing |
@@ -249,12 +249,26 @@ which has the full source + devDeps so `drizzle-kit` is available. The
 
 ```
 /app                Next.js app router
+  page.tsx          Dashboard: upcoming birthdays + stats
+  layout.tsx        Root layout (renders Nav)
+  globals.css
   /login            sign-in flow (magic link)
-  /people           list, [id] detail, new (Phase 1)
+    page.tsx, /check-email/page.tsx
+  /calendar         month-grid calendar of birthdays
+    page.tsx
+  /people           list (card grid)
+    page.tsx
+    actions.ts      server actions: createPerson, updatePerson, deletePerson,
+                    create/update/deleteWishlistItem,
+                    findProductsForWishlistItem, addManualProduct, deleteProduct
+    /new            add-person form (page.tsx)
+    /[id]           person detail: header, notes, wishlist UI, settings
   /api/auth/...     Auth.js handlers
   /api/cron         reminder jobs (Phase 4)
   /api/ical         calendar feed (Phase 5)
-/components         UI components (shadcn — added when needed)
+/components
+  nav.tsx           top nav bar (rendered in root layout)
+  badges.tsx        StatusPill, CountdownBadge, TagChip, Avatar
 /db
   index.ts          drizzle client (postgres-js)
   schema.ts         tables + relations + enums
@@ -262,8 +276,9 @@ which has the full source + devDeps so `drizzle-kit` is available. The
   auth.ts           Auth.js v5 config
   auth-handlers.ts  exported GET/POST for /api/auth route
   cn.ts             tailwind class merge helper
-  /ai               Gemini client, prompts (Phase 2+)
-  /products         provider interface, gemini-grounded impl, ebay impl (Phase 2)
+  birthdays.ts      date math: parseBirthday, daysUntil, ageOnNextBirthday, formatBirthday
+  people-queries.ts read queries: requireCurrentUserId, listPeopleSummary, getPersonDetail
+  /products         openrouter.ts, ebay.ts, search.ts (orchestrator), types.ts
   /notify           email adapter — Resend (Phase 4)
   /reminders        scheduling logic (Phase 4)
 middleware.ts       redirects unauthenticated users to /login
@@ -273,4 +288,5 @@ drizzle.config.ts   schema location, dialect = postgresql
 /docs               DESIGN.md, DECISIONS.md, this dir
 README.md           quick-start
 CLAUDE.md           onboarding for future AI sessions
+AGENTS.md           alias for CLAUDE.md
 ```

@@ -1,31 +1,32 @@
 import { searchProductsWithEbay } from "./ebay";
-import { searchProductsWithGemini } from "./gemini-grounded";
+import { searchProductsWithOpenRouter } from "./openrouter";
 import type { ProductCandidate, ProductSearchContext } from "./types";
 
 export type ProductSearchResult = {
   candidates: ProductCandidate[];
-  geminiQuotaHit: boolean;
+  llmQuotaHit: boolean;
 };
 
 export async function searchProducts(context: ProductSearchContext): Promise<ProductSearchResult> {
-  let geminiQuotaHit = false;
+  let llmQuotaHit = false;
   try {
-    const primary = await searchProductsWithGemini(context);
-    if (primary.length > 0) return { candidates: primary, geminiQuotaHit };
+    const primary = await searchProductsWithOpenRouter(context);
+    if (primary.length > 0) return { candidates: primary, llmQuotaHit };
   } catch (error) {
-    console.error("Gemini product search failed:", error);
+    console.error("OpenRouter product search failed:", error);
     const message = error instanceof Error ? error.message : String(error);
-    geminiQuotaHit =
-      message.includes("RESOURCE_EXHAUSTED") ||
+    llmQuotaHit =
+      message.includes("429") ||
       message.includes("Too Many Requests") ||
-      message.toLowerCase().includes("quota");
+      message.toLowerCase().includes("quota") ||
+      message.toLowerCase().includes("rate limit");
   }
 
   try {
     const fallback = await searchProductsWithEbay(context);
-    return { candidates: fallback, geminiQuotaHit };
+    return { candidates: fallback, llmQuotaHit };
   } catch (error) {
     console.error("eBay product search failed:", error);
-    return { candidates: [], geminiQuotaHit };
+    return { candidates: [], llmQuotaHit };
   }
 }

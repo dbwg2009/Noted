@@ -13,7 +13,7 @@ Owner / sole user: **dbwg2009**.
 ## Where to find things
 
 - **`docs/DESIGN.md`** — full design: goals, features, data model, architecture, build phases, repo layout. **Read this before changing anything non-trivial.**
-- **`docs/DECISIONS.md`** — locked decisions from the planning round (single-user, email reminders, UK/GBP, Gemini, Vercel-or-Docker). Update this when a decision changes; do not silently override.
+- **`docs/DECISIONS.md`** — locked decisions and a change log (single-user, email reminders, UK/GBP, OpenRouter LLM, Docker primary). Update this when a decision changes; do not silently override.
 - **`README.md`** — quick-start (Docker + native Node).
 - **`db/schema.ts`** — the source of truth for the DB shape.
 - **`lib/auth.ts`** — Auth.js v5 config (Resend magic-link, single-user gate via `ALLOWED_EMAIL`).
@@ -24,8 +24,8 @@ Owner / sole user: **dbwg2009**.
 | Area | Decision |
 |------|----------|
 | Mode | Single-user (auth scaffolded for future multi) |
-| LLM | **Gemini** (`@google/genai`) — not Claude, not OpenAI |
-| Product search | Gemini Google Search grounding (primary) + eBay Browse API (fallback). **No SerpAPI, no scraping.** |
+| LLM | **OpenRouter** via OpenAI-compatible REST. Default model `meta-llama/llama-3.3-70b-instruct:free`, overridable via `OPENROUTER_MODEL`. **Not** Claude, OpenAI direct, or Gemini. |
+| Product search | OpenRouter LLM (primary, generates product candidates) + eBay Browse API (fallback for real listings). **No SerpAPI, no scraping.** Caveat: without web grounding, LLM-generated URLs may be hallucinated; eBay fallback exists for that reason. |
 | Reminders | Email via Resend |
 | DB | Postgres via `postgres-js` driver (works for both Docker Postgres and Neon) |
 | Currency | GBP, locale `en-GB`, timezone `Europe/London` |
@@ -40,11 +40,12 @@ If a decision genuinely needs to change, update `docs/DECISIONS.md` in the same 
 | Phase | Status | Scope |
 |-------|--------|-------|
 | 0 — Scaffold | **done** | Next.js + Tailwind + Drizzle + Auth.js + Docker stack |
-| 1 — People & wishlists | **next** | CRUD for people, tags, wishlist items with status workflow + source notes |
-| 2 — AI product lookup | pending | Gemini with grounding, eBay fallback, manual entry polish |
-| 3 — Suggestions & history | pending | "Suggest gifts" + gift history with reaction notes |
-| 4 — Reminders | pending | Email reminders, budget-aware shortlist, scheduler |
-| 5 — Polish | pending | Photos, mobile layout, iCal feed, exports |
+| 1 — People & wishlists | **done** | CRUD for people, tags, wishlist items with status workflow + source notes |
+| 2 — AI product lookup | **done** | OpenRouter (LLM) primary, eBay Browse API fallback, manual entry |
+| 2.5 — UI polish | **done** | Multi-page layout: dashboard `/`, calendar `/calendar`, people `/people` (cards) → `/people/new` and `/people/[id]`. Shared nav, avatars, status pills, countdown badges |
+| 3 — Suggestions & history | **next** | "Suggest gifts" button using LLM with full person context; `gift_history` table CRUD with reaction notes; show history on person detail |
+| 4 — Reminders | pending | Email reminders, budget-aware shortlist, daily scheduler |
+| 5 — Polish | pending | Photo uploads (currently URL-only), iCal feed, mobile tweaks |
 
 When starting work, find the next pending task in this list. **Don't skip phases** without explicit user approval — Phase 1 lays the data flow Phase 2+ build on.
 
@@ -54,8 +55,8 @@ When starting work, find the next pending task in this list. **Don't skip phases
 - TypeScript strict.
 - Drizzle ORM. Schema in `db/schema.ts`. Run migrations with `npm run db:push` (or via the `migrate` service in compose).
 - Auth.js v5 (`next-auth@5.0.0-beta.x`) with Resend provider + Drizzle adapter. DB sessions, not JWT.
-- Tailwind v3 + (planned) shadcn/ui.
-- `@google/genai` for LLM calls.
+- Tailwind v3 (no UI library yet — bespoke components in `components/`).
+- **OpenRouter** via plain `fetch` to `/api/v1/chat/completions` (no SDK dependency). Default model `meta-llama/llama-3.3-70b-instruct:free`.
 - `resend` for outbound mail.
 
 ## Local dev
@@ -88,13 +89,14 @@ npm run dev
 
 ## What NOT to do
 
-- Don't switch the LLM provider away from Gemini without updating `DECISIONS.md`.
+- Don't switch the LLM provider away from OpenRouter without updating `DECISIONS.md`. If a different provider is genuinely needed, OpenRouter is preferred because it gives access to many free models behind one API.
 - Don't add SerpAPI or any scraping — it was explicitly rejected for cost/ToS reasons.
 - Don't introduce a JWT session strategy; we're on DB sessions because the magic-link flow needs `verification_tokens`.
 - Don't bypass `ALLOWED_EMAIL` — it's the only thing keeping randoms out.
-- Don't build features beyond the current phase without asking the user. The build order matters because Phase 2+ depend on Phase 1's data shape.
+- Don't build features beyond the current phase without asking the user. The build order matters because each phase depends on the previous data shape.
 - Don't commit `.env` or any secrets.
 - Don't rewrite working code "for cleanliness" — small surface area, personal app, ship it.
+- Don't add a UI component library (e.g. shadcn) without asking — we're keeping deps minimal.
 
 ## Picking up the work
 
@@ -110,6 +112,10 @@ npm run dev
 - The `postgres-js` driver pool defaults are tuned for the Docker Postgres; if Neon is used, may need `ssl: "require"` query param in `DATABASE_URL`.
 - Auth.js v5 is in beta; the API may shift between minor versions. Pin the version in `package.json`.
 - Resend's magic-link emails work fine pointing at `localhost:3000` for dev — the link is just a URL the user clicks.
+- OpenRouter free models are aggressively rate-limited (a few requests per minute). The product-search action is fine for personal use but don't loop calls. The `searchProducts()` orchestrator detects 429 / "rate limit" / "quota" in the error message and falls through to eBay automatically.
+- LLM-generated product URLs are NOT verified — the model can hallucinate. The eBay fallback is the only path for guaranteed-real URLs. UI labels saved products with their `source` (`AI` vs `Manual`) so the user knows.
+- `app/people/page.tsx` is the **list page only**; person detail is `app/people/[id]/page.tsx`. Wishlist + product UI lives in the detail page. Server actions are still in `app/people/actions.ts` and shared between both.
+- `lib/people-queries.ts` holds the read queries (`listPeopleSummary`, `getPersonDetail`). Server actions in `app/people/actions.ts` only do writes; don't move them around without updating both pages.
 
 ## When something is unclear
 

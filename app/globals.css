@@ -11,5 +11,14 @@ html, body {
 }
 
 body {
-  @apply bg-neutral-50 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100;
+  @apply text-neutral-900 antialiased dark:text-neutral-100;
+}
+
+/* Subtle card style reused across the app */
+.card {
+  @apply rounded-xl border border-neutral-200 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/70;
+}
+
+input, textarea, select {
+  @apply bg-white dark:bg-neutral-900;
 }
