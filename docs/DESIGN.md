@@ -1,23 +1,27 @@
 # Design Plan — Birthday Gift Finder
 
-This document describes the proposed architecture, features, data model, and tech stack. Anything tagged **[DECIDE]** needs your input — see `QUESTIONS.md` for the consolidated list.
+This document describes the architecture, features, data model, and tech stack. Decisions made together with the user are locked in (see `DECISIONS.md` for the answered questions list).
 
 ---
 
 ## 1. Goals
 
-A web app, used primarily by you (the owner), to:
+A web app, used by a single owner (you), to:
 
 1. Store people you care about and their birthdays.
 2. Capture the things they've mentioned wanting.
-3. Use AI + product search APIs to find real products (price + buy link) for those wishlist items.
+3. Use AI + web search to find real products (price + buy link) for those wishlist items.
 4. Suggest additional gift ideas based on the wishlist, interests, and budget.
-5. Remind you ahead of each birthday with a shortlist tailored to your budget.
+5. Email you ahead of each birthday with a shortlist tailored to your budget.
 
-Non-goals (for v1):
-- Multi-user collaboration / shared wishlists between users.
-- Actually purchasing items (we surface links only).
-- Mobile native app (web-responsive is fine).
+Non-goals (v1):
+- Multi-user / shared wishlists.
+- Auto-purchasing.
+- Native mobile app (web responsive instead).
+- Occasions other than birthdays.
+- Group gifts / split-with-others.
+- Browser extension.
+- Affiliate link rewriting.
 
 ---
 
@@ -25,64 +29,66 @@ Non-goals (for v1):
 
 ### 2.1 People management
 - Add / edit / delete a person.
-- Fields: name, birthday (date, year optional), relationship (friend / family / partner / coworker / other), default gift budget (min / max), notes, photo (optional), clothing sizes, allergies / things to avoid.
-- Tags (e.g. "gamer", "reader", "outdoorsy") to feed into AI suggestions.
+- Fields: **name, birthday (date, year optional), relationship, default gift budget (min/max), notes, photo (optional, nice-to-have), clothing/shoe sizes, allergies / things to avoid, tags**.
+- Tags (e.g. "gamer", "reader", "outdoorsy") feed AI suggestions.
 
 ### 2.2 Wishlist per person
-- List of items they've said they want. Each item has:
+- List of items they've said they want. Each item:
   - Free-text description (what they said, in your words)
-  - Optional date heard / source ("said at dinner 2026-03-12")
-  - Status: `idea` → `researching` → `chosen` → `purchased` → `given`
-  - Estimated budget category (cheap / mid / splurge) or specific price range
+  - **Source note** (where/when you heard it, e.g. "said at brunch 2026-03-12")
+  - **Status**: `idea` → `researching` → `chosen` → `purchased` → `given`
+  - Estimated budget band (cheap / mid / splurge) or specific price range
   - Linked products (zero or more — see 2.3)
 
 ### 2.3 Product lookup (the AI part)
-For any wishlist item, you can hit "Find products". The system:
-1. Sends the free-text description + person context (budget, sizes, region) to an LLM.
-2. LLM produces a normalized search query and category guesses.
-3. Calls a product search API (see §5) to fetch real listings.
-4. Returns a ranked list with: title, price, currency, image, retailer, buy URL, in-stock flag.
-5. You can save any result to the wishlist item, edit fields, or add a fully manual entry.
+For any wishlist item, "Find products" does:
+1. Sends free-text description + person context (budget, sizes, region=UK, currency=GBP) to **Gemini** (Gemini 2.0 Flash).
+2. Gemini uses **Google Search grounding** to search the live web.
+3. Gemini extracts a normalized product list: title, price (GBP), retailer, URL, image (when available), short description.
+4. Optional fallback / enrichment: **eBay Browse API** (free tier) for structured pricing on items that didn't ground cleanly.
+5. You can save any result to the wishlist item, edit, or add a fully manual entry.
 
-**Manual entry path**: every AI step is optional. You can always paste a URL or fill fields by hand.
+**Manual entry path**: every AI step is optional. You can paste a URL or fill fields by hand at any point.
 
 ### 2.4 AI gift suggestions
-For a person, "Suggest gifts" uses the LLM with the full context (wishlist + tags + notes + past gifts + budget) to propose new gift ideas not already in the wishlist. Each suggestion can be promoted into a wishlist item and then sent through the product lookup flow.
+"Suggest gifts" uses Gemini with full context (wishlist + tags + notes + past gifts + budget + sizes + avoid list) to propose new gift ideas. Each suggestion can be promoted to a wishlist item and sent through the product lookup flow.
 
-### 2.5 Reminders
-- Configurable lead times (default: 30 / 14 / 7 / 1 days before).
-- Reminder includes a budget-aware shortlist (top N products / suggestions within the person's set budget).
-- Channel: **[DECIDE]** email, web push, SMS, Telegram, or just in-app?
+### 2.5 Reminders (email)
+- Channel: **email** via Resend (free tier).
+- Default lead times: **30, 14, 7, 1 days** before birthday.
+- Each reminder includes a budget-aware shortlist (top N items / suggestions within the person's budget).
+- Sent from a daily Vercel Cron job.
 
 ### 2.6 Gift history
-- Every gift you mark as `given` is recorded with date, price paid, recipient reaction notes.
-- Used to avoid duplicate suggestions and to inform future AI suggestions ("they loved last year's photography book").
+- Marking an item `given` records: date, price paid (GBP), **reaction notes** ("loved it" / "polite smile").
+- Used to avoid duplicate suggestions and to inform future AI suggestions.
 
 ---
 
-## 3. Stretch / v2 ideas (not committed)
+## 3. Stretch / v2 (deferred, but schema-aware)
 
-- Other occasions: anniversaries, Christmas, Mother's/Father's Day.
-- Group gifts: split a gift across multiple people (you + siblings buy mom one thing).
-- Calendar integration (iCal export / Google Calendar sync).
-- Browser extension: right-click → "save to [person]'s wishlist".
-- Price drop watching on saved products.
-- Affiliate link rewriting if you ever want a tiny revenue stream.
-- Family-shared mode (multiple users, with privacy boundaries).
-- Recurring "gift inspiration" digest email even when no birthday is near.
+- **Other occasions** (Christmas, anniversary, Mother's/Father's Day) — schema designed so an `Occasion` model can be added without a migration overhaul.
+- **Calendar export / Google Calendar sync** (you said you're interested) — likely v1.5: a generated iCal feed URL is cheap to add.
+- **Group gifts**.
+- **Browser extension** — right-click → save to wishlist.
+- **Price-drop watching** on saved products.
+- **Family-shared mode** (multi-user).
 
 ---
 
-## 4. Data Model (proposed)
+## 4. Data Model
 
 ```
 User
-  id, email, password_hash (or oauth), timezone, default_currency, created_at
+  id, email, timezone (default Europe/London),
+  default_currency (default GBP), created_at
 
 Person
-  id, user_id, name, birthday (date), birth_year_known (bool),
-  relationship, photo_url, notes,
-  budget_min, budget_max, currency,
+  id, user_id, name,
+  birthday (date), birth_year_known (bool),
+  relationship, photo_url,
+  notes (text),
+  budget_min, budget_max, currency (default GBP),
   sizes (jsonb: {top, bottom, shoe, ring, ...}),
   avoid (text — allergies / dislikes),
   created_at, updated_at
@@ -93,136 +99,132 @@ PersonTag
   person_id, tag_id
 
 WishlistItem
-  id, person_id, description, source_note, heard_on (date),
-  status (enum), price_band (enum or {min,max}),
+  id, person_id,
+  description, source_note, heard_on (date),
+  status (enum: idea | researching | chosen | purchased | given),
+  price_band (enum) | price_min, price_max,
   created_at, updated_at
 
 Product
-  id, wishlist_item_id (nullable — can exist as standalone suggestion),
+  id, wishlist_item_id (nullable),
   person_id, title, description, image_url, retailer,
-  url, price, currency, in_stock, source ('ai_search' | 'manual' | 'suggestion'),
-  raw_payload (jsonb — original API response for debugging),
+  url, price, currency, in_stock,
+  source ('ai_search' | 'manual' | 'suggestion'),
+  raw_payload (jsonb),
   created_at
 
 GiftHistory
-  id, person_id, product_id (nullable), title, price_paid, currency,
+  id, person_id, product_id (nullable),
+  title, price_paid, currency,
   given_on (date), reaction_notes
 
 Reminder
-  id, person_id, lead_days, channel, last_sent_at
+  id, person_id, lead_days, channel ('email'),
+  last_sent_at, last_sent_for_year
 
-AIRequestLog (for cost tracking & debugging)
-  id, user_id, kind ('product_search' | 'suggestion' | 'reminder'),
-  prompt_tokens, completion_tokens, cost_estimate, created_at
+AIRequestLog
+  id, user_id, kind ('product_search' | 'suggestion' | 'reminder_shortlist'),
+  prompt_tokens, completion_tokens,
+  cost_estimate, created_at
 ```
+
+> **Schema note on occasions:** an `Occasion(person_id, kind, date)` table is straightforward to add later. v1 stores birthday on `Person` directly for simplicity.
 
 ---
 
 ## 5. External services
 
-### 5.1 LLM
-- **Anthropic Claude API** (Sonnet 4.6 for most calls; Haiku for cheap classification; Opus only for hard suggestion tasks).
-- Use prompt caching on the per-person context block (it's reused across product search + suggestions + reminders).
+### 5.1 LLM — Google Gemini
+- **Gemini 2.0 Flash** for product lookup, suggestions, and reminder shortlists.
+- **Google Search grounding** enabled for product lookup (replaces paid product-search APIs).
+- API key from the user's Google AI Studio account. Free tier expected to cover personal use.
+- We log every call's token counts in `AIRequestLog` so cost is visible if the free tier ever runs out.
 
-### 5.2 Product search — **[DECIDE]**
-Real options, ranked by my recommendation:
+### 5.2 Product search
+- **Primary:** Gemini grounded responses (returns URLs + extracted product info from live web).
+- **Fallback:** **eBay Browse API** (free) for structured listings when grounding doesn't give clean prices.
+- **Manual entry** always available.
+- No SerpAPI, no Amazon PA-API, no scraping.
 
-1. **SerpAPI Google Shopping** — broad coverage, ~$50/mo entry tier, easy. Best default.
-2. **Rainforest API (Amazon)** — clean Amazon data, pay-per-call. Good if you mostly buy from Amazon.
-3. **Amazon Product Advertising API (PA-API)** — free but requires an Associates account with qualifying sales, which is a chicken-and-egg problem for a personal app.
-4. **eBay Browse API** — free tier, but eBay-only.
-5. **Direct scraping** — fragile, against most retailers' ToS, do not recommend.
+### 5.3 Reminders / email — Resend
+- Free tier: 3,000 emails/month, 100/day. Way more than needed.
+- A custom domain is nice but not required — Resend's `onboarding@resend.dev` works for testing.
 
-My recommendation: start with **SerpAPI** behind an interface so we can swap providers later.
+### 5.4 Hosting
+- **Vercel** free tier for the app + cron jobs.
+- **Neon** free Postgres tier.
 
-### 5.3 Reminders / notifications — **[DECIDE]**
-- **Email**: Resend or Postmark (cheap, simple). Good default.
-- **Web push**: free but only works when you've installed the PWA / opened recently.
-- **Telegram bot**: free, reliable, and you control it. Good if you use Telegram.
-- **SMS (Twilio)**: costs money per message, overkill unless you really want it.
-
-My recommendation: email + optional Telegram.
-
----
-
-## 6. Tech stack (proposed)
-
-**[DECIDE]** — happy to swap any of this. Defaults chosen for fast solo dev + cheap hosting.
-
-- **Frontend + backend**: Next.js 15 (App Router) with server actions. One repo, one deploy.
-- **Language**: TypeScript.
-- **DB**: Postgres (hosted on Neon or Supabase — both have free tiers).
-- **ORM**: Drizzle.
-- **Auth**: Auth.js (email magic link). Single-user mode for v1, but auth scaffolding is there from day one.
-- **Styling**: Tailwind + shadcn/ui.
-- **AI SDK**: `@anthropic-ai/sdk`.
-- **Background jobs (reminders)**: Vercel Cron + a `/api/cron/reminders` route that runs daily.
-- **Hosting**: Vercel (free tier likely enough).
-- **Secrets**: `.env.local` in dev, Vercel env vars in prod.
-
-Alternative if you prefer Python: FastAPI + HTMX + SQLite, deployed on Fly.io. Simpler but slower UI development.
+**Expected total monthly cost for v1: £0** (assuming Gemini free tier holds).
 
 ---
 
-## 7. Architecture sketch
+## 6. Tech stack
+
+- **Framework:** Next.js 15 (App Router) with server actions.
+- **Language:** TypeScript.
+- **DB:** Postgres on Neon.
+- **ORM:** Drizzle.
+- **Auth:** Auth.js with email magic link (single-user, but scaffolding supports multi).
+- **Styling:** Tailwind + shadcn/ui.
+- **AI SDK:** `@google/genai`.
+- **Email:** `resend` SDK.
+- **Cron:** Vercel Cron → `/api/cron/reminders` daily.
+- **Locale defaults:** `en-GB`, `Europe/London`, GBP.
+
+---
+
+## 7. Architecture
 
 ```
 ┌──────────────┐    ┌────────────────────┐
 │   Browser    │◀──▶│   Next.js (Vercel) │
 └──────────────┘    │  - UI (React)      │
-                    │  - Server actions   │
-                    │  - /api/cron/...    │
-                    └─────┬───────┬───────┘
-                          │       │
-                ┌─────────▼─┐   ┌─▼──────────────┐
-                │  Postgres │   │  Claude API    │
-                │  (Neon)   │   │  + SerpAPI     │
-                └───────────┘   └─▼──────────────┘
-                                  │
-                               ┌──▼──────┐
-                               │  Resend │  (reminder emails)
-                               └─────────┘
+                    │  - Server actions  │
+                    │  - /api/cron/...   │
+                    └──┬──────┬──────┬───┘
+                       │      │      │
+              ┌────────▼┐  ┌──▼──┐ ┌─▼────────┐
+              │ Postgres│  │Gemini│ │ Resend   │
+              │  (Neon) │  │  +   │ │ (email)  │
+              └─────────┘  │Search│ └──────────┘
+                           │ground│
+                           └──────┘
+                              │
+                         ┌────▼─────┐
+                         │ eBay API │ (fallback)
+                         └──────────┘
 ```
 
 ---
 
 ## 8. AI cost guardrails
 
-- Cache per-person context with prompt caching (huge win for reminders).
-- Use Haiku for "is this query specific enough?" / categorization.
-- Daily / monthly spend cap — the cron job stops if `AIRequestLog` exceeds threshold.
-- Log every call with token counts so we can see what's expensive.
+- Stay on Gemini's free tier; log token usage in `AIRequestLog`.
+- Soft cap: warn in-app if monthly request count crosses a threshold.
+- Hard cap: cron job aborts reminder generation if quota is exhausted (degrades to "no shortlist, just the reminder").
+- Cache per-person context locally (we build the prompt server-side; no special caching needed at Gemini's price point).
 
 ---
 
 ## 9. Privacy & security
 
-- Single-user app, but treat friend data as sensitive.
-- Don't send identifying friend names to product search APIs (only the item description).
-- Encrypt notes & avoid fields at rest? **[DECIDE]** — adds complexity; probably overkill for v1.
-- HTTPS only, secure cookies, rate-limit AI endpoints to avoid runaway cost from abuse.
+- HTTPS only, secure session cookies, magic-link auth (no passwords).
+- Friend names omitted from product search queries (only the item description leaves our server).
+- DB encryption-at-rest via Neon (no extra app-level encryption layer in v1 — trust the provider).
+- Rate-limit AI endpoints to prevent runaway costs from accidental loops.
 
 ---
 
 ## 10. Build phases
 
-**Phase 0 — scaffolding** (½ day)
-Next.js + Tailwind + Drizzle + auth + DB migrations + deploy to Vercel.
-
-**Phase 1 — people & wishlists** (1–2 days)
-CRUD for people, tags, wishlist items. No AI yet. Manual product entry works.
-
-**Phase 2 — AI product lookup** (1–2 days)
-Claude + SerpAPI integration. "Find products" button. Save to wishlist item.
-
-**Phase 3 — suggestions & history** (1 day)
-"Suggest gifts" flow + gift history tracking.
-
-**Phase 4 — reminders** (1 day)
-Cron job, email channel, budget-aware shortlist generation.
-
-**Phase 5 — polish** (ongoing)
-Photos, mobile layout, search, exports.
+| Phase | Scope | Est. |
+|-------|-------|------|
+| 0 | Next.js + Tailwind + Drizzle + Auth.js + Neon + Vercel deploy | ½ day |
+| 1 | People CRUD, tags, sizes, notes, photos, wishlist CRUD with status workflow + source notes | 1–2 days |
+| 2 | Gemini product lookup (with grounding) + eBay fallback + manual entry polish | 1–2 days |
+| 3 | Suggestions + gift history with reaction notes | 1 day |
+| 4 | Email reminders via Resend + Vercel Cron + budget-aware shortlist | 1 day |
+| 5 | iCal feed export, mobile polish, photo uploads | ongoing |
 
 ---
 
@@ -233,25 +235,13 @@ Photos, mobile layout, search, exports.
   /(auth)           login, magic link
   /people           list, [id] detail, new
   /api/cron         reminder jobs
+  /api/ical         calendar feed (phase 5)
 /components         UI components (shadcn)
 /db                 Drizzle schema + migrations
 /lib
-  /ai               Claude client, prompts, prompt cache helpers
-  /products         provider interface + SerpAPI impl
-  /notify           email / channel adapters
+  /ai               Gemini client, prompts
+  /products         provider interface, gemini-grounded impl, ebay impl
+  /notify           email adapter (Resend)
   /reminders        scheduling logic
 /docs               this folder
 ```
-
----
-
-## 12. Things you didn't mention but should consider
-
-(See `QUESTIONS.md` for the full list — these are the ones I think matter most.)
-
-1. **Gift history** — knowing what you've given before is huge for avoiding repeats.
-2. **Sizes & allergies** — these come up constantly when shopping.
-3. **Region & currency** — product search needs to know which country you're shopping in.
-4. **Other occasions** — once you build this for birthdays, you'll want it for Christmas etc. Worth designing the schema so `Occasion` can be added without a rewrite.
-5. **Reminder channel** — email is the safe default; pick now so we don't half-build it.
-6. **A spending cap on AI calls** — without one, a bug in a loop could cost you real money overnight.
