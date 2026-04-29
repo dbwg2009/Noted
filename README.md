@@ -28,7 +28,10 @@ cp .env.example .env         # fill in AUTH_SECRET, RESEND_API_KEY, ALLOWED_EMAI
 # (DATABASE_URL is set by docker-compose itself — leave it blank in .env)
 
 docker compose up --build -d
-# starts: db → migrate (one-shot, applies schema) → app
+
+# apply schema to the dockerised DB the first time:
+docker compose exec app npx drizzle-kit push
+
 # open http://localhost:3000
 ```
 
