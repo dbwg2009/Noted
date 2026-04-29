@@ -2,6 +2,7 @@
 
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import {
@@ -15,6 +16,22 @@ import {
   wishlistStatus,
 } from "@/db/schema";
 import { searchProducts } from "@/lib/products/search";
+
+type PeopleFlashTone = "success" | "warning" | "error";
+
+async function setPeopleFlash(message: string, tone: PeopleFlashTone) {
+  const store = await cookies();
+  store.set(
+    "people_flash",
+    JSON.stringify({ message, tone, ts: Date.now() }),
+    {
+      path: "/people",
+      maxAge: 30,
+      httpOnly: true,
+      sameSite: "lax",
+    },
+  );
+}
 
 function parseDate(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || !value) return null;
@@ -312,12 +329,18 @@ export async function deleteWishlistItem(formData: FormData) {
 export async function findProductsForWishlistItem(formData: FormData) {
   const userId = await requireCurrentUserId();
   const wishlistItemId = String(formData.get("wishlistItemId") ?? "");
-  if (!wishlistItemId) return;
+  if (!wishlistItemId) {
+    await setPeopleFlash("No wishlist item was selected.", "error");
+    return;
+  }
 
   const context = await getWishlistContextForSearch(wishlistItemId, userId);
-  if (!context) return;
+  if (!context) {
+    await setPeopleFlash("Could not load wishlist item context.", "error");
+    return;
+  }
 
-  const candidates = await searchProducts({
+  const searchResult = await searchProducts({
     wishlistDescription: context.wishlistDescription,
     sourceNote: context.sourceNote,
     personName: context.personName,
@@ -328,6 +351,7 @@ export async function findProductsForWishlistItem(formData: FormData) {
     avoid: context.avoid,
     tags: context.tags,
   });
+  const { candidates, geminiQuotaHit } = searchResult;
 
   if (candidates.length > 0) {
     await db.insert(products).values(
@@ -345,6 +369,19 @@ export async function findProductsForWishlistItem(formData: FormData) {
         source: "ai_search" as const,
         rawPayload: candidate.rawPayload ?? null,
       })),
+    );
+    await setPeopleFlash(
+      geminiQuotaHit
+        ? `Gemini quota is exhausted right now; fallback saved ${candidates.length} product result(s).`
+        : `Saved ${candidates.length} product result(s).`,
+      geminiQuotaHit ? "warning" : "success",
+    );
+  } else if (!geminiQuotaHit) {
+    await setPeopleFlash("No product matches were found this time.", "warning");
+  } else {
+    await setPeopleFlash(
+      "Gemini quota is currently exhausted and fallback search returned no results.",
+      "warning",
     );
   }
 
