@@ -22,12 +22,13 @@ function penceFromGbp(value: number | null | undefined) {
 }
 
 function extractJsonArray(text: string) {
-  const start = text.indexOf("[");
-  const end = text.lastIndexOf("]");
+  const normalized = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "");
+  const start = normalized.indexOf("[");
+  const end = normalized.lastIndexOf("]");
   if (start === -1 || end === -1 || end <= start) {
     throw new Error("Gemini response did not contain a JSON array");
   }
-  return text.slice(start, end + 1);
+  return normalized.slice(start, end + 1);
 }
 
 export async function searchProductsWithGemini(context: ProductSearchContext): Promise<ProductCandidate[]> {
@@ -75,7 +76,8 @@ Output schema:
     },
   });
 
-  const text = String(response.text ?? "");
+  const text =
+    typeof response.text === "function" ? await response.text() : String(response.text ?? "");
   const parsed = productsSchema.parse(JSON.parse(extractJsonArray(text)));
 
   return parsed.map((product) => ({

@@ -6,9 +6,14 @@ export async function searchProducts(context: ProductSearchContext): Promise<Pro
   try {
     const primary = await searchProductsWithGemini(context);
     if (primary.length > 0) return primary;
-  } catch {
-    // Fall through to eBay fallback.
+  } catch (error) {
+    console.error("Gemini product search failed:", error);
   }
 
-  return searchProductsWithEbay(context);
+  try {
+    return await searchProductsWithEbay(context);
+  } catch (error) {
+    console.error("eBay product search failed:", error);
+    return [];
+  }
 }

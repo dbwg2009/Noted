@@ -451,7 +451,7 @@ export default async function PeoplePage() {
                             </button>
                           </form>
 
-                          {item.products.length > 0 && (
+                          {item.products.length > 0 ? (
                             <div className="mt-3 space-y-2">
                               {item.products.map((product) => (
                                 <div
@@ -488,6 +488,10 @@ export default async function PeoplePage() {
                                 </div>
                               ))}
                             </div>
+                          ) : (
+                            <p className="mt-3 text-xs text-neutral-600 dark:text-neutral-400">
+                              No saved products yet. Click "Find products (AI)" or add one manually.
+                            </p>
                           )}
                         </div>
                       </div>
