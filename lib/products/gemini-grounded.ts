@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import type { ProductCandidate, ProductSearchContext } from "./types";
 
-const modelName = "gemini-2.0-flash";
+const modelName = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
 
 const productSchema = z.object({
   title: z.string().min(1),
