@@ -342,7 +342,7 @@ export async function findProductsForWishlistItem(formData: FormData) {
         price: candidate.pricePence ?? null,
         currency: candidate.currency ?? "GBP",
         inStock: candidate.inStock ?? null,
-        source: "ai_search",
+        source: "ai_search" as const,
         rawPayload: candidate.rawPayload ?? null,
       })),
     );
