@@ -151,8 +151,9 @@ AIRequestLog
 - A custom domain is nice but not required — Resend's `onboarding@resend.dev` works for testing.
 
 ### 5.4 Hosting
-- **Vercel** free tier for the app + cron jobs.
-- **Neon** free Postgres tier.
+- **Primary deployment target:** **Docker Compose** (e.g. on a Raspberry Pi or any VPS) — see §7.1.
+- **Alternative:** Vercel + Neon (free tiers).
+- The DB driver (`postgres-js`) talks to either a Docker Postgres or Neon over standard wire protocol — no code change needed to switch.
 
 **Expected total monthly cost for v1: £0** (assuming Gemini free tier holds).
 
@@ -160,15 +161,16 @@ AIRequestLog
 
 ## 6. Tech stack
 
-- **Framework:** Next.js 15 (App Router) with server actions.
+- **Framework:** Next.js 15 (App Router) with server actions, **standalone output** for Docker.
 - **Language:** TypeScript.
-- **DB:** Postgres on Neon.
+- **DB:** Postgres (Docker locally / on Pi; Neon if deploying serverless).
+- **DB driver:** `postgres-js` (works with any Postgres).
 - **ORM:** Drizzle.
-- **Auth:** Auth.js with email magic link (single-user, but scaffolding supports multi).
+- **Auth:** Auth.js with email magic link (single-user via `ALLOWED_EMAIL`; scaffolding supports multi).
 - **Styling:** Tailwind + shadcn/ui.
-- **AI SDK:** `@google/genai`.
-- **Email:** `resend` SDK.
-- **Cron:** Vercel Cron → `/api/cron/reminders` daily.
+- **AI SDK:** `@google/genai` (Gemini, with Google Search grounding).
+- **Email:** `resend` SDK (used for both magic-link auth and reminder emails).
+- **Cron:** local cron / a long-running scheduler in the app container (Phase 4 detail). On Vercel deploys this becomes Vercel Cron.
 - **Locale defaults:** `en-GB`, `Europe/London`, GBP.
 
 ---
@@ -177,7 +179,7 @@ AIRequestLog
 
 ```
 ┌──────────────┐    ┌────────────────────┐
-│   Browser    │◀──▶│   Next.js (Vercel) │
+│   Browser    │◀──▶│   Next.js          │
 └──────────────┘    │  - UI (React)      │
                     │  - Server actions  │
                     │  - /api/cron/...   │
@@ -185,8 +187,8 @@ AIRequestLog
                        │      │      │
               ┌────────▼┐  ┌──▼──┐ ┌─▼────────┐
               │ Postgres│  │Gemini│ │ Resend   │
-              │  (Neon) │  │  +   │ │ (email)  │
-              └─────────┘  │Search│ └──────────┘
+              └─────────┘  │  +   │ │ (email)  │
+                           │Search│ └──────────┘
                            │ground│
                            └──────┘
                               │
@@ -194,6 +196,21 @@ AIRequestLog
                          │ eBay API │ (fallback)
                          └──────────┘
 ```
+
+### 7.1 Docker stack
+
+```
+docker compose
+├── db        postgres:16-alpine, volume-backed
+├── migrate   one-shot: applies Drizzle schema (drizzle-kit push), exits.
+│             app waits for service_completed_successfully.
+└── app       Next.js standalone, listens on :3000
+```
+
+`docker compose up -d` brings up db → migrate (one-shot) → app, in order.
+The migrate service uses the `migrator` target in the multi-stage Dockerfile,
+which has the full source + devDeps so `drizzle-kit` is available. The
+`runner` (app) stage is a minimal standalone image.
 
 ---
 
@@ -228,20 +245,32 @@ AIRequestLog
 
 ---
 
-## 11. Repo layout (when we build)
+## 11. Repo layout
 
 ```
 /app                Next.js app router
-  /(auth)           login, magic link
-  /people           list, [id] detail, new
-  /api/cron         reminder jobs
-  /api/ical         calendar feed (phase 5)
-/components         UI components (shadcn)
-/db                 Drizzle schema + migrations
+  /login            sign-in flow (magic link)
+  /people           list, [id] detail, new (Phase 1)
+  /api/auth/...     Auth.js handlers
+  /api/cron         reminder jobs (Phase 4)
+  /api/ical         calendar feed (Phase 5)
+/components         UI components (shadcn — added when needed)
+/db
+  index.ts          drizzle client (postgres-js)
+  schema.ts         tables + relations + enums
 /lib
-  /ai               Gemini client, prompts
-  /products         provider interface, gemini-grounded impl, ebay impl
-  /notify           email adapter (Resend)
-  /reminders        scheduling logic
-/docs               this folder
+  auth.ts           Auth.js v5 config
+  auth-handlers.ts  exported GET/POST for /api/auth route
+  cn.ts             tailwind class merge helper
+  /ai               Gemini client, prompts (Phase 2+)
+  /products         provider interface, gemini-grounded impl, ebay impl (Phase 2)
+  /notify           email adapter — Resend (Phase 4)
+  /reminders        scheduling logic (Phase 4)
+middleware.ts       redirects unauthenticated users to /login
+Dockerfile          multi-stage: deps → srcdeps → builder | migrator → runner
+docker-compose.yml  db + migrate (one-shot) + app
+drizzle.config.ts   schema location, dialect = postgresql
+/docs               DESIGN.md, DECISIONS.md, this dir
+README.md           quick-start
+CLAUDE.md           onboarding for future AI sessions
 ```
