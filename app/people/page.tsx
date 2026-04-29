@@ -1,10 +1,24 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { createPerson, deletePerson, listPeopleForCurrentUser, updatePerson } from "./actions";
+import {
+  createPerson,
+  createWishlistItem,
+  deletePerson,
+  deleteWishlistItem,
+  listPeopleForCurrentUser,
+  updatePerson,
+  updateWishlistItem,
+} from "./actions";
 
 function formatPence(value: number | null) {
   if (value === null) return "";
   return (value / 100).toFixed(2);
+}
+
+function getSizeValue(sizes: Record<string, string> | null, key: string) {
+  if (!sizes || typeof sizes !== "object") return "";
+  const value = sizes[key];
+  return typeof value === "string" ? value : "";
 }
 
 export default async function PeoplePage() {
@@ -41,6 +55,12 @@ export default async function PeoplePage() {
             placeholder="Relationship (optional)"
             className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
           />
+          <input
+            name="photoUrl"
+            type="url"
+            placeholder="Photo URL (optional)"
+            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          />
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -65,6 +85,31 @@ export default async function PeoplePage() {
             step="0.01"
             placeholder="Budget max (GBP)"
             className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          />
+          <input
+            name="sizeTop"
+            placeholder="Top size (optional)"
+            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          />
+          <input
+            name="sizeBottom"
+            placeholder="Bottom size (optional)"
+            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          />
+          <input
+            name="sizeShoe"
+            placeholder="Shoe size (optional)"
+            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          />
+          <input
+            name="sizeRing"
+            placeholder="Ring size (optional)"
+            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          />
+          <input
+            name="tags"
+            placeholder="Tags (comma separated)"
+            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 md:col-span-2"
           />
           <textarea
             name="notes"
@@ -120,6 +165,13 @@ export default async function PeoplePage() {
                   placeholder="Relationship (optional)"
                   className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
                 />
+                <input
+                  name="photoUrl"
+                  type="url"
+                  defaultValue={person.photoUrl ?? ""}
+                  placeholder="Photo URL (optional)"
+                  className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                />
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -146,6 +198,36 @@ export default async function PeoplePage() {
                   defaultValue={formatPence(person.budgetMax)}
                   placeholder="Budget max (GBP)"
                   className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                />
+                <input
+                  name="sizeTop"
+                  defaultValue={getSizeValue(person.sizes, "top")}
+                  placeholder="Top size (optional)"
+                  className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                />
+                <input
+                  name="sizeBottom"
+                  defaultValue={getSizeValue(person.sizes, "bottom")}
+                  placeholder="Bottom size (optional)"
+                  className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                />
+                <input
+                  name="sizeShoe"
+                  defaultValue={getSizeValue(person.sizes, "shoe")}
+                  placeholder="Shoe size (optional)"
+                  className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                />
+                <input
+                  name="sizeRing"
+                  defaultValue={getSizeValue(person.sizes, "ring")}
+                  placeholder="Ring size (optional)"
+                  className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                />
+                <input
+                  name="tags"
+                  defaultValue={person.tags.join(", ")}
+                  placeholder="Tags (comma separated)"
+                  className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 md:col-span-2"
                 />
                 <textarea
                   name="notes"
@@ -179,6 +261,143 @@ export default async function PeoplePage() {
                   Delete
                 </button>
               </form>
+
+              <div className="mt-5 border-t border-neutral-200 pt-5 dark:border-neutral-800">
+                <h3 className="text-sm font-semibold">Wishlist</h3>
+                <form action={createWishlistItem} className="mt-3 grid gap-2 md:grid-cols-2">
+                  <input type="hidden" name="personId" value={person.id} />
+                  <input
+                    name="description"
+                    required
+                    placeholder="What they want"
+                    className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 md:col-span-2"
+                  />
+                  <input
+                    name="sourceNote"
+                    placeholder="Source note (where/when you heard it)"
+                    className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 md:col-span-2"
+                  />
+                  <input
+                    name="heardOn"
+                    type="date"
+                    className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                  />
+                  <select
+                    name="status"
+                    defaultValue="idea"
+                    className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                  >
+                    <option value="idea">idea</option>
+                    <option value="researching">researching</option>
+                    <option value="chosen">chosen</option>
+                    <option value="purchased">purchased</option>
+                    <option value="given">given</option>
+                  </select>
+                  <input
+                    name="priceMin"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Price min (GBP)"
+                    className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                  />
+                  <input
+                    name="priceMax"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Price max (GBP)"
+                    className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                  />
+                  <button
+                    type="submit"
+                    className="w-fit rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 md:col-span-2"
+                  >
+                    Add wishlist item
+                  </button>
+                </form>
+
+                {person.wishlist.length === 0 ? (
+                  <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">
+                    No wishlist items yet.
+                  </p>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    {person.wishlist.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
+                      >
+                        <form action={updateWishlistItem} className="grid gap-2 md:grid-cols-2">
+                          <input type="hidden" name="wishlistItemId" value={item.id} />
+                          <input
+                            name="description"
+                            required
+                            defaultValue={item.description}
+                            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 md:col-span-2"
+                          />
+                          <input
+                            name="sourceNote"
+                            defaultValue={item.sourceNote ?? ""}
+                            placeholder="Source note"
+                            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 md:col-span-2"
+                          />
+                          <input
+                            name="heardOn"
+                            type="date"
+                            defaultValue={item.heardOn ?? ""}
+                            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                          />
+                          <select
+                            name="status"
+                            defaultValue={item.status}
+                            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                          >
+                            <option value="idea">idea</option>
+                            <option value="researching">researching</option>
+                            <option value="chosen">chosen</option>
+                            <option value="purchased">purchased</option>
+                            <option value="given">given</option>
+                          </select>
+                          <input
+                            name="priceMin"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            defaultValue={formatPence(item.priceMin)}
+                            placeholder="Price min (GBP)"
+                            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                          />
+                          <input
+                            name="priceMax"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            defaultValue={formatPence(item.priceMax)}
+                            placeholder="Price max (GBP)"
+                            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                          />
+                          <button
+                            type="submit"
+                            className="w-fit rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 md:col-span-2"
+                          >
+                            Update item
+                          </button>
+                        </form>
+                        <form action={deleteWishlistItem} className="mt-2">
+                          <input type="hidden" name="wishlistItemId" value={item.id} />
+                          <button
+                            type="submit"
+                            className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+                          >
+                            Delete item
+                          </button>
+                        </form>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </article>
           ))
         )}
