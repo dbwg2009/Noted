@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import {
   addManualProduct,
@@ -33,6 +34,15 @@ export default async function PeoplePage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
   const rows = await listPeopleForCurrentUser();
+  const flashRaw = (await cookies()).get("people_flash")?.value;
+  let flash: { message: string; tone: "success" | "warning" | "error" } | null = null;
+  if (flashRaw) {
+    try {
+      flash = JSON.parse(flashRaw) as { message: string; tone: "success" | "warning" | "error" };
+    } catch {
+      flash = null;
+    }
+  }
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
@@ -41,6 +51,19 @@ export default async function PeoplePage() {
         <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
           Track birthdays, budgets, and useful notes for each person.
         </p>
+        {flash && (
+          <p
+            className={`mt-3 rounded-md border px-3 py-2 text-sm ${
+              flash.tone === "success"
+                ? "border-green-300 bg-green-50 text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-200"
+                : flash.tone === "warning"
+                  ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                  : "border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+            }`}
+          >
+            {flash.message}
+          </p>
+        )}
       </div>
 
       <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
