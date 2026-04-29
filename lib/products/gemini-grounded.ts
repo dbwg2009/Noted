@@ -76,8 +76,7 @@ Output schema:
     },
   });
 
-  const text =
-    typeof response.text === "function" ? await response.text() : String(response.text ?? "");
+  const text = String(response.text ?? "");
   const parsed = productsSchema.parse(JSON.parse(extractJsonArray(text)));
 
   return parsed.map((product) => ({
