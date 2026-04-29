@@ -19,10 +19,30 @@ Next.js 15 (App Router) · TypeScript · Postgres (Neon) · Drizzle · Auth.js (
 
 ## Local dev
 
+### Option A: Docker (recommended)
+
+Brings up the app + a Postgres container.
+
 ```bash
-cp .env.example .env.local   # fill in the values
+cp .env.example .env         # fill in AUTH_SECRET, RESEND_API_KEY, ALLOWED_EMAIL, GEMINI_API_KEY
+# (DATABASE_URL is set by docker-compose itself — leave it blank in .env)
+
+docker compose up --build -d
+
+# apply schema to the dockerised DB the first time:
+docker compose exec app npx drizzle-kit push
+
+# open http://localhost:3000
+```
+
+Generate `AUTH_SECRET` with `openssl rand -base64 32`.
+
+### Option B: Native Node
+
+```bash
+cp .env.example .env.local   # fill in everything, including DATABASE_URL
 npm install
-npm run db:push              # apply schema to your local/Neon DB
+npm run db:push
 npm run dev
 ```
 
