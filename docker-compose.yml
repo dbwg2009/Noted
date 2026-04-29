@@ -43,7 +43,10 @@ services:
       RESEND_API_KEY: "${RESEND_API_KEY:?RESEND_API_KEY is required}"
       EMAIL_FROM: "${EMAIL_FROM:-Birthday Gift Finder <onboarding@resend.dev>}"
       ALLOWED_EMAIL: "${ALLOWED_EMAIL:?ALLOWED_EMAIL is required}"
-      GEMINI_API_KEY: "${GEMINI_API_KEY:?GEMINI_API_KEY is required}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:?OPENROUTER_API_KEY is required}"
+      OPENROUTER_MODEL: "${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct:free}"
+      OPENROUTER_REFERER: "${OPENROUTER_REFERER:-http://localhost:3000}"
+      OPENROUTER_APP_NAME: "${OPENROUTER_APP_NAME:-Birthday Gift Finder}"
       EBAY_APP_ID: "${EBAY_APP_ID:-}"
     ports:
       - "3000:3000"

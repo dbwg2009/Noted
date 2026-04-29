@@ -1,7 +1,8 @@
 "use server";
 
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
@@ -220,6 +221,10 @@ export async function createPerson(formData: FormData) {
   }
 
   revalidatePath("/people");
+  revalidatePath("/");
+  if (created) {
+    redirect(`/people/${created.id}`);
+  }
 }
 
 export async function updatePerson(formData: FormData) {
@@ -254,6 +259,7 @@ export async function updatePerson(formData: FormData) {
   await syncTagsForPerson(userId, personId, formData.get("tags"));
 
   revalidatePath("/people");
+  revalidatePath("/");
 }
 
 export async function deletePerson(formData: FormData) {
@@ -267,6 +273,8 @@ export async function deletePerson(formData: FormData) {
 
   await db.delete(people).where(and(eq(people.id, personId), eq(people.userId, userId)));
   revalidatePath("/people");
+  revalidatePath("/");
+  redirect("/people");
 }
 
 export async function createWishlistItem(formData: FormData) {
@@ -289,6 +297,7 @@ export async function createWishlistItem(formData: FormData) {
   });
 
   revalidatePath("/people");
+  revalidatePath("/");
 }
 
 export async function updateWishlistItem(formData: FormData) {
@@ -313,6 +322,7 @@ export async function updateWishlistItem(formData: FormData) {
     .where(eq(wishlistItems.id, wishlistItemId));
 
   revalidatePath("/people");
+  revalidatePath("/");
 }
 
 export async function deleteWishlistItem(formData: FormData) {
@@ -324,6 +334,7 @@ export async function deleteWishlistItem(formData: FormData) {
 
   await db.delete(wishlistItems).where(eq(wishlistItems.id, wishlistItemId));
   revalidatePath("/people");
+  revalidatePath("/");
 }
 
 export async function findProductsForWishlistItem(formData: FormData) {
@@ -351,7 +362,7 @@ export async function findProductsForWishlistItem(formData: FormData) {
     avoid: context.avoid,
     tags: context.tags,
   });
-  const { candidates, geminiQuotaHit } = searchResult;
+  const { candidates, llmQuotaHit } = searchResult;
 
   if (candidates.length > 0) {
     await db.insert(products).values(
@@ -371,16 +382,16 @@ export async function findProductsForWishlistItem(formData: FormData) {
       })),
     );
     await setPeopleFlash(
-      geminiQuotaHit
-        ? `Gemini quota is exhausted right now; fallback saved ${candidates.length} product result(s).`
+      llmQuotaHit
+        ? `LLM quota is exhausted right now; fallback saved ${candidates.length} product result(s).`
         : `Saved ${candidates.length} product result(s).`,
-      geminiQuotaHit ? "warning" : "success",
+      llmQuotaHit ? "warning" : "success",
     );
-  } else if (!geminiQuotaHit) {
+  } else if (!llmQuotaHit) {
     await setPeopleFlash("No product matches were found this time.", "warning");
   } else {
     await setPeopleFlash(
-      "Gemini quota is currently exhausted and fallback search returned no results.",
+      "LLM quota is currently exhausted and fallback search returned no results.",
       "warning",
     );
   }
@@ -394,6 +405,7 @@ export async function findProductsForWishlistItem(formData: FormData) {
   });
 
   revalidatePath("/people");
+  revalidatePath("/");
 }
 
 export async function addManualProduct(formData: FormData) {
@@ -420,6 +432,7 @@ export async function addManualProduct(formData: FormData) {
   });
 
   revalidatePath("/people");
+  revalidatePath("/");
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -438,75 +451,6 @@ export async function deleteProduct(formData: FormData) {
 
   await db.delete(products).where(eq(products.id, productId));
   revalidatePath("/people");
+  revalidatePath("/");
 }
 
-export async function listPeopleForCurrentUser() {
-  const userId = await requireCurrentUserId();
-  const personRows = await db
-    .select()
-    .from(people)
-    .where(eq(people.userId, userId))
-    .orderBy(desc(people.createdAt));
-
-  if (personRows.length === 0) return [];
-
-  const personIds = personRows.map((person) => person.id);
-
-  const [tagRows, wishlistRows] = await Promise.all([
-    db
-      .select({
-        personId: personTags.personId,
-        name: tags.name,
-      })
-      .from(personTags)
-      .innerJoin(tags, eq(personTags.tagId, tags.id))
-      .where(and(inArray(personTags.personId, personIds), eq(tags.userId, userId)))
-      .orderBy(asc(tags.name)),
-    db
-      .select()
-      .from(wishlistItems)
-      .where(inArray(wishlistItems.personId, personIds))
-      .orderBy(desc(wishlistItems.createdAt)),
-  ]);
-
-  const wishlistIds = wishlistRows.map((item) => item.id);
-  const productRows =
-    wishlistIds.length === 0
-      ? []
-      : await db
-          .select()
-          .from(products)
-          .where(inArray(products.wishlistItemId, wishlistIds))
-          .orderBy(desc(products.createdAt));
-
-  const tagsByPerson = new Map<string, string[]>();
-  for (const row of tagRows) {
-    const current = tagsByPerson.get(row.personId) ?? [];
-    current.push(row.name);
-    tagsByPerson.set(row.personId, current);
-  }
-
-  const wishlistByPerson = new Map<string, typeof wishlistRows>();
-  for (const row of wishlistRows) {
-    const current = wishlistByPerson.get(row.personId) ?? [];
-    current.push(row);
-    wishlistByPerson.set(row.personId, current);
-  }
-
-  const productsByWishlist = new Map<string, typeof productRows>();
-  for (const row of productRows) {
-    if (!row.wishlistItemId) continue;
-    const current = productsByWishlist.get(row.wishlistItemId) ?? [];
-    current.push(row);
-    productsByWishlist.set(row.wishlistItemId, current);
-  }
-
-  return personRows.map((person) => ({
-    ...person,
-    tags: tagsByPerson.get(person.id) ?? [],
-    wishlist: (wishlistByPerson.get(person.id) ?? []).map((item) => ({
-      ...item,
-      products: productsByWishlist.get(item.id) ?? [],
-    })),
-  }));
-}
