@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import {
+  addManualProduct,
   createPerson,
   createWishlistItem,
   deletePerson,
+  deleteProduct,
   deleteWishlistItem,
+  findProductsForWishlistItem,
   listPeopleForCurrentUser,
   updatePerson,
   updateWishlistItem,
@@ -19,6 +22,11 @@ function getSizeValue(sizes: Record<string, string> | null, key: string) {
   if (!sizes || typeof sizes !== "object") return "";
   const value = sizes[key];
   return typeof value === "string" ? value : "";
+}
+
+function poundsFromPence(value: number | null) {
+  if (value === null) return null;
+  return `£${(value / 100).toFixed(2)}`;
 }
 
 export default async function PeoplePage() {
@@ -393,6 +401,95 @@ export default async function PeoplePage() {
                             Delete item
                           </button>
                         </form>
+
+                        <div className="mt-3 border-t border-neutral-200 pt-3 dark:border-neutral-800">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <form action={findProductsForWishlistItem}>
+                              <input type="hidden" name="wishlistItemId" value={item.id} />
+                              <button
+                                type="submit"
+                                className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
+                              >
+                                Find products (AI)
+                              </button>
+                            </form>
+                          </div>
+
+                          <form action={addManualProduct} className="mt-3 grid gap-2 md:grid-cols-4">
+                            <input type="hidden" name="wishlistItemId" value={item.id} />
+                            <input
+                              name="title"
+                              required
+                              placeholder="Manual product title"
+                              className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 md:col-span-2"
+                            />
+                            <input
+                              name="url"
+                              type="url"
+                              required
+                              placeholder="https://..."
+                              className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 md:col-span-2"
+                            />
+                            <input
+                              name="retailer"
+                              placeholder="Retailer (optional)"
+                              className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                            />
+                            <input
+                              name="price"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="Price GBP"
+                              className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                            />
+                            <button
+                              type="submit"
+                              className="w-fit rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900 md:col-span-2"
+                            >
+                              Save manual product
+                            </button>
+                          </form>
+
+                          {item.products.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {item.products.map((product) => (
+                                <div
+                                  key={product.id}
+                                  className="rounded-md border border-neutral-200 p-3 dark:border-neutral-800"
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <a
+                                      href={product.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-sm font-medium text-blue-700 hover:underline dark:text-blue-300"
+                                    >
+                                      {product.title}
+                                    </a>
+                                    <span className="text-xs text-neutral-600 dark:text-neutral-400">
+                                      {product.source === "ai_search" ? "AI" : "Manual"}
+                                    </span>
+                                  </div>
+                                  <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
+                                    {[product.retailer ?? "Unknown retailer", poundsFromPence(product.price)]
+                                      .filter(Boolean)
+                                      .join(" • ")}
+                                  </p>
+                                  <form action={deleteProduct} className="mt-2">
+                                    <input type="hidden" name="productId" value={product.id} />
+                                    <button
+                                      type="submit"
+                                      className="rounded-md border border-red-300 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+                                    >
+                                      Remove product
+                                    </button>
+                                  </form>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
