@@ -2,7 +2,7 @@
 
 A personal web app to track friends' and family members' birthdays, manage gift ideas, and use AI to find products online (with prices + links), suggest gifts, and remind you before birthdays.
 
-> Status: **Phase 0 complete** (scaffolding + Docker stack). Phase 1 (people + wishlist CRUD) is next. See `docs/DESIGN.md` for the design, `docs/DECISIONS.md` for locked decisions, and `CLAUDE.md` if you're an AI agent picking this up.
+> Status: **scaffolding** (Phase 0). See `docs/DESIGN.md` for the design and `docs/DECISIONS.md` for locked decisions.
 
 ## At a glance
 
@@ -21,20 +21,21 @@ Next.js 15 (App Router) · TypeScript · Postgres (Neon) · Drizzle · Auth.js (
 
 ### Option A: Docker (recommended)
 
-Brings up the app + a Postgres container. Schema migrations run automatically.
+Brings up the app + a Postgres container.
 
 ```bash
 cp .env.example .env         # fill in AUTH_SECRET, RESEND_API_KEY, ALLOWED_EMAIL, GEMINI_API_KEY
 # (DATABASE_URL is set by docker-compose itself — leave it blank in .env)
 
 docker compose up --build -d
-# starts: db → migrate (one-shot, applies schema) → app
+
+# apply schema to the dockerised DB the first time:
+docker compose exec app npx drizzle-kit push
+
 # open http://localhost:3000
 ```
 
 Generate `AUTH_SECRET` with `openssl rand -base64 32`.
-
-To re-apply schema later (after schema changes), the `migrate` service runs again on every `docker compose up`.
 
 ### Option B: Native Node
 
