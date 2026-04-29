@@ -5,13 +5,16 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import {
+  aiRequestLog,
   people,
   personTags,
+  products,
   tags,
   users,
   wishlistItems,
   wishlistStatus,
 } from "@/db/schema";
+import { searchProducts } from "@/lib/products/search";
 
 function parseDate(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || !value) return null;
@@ -131,6 +134,40 @@ async function wishlistBelongsToUser(wishlistItemId: string, userId: string) {
     .where(and(eq(wishlistItems.id, wishlistItemId), eq(people.userId, userId)))
     .limit(1);
   return row?.id === wishlistItemId;
+}
+
+async function getWishlistContextForSearch(wishlistItemId: string, userId: string) {
+  const [row] = await db
+    .select({
+      wishlistItemId: wishlistItems.id,
+      wishlistDescription: wishlistItems.description,
+      sourceNote: wishlistItems.sourceNote,
+      personId: people.id,
+      personName: people.name,
+      relationship: people.relationship,
+      budgetMin: people.budgetMin,
+      budgetMax: people.budgetMax,
+      sizes: people.sizes,
+      avoid: people.avoid,
+    })
+    .from(wishlistItems)
+    .innerJoin(people, eq(wishlistItems.personId, people.id))
+    .where(and(eq(wishlistItems.id, wishlistItemId), eq(people.userId, userId)))
+    .limit(1);
+
+  if (!row) return null;
+
+  const tagRows = await db
+    .select({ name: tags.name })
+    .from(personTags)
+    .innerJoin(tags, eq(personTags.tagId, tags.id))
+    .where(and(eq(personTags.personId, row.personId), eq(tags.userId, userId)))
+    .orderBy(asc(tags.name));
+
+  return {
+    ...row,
+    tags: tagRows.map((tag) => tag.name),
+  };
 }
 
 export async function createPerson(formData: FormData) {
@@ -272,6 +309,100 @@ export async function deleteWishlistItem(formData: FormData) {
   revalidatePath("/people");
 }
 
+export async function findProductsForWishlistItem(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const wishlistItemId = String(formData.get("wishlistItemId") ?? "");
+  if (!wishlistItemId) return;
+
+  const context = await getWishlistContextForSearch(wishlistItemId, userId);
+  if (!context) return;
+
+  const candidates = await searchProducts({
+    wishlistDescription: context.wishlistDescription,
+    sourceNote: context.sourceNote,
+    personName: context.personName,
+    relationship: context.relationship,
+    budgetMin: context.budgetMin,
+    budgetMax: context.budgetMax,
+    sizes: context.sizes,
+    avoid: context.avoid,
+    tags: context.tags,
+  });
+
+  if (candidates.length > 0) {
+    await db.insert(products).values(
+      candidates.map((candidate) => ({
+        wishlistItemId: context.wishlistItemId,
+        personId: context.personId,
+        title: candidate.title,
+        description: candidate.description ?? null,
+        imageUrl: candidate.imageUrl ?? null,
+        retailer: candidate.retailer ?? null,
+        url: candidate.url,
+        price: candidate.pricePence ?? null,
+        currency: candidate.currency ?? "GBP",
+        inStock: candidate.inStock ?? null,
+        source: "ai_search",
+        rawPayload: candidate.rawPayload ?? null,
+      })),
+    );
+  }
+
+  await db.insert(aiRequestLog).values({
+    userId,
+    kind: "product_search",
+    promptTokens: null,
+    completionTokens: null,
+    costEstimate: null,
+  });
+
+  revalidatePath("/people");
+}
+
+export async function addManualProduct(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const wishlistItemId = String(formData.get("wishlistItemId") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const url = String(formData.get("url") ?? "").trim();
+  const retailer = String(formData.get("retailer") ?? "").trim();
+  const pricePence = parseMoneyToPence(formData.get("price"));
+
+  if (!wishlistItemId || !title || !url) return;
+  const context = await getWishlistContextForSearch(wishlistItemId, userId);
+  if (!context) return;
+
+  await db.insert(products).values({
+    wishlistItemId,
+    personId: context.personId,
+    title,
+    url,
+    retailer: retailer || null,
+    price: pricePence,
+    currency: "GBP",
+    source: "manual",
+  });
+
+  revalidatePath("/people");
+}
+
+export async function deleteProduct(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const productId = String(formData.get("productId") ?? "");
+  if (!productId) return;
+
+  const [row] = await db
+    .select({ id: products.id })
+    .from(products)
+    .innerJoin(people, eq(products.personId, people.id))
+    .where(and(eq(products.id, productId), eq(people.userId, userId)))
+    .limit(1);
+
+  if (!row) return;
+
+  await db.delete(products).where(eq(products.id, productId));
+  revalidatePath("/people");
+}
+
 export async function listPeopleForCurrentUser() {
   const userId = await requireCurrentUserId();
   const personRows = await db
@@ -301,6 +432,16 @@ export async function listPeopleForCurrentUser() {
       .orderBy(desc(wishlistItems.createdAt)),
   ]);
 
+  const wishlistIds = wishlistRows.map((item) => item.id);
+  const productRows =
+    wishlistIds.length === 0
+      ? []
+      : await db
+          .select()
+          .from(products)
+          .where(inArray(products.wishlistItemId, wishlistIds))
+          .orderBy(desc(products.createdAt));
+
   const tagsByPerson = new Map<string, string[]>();
   for (const row of tagRows) {
     const current = tagsByPerson.get(row.personId) ?? [];
@@ -315,9 +456,20 @@ export async function listPeopleForCurrentUser() {
     wishlistByPerson.set(row.personId, current);
   }
 
+  const productsByWishlist = new Map<string, typeof productRows>();
+  for (const row of productRows) {
+    if (!row.wishlistItemId) continue;
+    const current = productsByWishlist.get(row.wishlistItemId) ?? [];
+    current.push(row);
+    productsByWishlist.set(row.wishlistItemId, current);
+  }
+
   return personRows.map((person) => ({
     ...person,
     tags: tagsByPerson.get(person.id) ?? [],
-    wishlist: wishlistByPerson.get(person.id) ?? [],
+    wishlist: (wishlistByPerson.get(person.id) ?? []).map((item) => ({
+      ...item,
+      products: productsByWishlist.get(item.id) ?? [],
+    })),
   }));
 }
