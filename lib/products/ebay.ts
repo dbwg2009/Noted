@@ -1,14 +1,24 @@
 import type { ProductCandidate, ProductSearchContext } from "./types";
 
 type EbayBrowseResponse = {
-  itemSummaries?: Array<{
-    title?: string;
-    itemWebUrl?: string;
-    image?: { imageUrl?: string };
-    price?: { value?: string; currency?: string };
-    condition?: string;
+  findItemsByKeywordsResponse?: Array<{
+    searchResult?: Array<{
+      item?: Array<{
+        title?: string[];
+        viewItemURL?: string[];
+        galleryURL?: string[];
+        sellingStatus?: Array<{
+          currentPrice?: Array<{ __value__?: string; "@currencyId"?: string }>;
+        }>;
+        condition?: Array<{ conditionDisplayName?: string[] }>;
+      }>;
+    }>;
   }>;
 };
+
+function first<T>(value: T[] | undefined) {
+  return Array.isArray(value) ? value[0] : undefined;
+}
 
 function parsePence(value: string | undefined, currency: string | undefined) {
   if (!value) return null;
@@ -23,34 +33,29 @@ export async function searchProductsWithEbay(context: ProductSearchContext): Pro
   if (!appId) return [];
 
   const query = encodeURIComponent(context.wishlistDescription);
-  const endpoint = `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${query}&limit=8&filter=buyingOptions:{FIXED_PRICE}`;
-
-  const response = await fetch(endpoint, {
-    headers: {
-      Authorization: `Bearer ${appId}`,
-      "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB",
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    return [];
-  }
+  const endpoint = `https://svcs.ebay.com/services/search/FindingService/v1?OPERATION-NAME=findItemsByKeywords&SERVICE-VERSION=1.0.0&SECURITY-APPNAME=${encodeURIComponent(
+    appId,
+  )}&RESPONSE-DATA-FORMAT=JSON&REST-PAYLOAD&GLOBAL-ID=EBAY-GB&paginationInput.entriesPerPage=8&itemFilter(0).name=ListingType&itemFilter(0).value=FixedPrice&keywords=${query}`;
+  const response = await fetch(endpoint, { cache: "no-store" });
+  if (!response.ok) return [];
 
   const payload = (await response.json()) as EbayBrowseResponse;
-  const summaries = payload.itemSummaries ?? [];
+  const items = first(first(payload.findItemsByKeywordsResponse)?.searchResult)?.item ?? [];
 
-  return summaries
-    .map((item) => ({
-      title: item.title ?? "",
-      description: item.condition ?? null,
-      retailer: "eBay",
-      url: item.itemWebUrl ?? "",
-      imageUrl: item.image?.imageUrl ?? null,
-      pricePence: parsePence(item.price?.value, item.price?.currency),
-      currency: item.price?.currency ?? "GBP",
-      inStock: true,
-      rawPayload: item,
-    }))
+  return items
+    .map((item) => {
+      const currentPrice = first(first(item.sellingStatus)?.currentPrice);
+      return {
+        title: first(item.title) ?? "",
+        description: first(first(item.condition)?.conditionDisplayName) ?? null,
+        retailer: "eBay",
+        url: first(item.viewItemURL) ?? "",
+        imageUrl: first(item.galleryURL) ?? null,
+        pricePence: parsePence(currentPrice?.__value__, currentPrice?.["@currencyId"]),
+        currency: currentPrice?.["@currencyId"] ?? "GBP",
+        inStock: true,
+        rawPayload: item,
+      };
+    })
     .filter((item) => item.title && item.url);
 }
