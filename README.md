@@ -2,7 +2,7 @@
 
 A personal web app to track friends' and family members' birthdays, manage gift ideas, and use AI to find products online (with prices + links), suggest gifts, and remind you before birthdays.
 
-> Status: **planning only**. No code yet. See `docs/DESIGN.md` for the full plan and `docs/QUESTIONS.md` for open decisions.
+> Status: **scaffolding** (Phase 0). See `docs/DESIGN.md` for the design and `docs/DECISIONS.md` for locked decisions.
 
 ## At a glance
 
@@ -13,6 +13,17 @@ A personal web app to track friends' and family members' birthdays, manage gift 
 - **Manual entry** fallback for everything AI does
 - **Reminders** ahead of each birthday, with budget-aware suggestions
 
-## Next step
+## Stack
 
-Read `docs/QUESTIONS.md` and answer the open questions so we can lock the tech stack and start building.
+Next.js 15 (App Router) · TypeScript · Postgres (Neon) · Drizzle · Auth.js (email magic link) · Tailwind + shadcn/ui · Gemini (with Google Search grounding) · Resend (email reminders) · Vercel.
+
+## Local dev
+
+```bash
+cp .env.example .env.local   # fill in the values
+npm install
+npm run db:push              # apply schema to your local/Neon DB
+npm run dev
+```
+
+Required env vars are listed in `.env.example`.
