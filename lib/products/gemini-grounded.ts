@@ -1,3 +1,4 @@
+import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import type { ProductCandidate, ProductSearchContext } from "./types";
 
@@ -33,14 +34,6 @@ export async function searchProductsWithGemini(context: ProductSearchContext): P
   if (!process.env.GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY is not configured");
   }
-
-  const { GoogleGenAI } = (await import("@google/genai")) as {
-    GoogleGenAI: new (args: { apiKey: string }) => {
-      models: {
-        generateContent: (args: Record<string, unknown>) => Promise<Record<string, unknown>>;
-      };
-    };
-  };
 
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
