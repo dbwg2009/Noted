@@ -118,10 +118,9 @@ export async function suggestGiftsForPerson(ctx: SuggestionContext): Promise<Sug
       temperature: 0.7,
       messages: [
         {
-          role: "system",
-          content: "You output ONLY valid JSON arrays. No code fences, no commentary.",
+          role: "user",
+          content: `Reply with ONLY a valid JSON array. No prose, no markdown, no code fences.\n\n${buildPrompt(ctx)}`,
         },
-        { role: "user", content: buildPrompt(ctx) },
       ],
     }),
     cache: "no-store",
