@@ -5,6 +5,7 @@ import {
   people,
   personTags,
   products,
+  reminders,
   suggestions,
   tags,
   users,
@@ -57,7 +58,7 @@ export async function getPersonDetail(personId: string, userId: string) {
     .limit(1);
   if (!person) return null;
 
-  const [tagRows, wishlistRows, suggestionRows, historyRows] = await Promise.all([
+  const [tagRows, wishlistRows, suggestionRows, historyRows, reminderRows] = await Promise.all([
     db
       .select({ name: tags.name })
       .from(personTags)
@@ -67,6 +68,7 @@ export async function getPersonDetail(personId: string, userId: string) {
     db.select().from(wishlistItems).where(eq(wishlistItems.personId, personId)).orderBy(desc(wishlistItems.createdAt)),
     db.select().from(suggestions).where(eq(suggestions.personId, personId)).orderBy(desc(suggestions.createdAt)),
     db.select().from(giftHistory).where(eq(giftHistory.personId, personId)).orderBy(desc(giftHistory.givenOn)),
+    db.select().from(reminders).where(eq(reminders.personId, personId)).orderBy(asc(reminders.leadDays)),
   ]);
 
   const wishlistIds = wishlistRows.map((w) => w.id);
@@ -98,5 +100,6 @@ export async function getPersonDetail(personId: string, userId: string) {
     })),
     suggestions: suggestionRows,
     history: historyRows,
+    reminders: reminderRows,
   };
 }

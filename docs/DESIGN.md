@@ -208,13 +208,17 @@ docker compose
 ├── db        postgres:16-alpine, volume-backed
 ├── migrate   one-shot: applies Drizzle schema (drizzle-kit push), exits.
 │             app waits for service_completed_successfully.
-└── app       Next.js standalone, listens on :3000
+├── app       Next.js standalone, listens on :3000
+└── cron      curlimages/curl, polls /api/cron/reminders every
+             CRON_INTERVAL_SECONDS (default 86400 = once daily)
 ```
 
-`docker compose up -d` brings up db → migrate (one-shot) → app, in order.
-The migrate service uses the `migrator` target in the multi-stage Dockerfile,
-which has the full source + devDeps so `drizzle-kit` is available. The
-`runner` (app) stage is a minimal standalone image.
+`docker compose up -d` brings up db → migrate (one-shot) → app → cron, in
+order. The migrate service uses the `migrator` target in the multi-stage
+Dockerfile, which has the full source + devDeps so `drizzle-kit` is
+available. The `runner` (app) stage is a minimal standalone image. The
+`cron` service is a tiny image whose only job is to hit the reminders
+endpoint with the `CRON_SECRET` bearer token on a schedule.
 
 ---
 
@@ -244,7 +248,7 @@ which has the full source + devDeps so `drizzle-kit` is available. The
 | 1 | People CRUD, tags, sizes, notes, photos, wishlist CRUD with status workflow + source notes | **done** |
 | 2 | OpenRouter LLM product lookup + eBay fallback + manual entry polish | **done** |
 | 3 | Suggestions + gift history with reaction notes | **done** |
-| 4 | Email reminders via Resend + Vercel Cron + budget-aware shortlist | 1 day |
+| 4 | Email reminders via Resend + cron sidecar + budget-aware shortlist | **done** |
 | 5 | iCal feed export, mobile polish, photo uploads | ongoing |
 
 ---
@@ -268,7 +272,7 @@ which has the full source + devDeps so `drizzle-kit` is available. The
     /new            add-person form (page.tsx)
     /[id]           person detail: header, notes, wishlist UI, settings
   /api/auth/...     Auth.js handlers
-  /api/cron         reminder jobs (Phase 4)
+  /api/cron         reminder jobs (POST/GET /reminders, requires CRON_SECRET)
   /api/ical         calendar feed (Phase 5)
 /components
   nav.tsx           top nav bar (rendered in root layout)
@@ -283,6 +287,8 @@ which has the full source + devDeps so `drizzle-kit` is available. The
   birthdays.ts      date math: parseBirthday, daysUntil, ageOnNextBirthday, formatBirthday
   people-queries.ts read queries: requireCurrentUserId, listPeopleSummary, getPersonDetail
   suggestions.ts    OpenRouter call for "Suggest gifts" (Phase 3)
+  reminders.ts      Phase 4: findDueReminders, buildShortlist, runDailyReminders, ensureDefaultReminders, sendReminderForPersonNow
+  /notify           email.ts (Resend wrapper, HTML+text digest renderer)
   /products         openrouter.ts, ebay.ts, search.ts (orchestrator), types.ts
   /notify           email adapter — Resend (Phase 4)
   /reminders        scheduling logic (Phase 4)

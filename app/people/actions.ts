@@ -20,6 +20,7 @@ import {
 } from "@/db/schema";
 import { searchProducts } from "@/lib/products/search";
 import { suggestGiftsForPerson } from "@/lib/suggestions";
+import { ensureDefaultReminders, sendReminderForPersonNow } from "@/lib/reminders";
 
 type PeopleFlashTone = "success" | "warning" | "error";
 
@@ -225,6 +226,7 @@ export async function createPerson(formData: FormData) {
 
   if (created) {
     await syncTagsForPerson(userId, created.id, formData.get("tags"));
+    await ensureDefaultReminders(created.id);
   }
 
   revalidatePath("/people");
@@ -701,4 +703,32 @@ export async function deleteGiftHistoryEntry(formData: FormData) {
 
   await db.delete(giftHistory).where(eq(giftHistory.id, historyId));
   revalidatePath(`/people/${row.personId}`);
+}
+
+// --- Phase 4: reminders ---
+
+export async function sendTestReminder(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const personId = String(formData.get("personId") ?? "");
+  if (!personId) return;
+  if (!(await personBelongsToUser(personId, userId))) return;
+
+  try {
+    await sendReminderForPersonNow(personId);
+    await setPeopleFlash("Test reminder email sent.", "success");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Test reminder failed:", error);
+    await setPeopleFlash(`Could not send test email: ${truncate(message, 160)}`, "error");
+  }
+  revalidatePath(`/people/${personId}`);
+}
+
+export async function backfillDefaultReminders(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const personId = String(formData.get("personId") ?? "");
+  if (!personId) return;
+  if (!(await personBelongsToUser(personId, userId))) return;
+  await ensureDefaultReminders(personId);
+  revalidatePath(`/people/${personId}`);
 }
