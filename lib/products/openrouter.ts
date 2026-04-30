@@ -97,7 +97,12 @@ export async function searchProductsWithOpenRouter(
 
   if (!response.ok) {
     const errBody = await response.text().catch(() => "");
-    throw new Error(`OpenRouter ${response.status}: ${errBody.slice(0, 200)}`);
+    console.error("OpenRouter HTTP error", {
+      status: response.status,
+      model,
+      bodySnippet: errBody.slice(0, 500),
+    });
+    throw new Error(`OpenRouter HTTP ${response.status}: ${errBody.slice(0, 200) || response.statusText}`);
   }
 
   const payload = (await response.json()) as {

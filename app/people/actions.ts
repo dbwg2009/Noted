@@ -23,6 +23,10 @@ import { suggestGiftsForPerson } from "@/lib/suggestions";
 
 type PeopleFlashTone = "success" | "warning" | "error";
 
+function truncate(value: string, max: number) {
+  return value.length <= max ? value : `${value.slice(0, max - 1)}…`;
+}
+
 async function setPeopleFlash(message: string, tone: PeopleFlashTone) {
   const store = await cookies();
   store.set(
@@ -365,7 +369,7 @@ export async function findProductsForWishlistItem(formData: FormData) {
     avoid: context.avoid,
     tags: context.tags,
   });
-  const { candidates, llmQuotaHit } = searchResult;
+  const { candidates, llmRateLimited, llmError, ebayConfigured, ebayError } = searchResult;
 
   if (candidates.length > 0) {
     await db.insert(products).values(
@@ -385,18 +389,30 @@ export async function findProductsForWishlistItem(formData: FormData) {
       })),
     );
     await setPeopleFlash(
-      llmQuotaHit
-        ? `LLM quota is exhausted right now; fallback saved ${candidates.length} product result(s).`
+      llmError
+        ? `LLM call failed (${truncate(llmError, 100)}); eBay fallback saved ${candidates.length} result(s).`
         : `Saved ${candidates.length} product result(s).`,
-      llmQuotaHit ? "warning" : "success",
+      llmError ? "warning" : "success",
     );
-  } else if (!llmQuotaHit) {
-    await setPeopleFlash("No product matches were found this time.", "warning");
   } else {
-    await setPeopleFlash(
-      "LLM quota is currently exhausted and fallback search returned no results.",
-      "warning",
-    );
+    const parts: string[] = [];
+    if (llmError) {
+      parts.push(
+        llmRateLimited
+          ? `LLM rate-limited: ${truncate(llmError, 140)}`
+          : `LLM error: ${truncate(llmError, 140)}`,
+      );
+    } else {
+      parts.push("LLM returned no candidates");
+    }
+    if (!ebayConfigured) {
+      parts.push("eBay fallback not configured (set EBAY_APP_ID to enable)");
+    } else if (ebayError) {
+      parts.push(`eBay error: ${truncate(ebayError, 100)}`);
+    } else {
+      parts.push("eBay returned no matches");
+    }
+    await setPeopleFlash(parts.join(" · "), "warning");
   }
 
   await db.insert(aiRequestLog).values({
@@ -505,7 +521,6 @@ export async function suggestGifts(formData: FormData) {
   }
 
   let candidates: Awaited<ReturnType<typeof suggestGiftsForPerson>> = [];
-  let quotaHit = false;
   try {
     candidates = await suggestGiftsForPerson({
       personName: context.person.name,
@@ -522,15 +537,15 @@ export async function suggestGifts(formData: FormData) {
   } catch (error) {
     console.error("Suggestion generation failed:", error);
     const message = error instanceof Error ? error.message : String(error);
-    quotaHit =
+    const rateLimited =
       message.includes("429") ||
       message.includes("Too Many Requests") ||
       message.toLowerCase().includes("quota") ||
       message.toLowerCase().includes("rate limit");
     await setPeopleFlash(
-      quotaHit
-        ? "LLM is rate-limited right now. Try again in a minute."
-        : "Could not generate suggestions. See server logs.",
+      rateLimited
+        ? `LLM rate-limited: ${truncate(message, 140)}`
+        : `LLM error: ${truncate(message, 160)}`,
       "warning",
     );
     return;
