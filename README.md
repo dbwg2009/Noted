@@ -2,7 +2,7 @@
 
 A personal web app to track friends' and family members' birthdays, manage gift ideas, and use AI to find products online (with prices + links), suggest gifts, and remind you before birthdays.
 
-> Status: **Phases 0–2 complete** (scaffolding, Docker, people + wishlist CRUD, AI product lookup). Phase 3 (suggestions + gift history) is next. See `docs/DESIGN.md` for the design, `docs/DECISIONS.md` for locked decisions, and `CLAUDE.md` if you're an AI agent picking this up.
+> Status: **Phases 0–3 complete** (scaffolding, Docker, people + wishlist CRUD, AI product lookup, AI gift suggestions, gift history). Phase 4 (email reminders) is next. See `docs/DESIGN.md` for the design, `docs/DECISIONS.md` for locked decisions, and `CLAUDE.md` if you're an AI agent picking this up.
 
 ## At a glance
 
@@ -12,6 +12,8 @@ A personal web app to track friends' and family members' birthdays, manage gift 
 - **Wishlist per person** — free-text + status workflow (idea → researching → chosen → purchased → given)
 - **AI product lookup** via OpenRouter — turn wishlist items into product candidates
 - **eBay fallback** for real product URLs and prices (free Browse API)
+- **AI gift suggestions** that consider wishlist, tags, notes, and history
+- **Gift history** with reaction notes; "Mark as given" on a wishlist item records it
 - **Manual entry** fallback for everything AI does
 - **Reminders** ahead of each birthday (Phase 4)
 

@@ -43,8 +43,8 @@ If a decision genuinely needs to change, update `docs/DECISIONS.md` in the same 
 | 1 — People & wishlists | **done** | CRUD for people, tags, wishlist items with status workflow + source notes |
 | 2 — AI product lookup | **done** | OpenRouter (LLM) primary, eBay Browse API fallback, manual entry |
 | 2.5 — UI polish | **done** | Multi-page layout: dashboard `/`, calendar `/calendar`, people `/people` (cards) → `/people/new` and `/people/[id]`. Shared nav, avatars, status pills, countdown badges |
-| 3 — Suggestions & history | **next** | "Suggest gifts" button using LLM with full person context; `gift_history` table CRUD with reaction notes; show history on person detail |
-| 4 — Reminders | pending | Email reminders, budget-aware shortlist, daily scheduler |
+| 3 — Suggestions & history | **done** | "Suggest gifts" via OpenRouter with full person context (wishlist + tags + notes + history + budget). `suggestions` table. Promote suggestion → wishlist item, or dismiss. Gift history with reaction notes; "Mark as given" on wishlist items auto-creates history entry; standalone history form for retroactive entries |
+| 4 — Reminders | **next** | Email reminders, budget-aware shortlist, daily scheduler |
 | 5 — Polish | pending | Photo uploads (currently URL-only), iCal feed, mobile tweaks |
 
 When starting work, find the next pending task in this list. **Don't skip phases** without explicit user approval — Phase 1 lays the data flow Phase 2+ build on.

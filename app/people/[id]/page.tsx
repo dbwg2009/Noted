@@ -6,12 +6,18 @@ import { getPersonDetail, requireCurrentUserId } from "@/lib/people-queries";
 import { Avatar, CountdownBadge, StatusPill, TagChip } from "@/components/badges";
 import { formatBirthday, poundsFromPence } from "@/lib/birthdays";
 import {
+  addGiftHistoryEntry,
   addManualProduct,
   createWishlistItem,
+  deleteGiftHistoryEntry,
   deletePerson,
   deleteProduct,
   deleteWishlistItem,
+  dismissSuggestion,
   findProductsForWishlistItem,
+  markWishlistItemGiven,
+  promoteSuggestionToWishlist,
+  suggestGifts,
   updatePerson,
   updateWishlistItem,
 } from "../actions";
@@ -42,7 +48,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
   let flash: { message: string; tone: "success" | "warning" | "error" } | null = null;
   if (flashRaw) {
     try {
-      flash = JSON.parse(flashRaw) as typeof flash;
+      flash = JSON.parse(flashRaw) as { message: string; tone: "success" | "warning" | "error" };
     } catch {
       flash = null;
     }
@@ -278,6 +284,25 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                       </button>
                     </form>
                   </details>
+                  {item.status !== "given" && (
+                    <details className="text-xs">
+                      <summary className="cursor-pointer rounded-md border border-green-300 px-3 py-1.5 font-medium text-green-800 hover:bg-green-50 dark:border-green-900 dark:text-green-200 dark:hover:bg-green-950">
+                        🎁 Mark as given
+                      </summary>
+                      <form action={markWishlistItemGiven} className="mt-3 grid gap-2 md:grid-cols-3">
+                        <input type="hidden" name="wishlistItemId" value={item.id} />
+                        <input name="givenOn" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={inputCls} />
+                        <input name="pricePaid" type="number" step="0.01" min="0" placeholder="Price paid (GBP)" className={inputCls} />
+                        <input name="reactionNotes" placeholder="Their reaction" className={inputCls} />
+                        <button
+                          type="submit"
+                          className="w-fit rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-500 md:col-span-3"
+                        >
+                          Record gift
+                        </button>
+                      </form>
+                    </details>
+                  )}
                 </div>
 
                 {item.products.length > 0 && (
@@ -319,6 +344,142 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
               </article>
             ))}
           </div>
+        )}
+      </section>
+
+      {/* Suggestions */}
+      <section className="mt-10">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold">Gift suggestions</h2>
+            <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              AI-generated ideas based on this person&rsquo;s wishlist, tags, history, and budget.
+            </p>
+          </div>
+          <form action={suggestGifts}>
+            <input type="hidden" name="personId" value={person.id} />
+            <button
+              type="submit"
+              className="rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500"
+            >
+              ✨ Suggest gifts
+            </button>
+          </form>
+        </div>
+
+        {person.suggestions.length === 0 ? (
+          <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">
+            No suggestions yet. Click <span className="font-medium">Suggest gifts</span> to generate some.
+          </p>
+        ) : (
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+            {person.suggestions.map((s) => (
+              <li key={s.id} className="card">
+                <h3 className="text-base font-semibold">{s.title}</h3>
+                {s.rationale && (
+                  <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">{s.rationale}</p>
+                )}
+                {(s.estimatedPriceMin !== null || s.estimatedPriceMax !== null) && (
+                  <p className="mt-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                    Est. {poundsFromPence(s.estimatedPriceMin) ?? "—"}
+                    {" – "}
+                    {poundsFromPence(s.estimatedPriceMax) ?? "—"}
+                  </p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <form action={promoteSuggestionToWishlist}>
+                    <input type="hidden" name="suggestionId" value={s.id} />
+                    <button
+                      type="submit"
+                      className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900"
+                    >
+                      → Add to wishlist
+                    </button>
+                  </form>
+                  <form action={dismissSuggestion}>
+                    <input type="hidden" name="suggestionId" value={s.id} />
+                    <button
+                      type="submit"
+                      className="rounded-md border border-neutral-300 px-3 py-1 text-xs font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+                    >
+                      Dismiss
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Gift history */}
+      <section className="mt-10">
+        <div className="flex items-end justify-between">
+          <h2 className="text-lg font-semibold">Gift history</h2>
+          <span className="text-xs text-neutral-500 dark:text-neutral-400">
+            {person.history.length} {person.history.length === 1 ? "entry" : "entries"}
+          </span>
+        </div>
+
+        <details className="card mt-3">
+          <summary className="cursor-pointer text-sm font-medium">+ Record a past gift</summary>
+          <form action={addGiftHistoryEntry} className="mt-4 grid gap-3 md:grid-cols-2">
+            <input type="hidden" name="personId" value={person.id} />
+            <input name="title" required placeholder="What you gave" className={`${inputCls} md:col-span-2`} />
+            <input name="givenOn" type="date" required className={inputCls} />
+            <input name="pricePaid" type="number" step="0.01" min="0" placeholder="Price paid (GBP)" className={inputCls} />
+            <textarea
+              name="reactionNotes"
+              rows={2}
+              placeholder="Their reaction (loved it, polite smile, etc.)"
+              className={`${inputCls} md:col-span-2`}
+            />
+            <button
+              type="submit"
+              className="w-fit rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 md:col-span-2"
+            >
+              Add entry
+            </button>
+          </form>
+        </details>
+
+        {person.history.length === 0 ? (
+          <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">
+            No gifts recorded yet. Use &ldquo;Mark as given&rdquo; on a wishlist item or add an entry above.
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {person.history.map((entry) => (
+              <li
+                key={entry.id}
+                className="rounded-lg border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">{entry.title}</p>
+                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+                      {entry.givenOn}
+                      {entry.pricePaid !== null && ` · ${poundsFromPence(entry.pricePaid)}`}
+                    </p>
+                  </div>
+                  <form action={deleteGiftHistoryEntry}>
+                    <input type="hidden" name="historyId" value={entry.id} />
+                    <button
+                      type="submit"
+                      className="text-[11px] text-red-600 hover:underline dark:text-red-400"
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </div>
+                {entry.reactionNotes && (
+                  <p className="mt-2 text-xs italic text-neutral-700 dark:text-neutral-300">
+                    &ldquo;{entry.reactionNotes}&rdquo;
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

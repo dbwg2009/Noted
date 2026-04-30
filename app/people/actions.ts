@@ -8,15 +8,18 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import {
   aiRequestLog,
+  giftHistory,
   people,
   personTags,
   products,
+  suggestions,
   tags,
   users,
   wishlistItems,
   wishlistStatus,
 } from "@/db/schema";
 import { searchProducts } from "@/lib/products/search";
+import { suggestGiftsForPerson } from "@/lib/suggestions";
 
 type PeopleFlashTone = "success" | "warning" | "error";
 
@@ -454,3 +457,233 @@ export async function deleteProduct(formData: FormData) {
   revalidatePath("/");
 }
 
+
+// --- Phase 3: suggestions ---
+
+async function getPersonContextForSuggestions(personId: string, userId: string) {
+  const [row] = await db
+    .select()
+    .from(people)
+    .where(and(eq(people.id, personId), eq(people.userId, userId)))
+    .limit(1);
+  if (!row) return null;
+
+  const [tagRows, wishlistRows, historyRows] = await Promise.all([
+    db
+      .select({ name: tags.name })
+      .from(personTags)
+      .innerJoin(tags, eq(personTags.tagId, tags.id))
+      .where(and(eq(personTags.personId, personId), eq(tags.userId, userId)))
+      .orderBy(asc(tags.name)),
+    db
+      .select({ description: wishlistItems.description, status: wishlistItems.status })
+      .from(wishlistItems)
+      .where(eq(wishlistItems.personId, personId)),
+    db
+      .select({ title: giftHistory.title, reactionNotes: giftHistory.reactionNotes })
+      .from(giftHistory)
+      .where(eq(giftHistory.personId, personId)),
+  ]);
+
+  return {
+    person: row,
+    tags: tagRows.map((t) => t.name),
+    wishlist: wishlistRows,
+    history: historyRows,
+  };
+}
+
+export async function suggestGifts(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const personId = String(formData.get("personId") ?? "");
+  if (!personId) return;
+
+  const context = await getPersonContextForSuggestions(personId, userId);
+  if (!context) {
+    await setPeopleFlash("Could not load person context.", "error");
+    return;
+  }
+
+  let candidates: Awaited<ReturnType<typeof suggestGiftsForPerson>> = [];
+  let quotaHit = false;
+  try {
+    candidates = await suggestGiftsForPerson({
+      personName: context.person.name,
+      relationship: context.person.relationship,
+      budgetMin: context.person.budgetMin,
+      budgetMax: context.person.budgetMax,
+      sizes: context.person.sizes,
+      avoid: context.person.avoid,
+      notes: context.person.notes,
+      tags: context.tags,
+      wishlist: context.wishlist,
+      history: context.history,
+    });
+  } catch (error) {
+    console.error("Suggestion generation failed:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    quotaHit =
+      message.includes("429") ||
+      message.includes("Too Many Requests") ||
+      message.toLowerCase().includes("quota") ||
+      message.toLowerCase().includes("rate limit");
+    await setPeopleFlash(
+      quotaHit
+        ? "LLM is rate-limited right now. Try again in a minute."
+        : "Could not generate suggestions. See server logs.",
+      "warning",
+    );
+    return;
+  }
+
+  if (candidates.length === 0) {
+    await setPeopleFlash("The model returned no suggestions this time.", "warning");
+    return;
+  }
+
+  await db.insert(suggestions).values(
+    candidates.map((c) => ({
+      personId,
+      title: c.title,
+      rationale: c.rationale,
+      estimatedPriceMin: c.estimatedPriceMinPence,
+      estimatedPriceMax: c.estimatedPriceMaxPence,
+    })),
+  );
+
+  await db.insert(aiRequestLog).values({
+    userId,
+    kind: "suggestion",
+    promptTokens: null,
+    completionTokens: null,
+    costEstimate: null,
+  });
+
+  await setPeopleFlash(`Generated ${candidates.length} new gift idea(s).`, "success");
+  revalidatePath(`/people/${personId}`);
+}
+
+async function suggestionBelongsToUser(suggestionId: string, userId: string) {
+  const [row] = await db
+    .select({ id: suggestions.id })
+    .from(suggestions)
+    .innerJoin(people, eq(suggestions.personId, people.id))
+    .where(and(eq(suggestions.id, suggestionId), eq(people.userId, userId)))
+    .limit(1);
+  return row?.id === suggestionId;
+}
+
+export async function dismissSuggestion(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const suggestionId = String(formData.get("suggestionId") ?? "");
+  if (!suggestionId) return;
+  if (!(await suggestionBelongsToUser(suggestionId, userId))) return;
+
+  await db.delete(suggestions).where(eq(suggestions.id, suggestionId));
+  revalidatePath("/people");
+  revalidatePath("/");
+}
+
+export async function promoteSuggestionToWishlist(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const suggestionId = String(formData.get("suggestionId") ?? "");
+  if (!suggestionId) return;
+
+  const [row] = await db
+    .select()
+    .from(suggestions)
+    .innerJoin(people, eq(suggestions.personId, people.id))
+    .where(and(eq(suggestions.id, suggestionId), eq(people.userId, userId)))
+    .limit(1);
+  if (!row) return;
+
+  const s = row.suggestions;
+  await db.insert(wishlistItems).values({
+    personId: s.personId,
+    description: s.title,
+    sourceNote: s.rationale ? `From AI suggestion: ${s.rationale}` : "From AI suggestion",
+    status: "researching",
+    priceMin: s.estimatedPriceMin,
+    priceMax: s.estimatedPriceMax,
+    updatedAt: new Date(),
+  });
+
+  await db.delete(suggestions).where(eq(suggestions.id, suggestionId));
+
+  await setPeopleFlash(`"${s.title}" added to wishlist.`, "success");
+  revalidatePath("/people");
+  revalidatePath("/");
+}
+
+// --- Phase 3: gift history ---
+
+export async function markWishlistItemGiven(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const wishlistItemId = String(formData.get("wishlistItemId") ?? "");
+  const givenOn = parseDate(formData.get("givenOn"));
+  if (!wishlistItemId || !givenOn) return;
+  if (!(await wishlistBelongsToUser(wishlistItemId, userId))) return;
+
+  const [item] = await db
+    .select()
+    .from(wishlistItems)
+    .where(eq(wishlistItems.id, wishlistItemId))
+    .limit(1);
+  if (!item) return;
+
+  await db.insert(giftHistory).values({
+    personId: item.personId,
+    wishlistItemId: item.id,
+    title: item.description,
+    pricePaid: parseMoneyToPence(formData.get("pricePaid")),
+    currency: "GBP",
+    givenOn,
+    reactionNotes: String(formData.get("reactionNotes") ?? "").trim() || null,
+  });
+
+  await db
+    .update(wishlistItems)
+    .set({ status: "given", updatedAt: new Date() })
+    .where(eq(wishlistItems.id, wishlistItemId));
+
+  await setPeopleFlash(`Marked "${item.description}" as given.`, "success");
+  revalidatePath("/people");
+  revalidatePath("/");
+}
+
+export async function addGiftHistoryEntry(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const personId = String(formData.get("personId") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const givenOn = parseDate(formData.get("givenOn"));
+  if (!personId || !title || !givenOn) return;
+  if (!(await personBelongsToUser(personId, userId))) return;
+
+  await db.insert(giftHistory).values({
+    personId,
+    title,
+    pricePaid: parseMoneyToPence(formData.get("pricePaid")),
+    currency: "GBP",
+    givenOn,
+    reactionNotes: String(formData.get("reactionNotes") ?? "").trim() || null,
+  });
+
+  revalidatePath(`/people/${personId}`);
+}
+
+export async function deleteGiftHistoryEntry(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const historyId = String(formData.get("historyId") ?? "");
+  if (!historyId) return;
+
+  const [row] = await db
+    .select({ id: giftHistory.id, personId: giftHistory.personId })
+    .from(giftHistory)
+    .innerJoin(people, eq(giftHistory.personId, people.id))
+    .where(and(eq(giftHistory.id, historyId), eq(people.userId, userId)))
+    .limit(1);
+  if (!row) return;
+
+  await db.delete(giftHistory).where(eq(giftHistory.id, historyId));
+  revalidatePath(`/people/${row.personId}`);
+}

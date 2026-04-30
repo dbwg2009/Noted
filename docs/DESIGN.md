@@ -115,9 +115,13 @@ Product
   created_at
 
 GiftHistory
-  id, person_id, product_id (nullable),
+  id, person_id, product_id (nullable), wishlist_item_id (nullable),
   title, price_paid, currency,
   given_on (date), reaction_notes
+
+Suggestion
+  id, person_id, title, rationale,
+  estimated_price_min, estimated_price_max, created_at
 
 Reminder
   id, person_id, lead_days, channel ('email'),
@@ -236,10 +240,10 @@ which has the full source + devDeps so `drizzle-kit` is available. The
 
 | Phase | Scope | Est. |
 |-------|-------|------|
-| 0 | Next.js + Tailwind + Drizzle + Auth.js + Neon + Vercel deploy | ½ day |
-| 1 | People CRUD, tags, sizes, notes, photos, wishlist CRUD with status workflow + source notes | 1–2 days |
-| 2 | OpenRouter LLM product lookup + eBay fallback + manual entry polish | 1–2 days |
-| 3 | Suggestions + gift history with reaction notes | 1 day |
+| 0 | Next.js + Tailwind + Drizzle + Auth.js + Neon + Vercel deploy | **done** |
+| 1 | People CRUD, tags, sizes, notes, photos, wishlist CRUD with status workflow + source notes | **done** |
+| 2 | OpenRouter LLM product lookup + eBay fallback + manual entry polish | **done** |
+| 3 | Suggestions + gift history with reaction notes | **done** |
 | 4 | Email reminders via Resend + Vercel Cron + budget-aware shortlist | 1 day |
 | 5 | iCal feed export, mobile polish, photo uploads | ongoing |
 
@@ -278,6 +282,7 @@ which has the full source + devDeps so `drizzle-kit` is available. The
   cn.ts             tailwind class merge helper
   birthdays.ts      date math: parseBirthday, daysUntil, ageOnNextBirthday, formatBirthday
   people-queries.ts read queries: requireCurrentUserId, listPeopleSummary, getPersonDetail
+  suggestions.ts    OpenRouter call for "Suggest gifts" (Phase 3)
   /products         openrouter.ts, ebay.ts, search.ts (orchestrator), types.ts
   /notify           email adapter — Resend (Phase 4)
   /reminders        scheduling logic (Phase 4)
