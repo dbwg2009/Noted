@@ -86,10 +86,9 @@ export async function searchProductsWithOpenRouter(
       temperature: 0.2,
       messages: [
         {
-          role: "system",
-          content: "You output ONLY valid JSON arrays. No code fences, no commentary.",
+          role: "user",
+          content: `Reply with ONLY a valid JSON array. No prose, no markdown, no code fences.\n\n${buildPrompt(context)}`,
         },
-        { role: "user", content: buildPrompt(context) },
       ],
     }),
     cache: "no-store",
