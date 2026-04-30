@@ -48,8 +48,33 @@ services:
       OPENROUTER_REFERER: "${OPENROUTER_REFERER:-http://localhost:3000}"
       OPENROUTER_APP_NAME: "${OPENROUTER_APP_NAME:-Birthday Gift Finder}"
       EBAY_APP_ID: "${EBAY_APP_ID:-}"
+      CRON_SECRET: "${CRON_SECRET:?CRON_SECRET is required - generate with openssl rand -hex 32}"
     ports:
       - "3000:3000"
+
+  cron:
+    image: curlimages/curl:8.10.1
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      CRON_SECRET: "${CRON_SECRET:?CRON_SECRET is required}"
+      CRON_INTERVAL_SECONDS: "${CRON_INTERVAL_SECONDS:-86400}"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        # Wait for the app to come up, then poll the reminders endpoint.
+        until curl -fsS http://app:3000/api/auth/providers >/dev/null 2>&1; do
+          echo "[cron] waiting for app..."; sleep 5;
+        done
+        while true; do
+          echo "[cron] $(date -u) triggering daily reminders";
+          curl -fsS -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/reminders \
+            && echo "" || echo "[cron] request failed (will retry next cycle)";
+          sleep "$$CRON_INTERVAL_SECONDS";
+        done
 
 volumes:
   db-data:

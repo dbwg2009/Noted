@@ -8,6 +8,7 @@ import { formatBirthday, poundsFromPence } from "@/lib/birthdays";
 import {
   addGiftHistoryEntry,
   addManualProduct,
+  backfillDefaultReminders,
   createWishlistItem,
   deleteGiftHistoryEntry,
   deletePerson,
@@ -17,6 +18,7 @@ import {
   findProductsForWishlistItem,
   markWishlistItemGiven,
   promoteSuggestionToWishlist,
+  sendTestReminder,
   suggestGifts,
   updatePerson,
   updateWishlistItem,
@@ -477,6 +479,67 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                     &ldquo;{entry.reactionNotes}&rdquo;
                   </p>
                 )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Reminders */}
+      <section className="mt-10">
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Reminders</h2>
+            <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              Email digests sent to <span className="font-medium">{session.user.email}</span> ahead of {person.name}&rsquo;s birthday.
+            </p>
+          </div>
+          <form action={sendTestReminder}>
+            <input type="hidden" name="personId" value={person.id} />
+            <button
+              type="submit"
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+            >
+              ✉️ Send test now
+            </button>
+          </form>
+        </div>
+
+        {person.reminders.length === 0 ? (
+          <div className="card mt-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-neutral-700 dark:text-neutral-300">
+              No reminders configured.
+            </p>
+            <form action={backfillDefaultReminders}>
+              <input type="hidden" name="personId" value={person.id} />
+              <button
+                type="submit"
+                className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900"
+              >
+                Add default schedule
+              </button>
+            </form>
+          </div>
+        ) : (
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {person.reminders.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-3 text-sm dark:border-neutral-800 dark:bg-neutral-900"
+              >
+                <div>
+                  <p className="font-medium">
+                    {r.leadDays === 0 ? "On the day" : `${r.leadDays} day${r.leadDays === 1 ? "" : "s"} before`}
+                  </p>
+                  <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+                    {r.lastSentAt
+                      ? `Last sent ${new Date(r.lastSentAt).toLocaleDateString("en-GB")}${r.lastSentForYear ? ` (for ${r.lastSentForYear})` : ""}`
+                      : "Never sent"}
+                  </p>
+                </div>
+                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                  {r.channel}
+                </span>
               </li>
             ))}
           </ul>

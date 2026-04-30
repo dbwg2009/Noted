@@ -44,8 +44,8 @@ If a decision genuinely needs to change, update `docs/DECISIONS.md` in the same 
 | 2 — AI product lookup | **done** | OpenRouter (LLM) primary, eBay Browse API fallback, manual entry |
 | 2.5 — UI polish | **done** | Multi-page layout: dashboard `/`, calendar `/calendar`, people `/people` (cards) → `/people/new` and `/people/[id]`. Shared nav, avatars, status pills, countdown badges |
 | 3 — Suggestions & history | **done** | "Suggest gifts" via OpenRouter with full person context (wishlist + tags + notes + history + budget). `suggestions` table. Promote suggestion → wishlist item, or dismiss. Gift history with reaction notes; "Mark as given" on wishlist items auto-creates history entry; standalone history form for retroactive entries |
-| 4 — Reminders | **next** | Email reminders, budget-aware shortlist, daily scheduler |
-| 5 — Polish | pending | Photo uploads (currently URL-only), iCal feed, mobile tweaks |
+| 4 — Reminders | **done** | Default 30/14/7/1-day reminders auto-created per person. Daily digest email via Resend with budget-aware shortlist (products + suggestions). `/api/cron/reminders` endpoint protected by `CRON_SECRET`; `cron` sidecar in compose pings it on `CRON_INTERVAL_SECONDS` (default 86400). Per-person "Send test now" button. |
+| 5 — Polish | **next** | Photo uploads (currently URL-only), iCal feed, mobile tweaks |
 
 When starting work, find the next pending task in this list. **Don't skip phases** without explicit user approval — Phase 1 lays the data flow Phase 2+ build on.
 
@@ -112,7 +112,8 @@ npm run dev
 - The `postgres-js` driver pool defaults are tuned for the Docker Postgres; if Neon is used, may need `ssl: "require"` query param in `DATABASE_URL`.
 - Auth.js v5 is in beta; the API may shift between minor versions. Pin the version in `package.json`.
 - Resend's magic-link emails work fine pointing at `localhost:3000` for dev — the link is just a URL the user clicks.
-- OpenRouter free models are aggressively rate-limited (a few requests per minute). The product-search action is fine for personal use but don't loop calls. The `searchProducts()` orchestrator detects 429 / "rate limit" / "quota" in the error message and falls through to eBay automatically.
+- OpenRouter free models are aggressively rate-limited (a few requests per minute). Two distinct sources of 429: (1) per-account daily/minute caps, and (2) **upstream provider rate limits** that affect all OpenRouter users at once (e.g. Google AI Studio for Gemma free models). Upstream limits show up as `Provider returned error` in the body. Fix: switch model via `OPENROUTER_MODEL`, or BYOK at https://openrouter.ai/settings/integrations. The `searchProducts()` orchestrator detects rate-limit-shaped errors and falls through to eBay automatically.
+- Reminder cron: `cron` sidecar runs `curl http://app:3000/api/cron/reminders` every `CRON_INTERVAL_SECONDS` (default 86400). The route requires `Authorization: Bearer $CRON_SECRET`. `runDailyReminders()` is idempotent — `last_sent_for_year` ensures the same reminder won't fire twice per cycle, so manual triggering during dev is safe.
 - LLM-generated product URLs are NOT verified — the model can hallucinate. The eBay fallback is the only path for guaranteed-real URLs. UI labels saved products with their `source` (`AI` vs `Manual`) so the user knows.
 - `app/people/page.tsx` is the **list page only**; person detail is `app/people/[id]/page.tsx`. Wishlist + product UI lives in the detail page. Server actions are still in `app/people/actions.ts` and shared between both.
 - `lib/people-queries.ts` holds the read queries (`listPeopleSummary`, `getPersonDetail`). Server actions in `app/people/actions.ts` only do writes; don't move them around without updating both pages.
