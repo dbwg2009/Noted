@@ -171,11 +171,26 @@ export const giftHistory = pgTable("gift_history", {
   productId: uuid("product_id").references(() => products.id, {
     onDelete: "set null",
   }),
+  wishlistItemId: uuid("wishlist_item_id").references(() => wishlistItems.id, {
+    onDelete: "set null",
+  }),
   title: text("title").notNull(),
   pricePaid: integer("price_paid"),
   currency: text("currency").default("GBP").notNull(),
   givenOn: date("given_on").notNull(),
   reactionNotes: text("reaction_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const suggestions = pgTable("suggestions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  personId: uuid("person_id")
+    .notNull()
+    .references(() => people.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  rationale: text("rationale"),
+  estimatedPriceMin: integer("estimated_price_min"),
+  estimatedPriceMax: integer("estimated_price_max"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -210,6 +225,7 @@ export const peopleRelations = relations(people, ({ many, one }) => ({
   history: many(giftHistory),
   reminders: many(reminders),
   tags: many(personTags),
+  suggestions: many(suggestions),
   user: one(users, { fields: [people.userId], references: [users.id] }),
 }));
 

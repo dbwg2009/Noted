@@ -1,8 +1,16 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { people, personTags, products, tags, wishlistItems } from "@/db/schema";
+import {
+  giftHistory,
+  people,
+  personTags,
+  products,
+  suggestions,
+  tags,
+  users,
+  wishlistItems,
+} from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { users } from "@/db/schema";
 import { daysUntil, ageOnNextBirthday } from "@/lib/birthdays";
 
 export async function requireCurrentUserId() {
@@ -49,7 +57,7 @@ export async function getPersonDetail(personId: string, userId: string) {
     .limit(1);
   if (!person) return null;
 
-  const [tagRows, wishlistRows] = await Promise.all([
+  const [tagRows, wishlistRows, suggestionRows, historyRows] = await Promise.all([
     db
       .select({ name: tags.name })
       .from(personTags)
@@ -57,6 +65,8 @@ export async function getPersonDetail(personId: string, userId: string) {
       .where(and(eq(personTags.personId, personId), eq(tags.userId, userId)))
       .orderBy(asc(tags.name)),
     db.select().from(wishlistItems).where(eq(wishlistItems.personId, personId)).orderBy(desc(wishlistItems.createdAt)),
+    db.select().from(suggestions).where(eq(suggestions.personId, personId)).orderBy(desc(suggestions.createdAt)),
+    db.select().from(giftHistory).where(eq(giftHistory.personId, personId)).orderBy(desc(giftHistory.givenOn)),
   ]);
 
   const wishlistIds = wishlistRows.map((w) => w.id);
@@ -86,5 +96,7 @@ export async function getPersonDetail(personId: string, userId: string) {
       ...w,
       products: productsByWishlist.get(w.id) ?? [],
     })),
+    suggestions: suggestionRows,
+    history: historyRows,
   };
 }
