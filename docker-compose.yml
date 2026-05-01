@@ -17,6 +17,7 @@ services:
       retries: 10
 
   migrate:
+    image: dbwg2009/noted-migrator:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -29,9 +30,11 @@ services:
       DATABASE_URL: "postgres://birthday:birthday@db:5432/birthday"
 
   app:
+    image: dbwg2009/noted:latest
     build:
       context: .
       dockerfile: Dockerfile
+      target: runner
     restart: unless-stopped
     depends_on:
       migrate:
@@ -41,16 +44,18 @@ services:
       AUTH_SECRET: "${AUTH_SECRET:?AUTH_SECRET is required - generate with openssl rand -base64 32}"
       AUTH_URL: "${AUTH_URL:-http://localhost:3000}"
       RESEND_API_KEY: "${RESEND_API_KEY:?RESEND_API_KEY is required}"
-      EMAIL_FROM: "${EMAIL_FROM:-Birthday Gift Finder <onboarding@resend.dev>}"
+      EMAIL_FROM: "${EMAIL_FROM:-Noted <onboarding@resend.dev>}"
       ALLOWED_EMAIL: "${ALLOWED_EMAIL:?ALLOWED_EMAIL is required}"
       OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:?OPENROUTER_API_KEY is required}"
       OPENROUTER_MODEL: "${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct:free}"
       OPENROUTER_REFERER: "${OPENROUTER_REFERER:-http://localhost:3000}"
-      OPENROUTER_APP_NAME: "${OPENROUTER_APP_NAME:-Birthday Gift Finder}"
+      OPENROUTER_APP_NAME: "${OPENROUTER_APP_NAME:-Noted}"
       EBAY_APP_ID: "${EBAY_APP_ID:-}"
       CRON_SECRET: "${CRON_SECRET:?CRON_SECRET is required - generate with openssl rand -hex 32}"
     ports:
       - "3000:3000"
+    volumes:
+      - uploads:/app/public/uploads
 
   cron:
     image: curlimages/curl:8.10.1
@@ -78,3 +83,4 @@ services:
 
 volumes:
   db-data:
+  uploads:

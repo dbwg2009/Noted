@@ -16,11 +16,18 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push
+      - name: Build and push App
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: your-docker-username/noted:latest
-          # You can target the 'runner' stage specifically if needed
+          tags: dbwg2009/noted:latest
           target: runner
+
+      - name: Build and push Migrator
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: dbwg2009/noted-migrator:latest
+          target: migrator
