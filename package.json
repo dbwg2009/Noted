@@ -1,6 +1,7 @@
 {
-  "name": "birthday-gift-finder",
-  "version": "0.0.1",
+  "name": "noted",
+  "version": "1.0.0",
+  "description": "Noted - Personal gift planning app",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -13,7 +13,7 @@ const productSchema = z.object({
   inStock: z.boolean().optional().nullable(),
 });
 
-const productsSchema = z.array(productSchema);
+const productsSchema = z.array(productSchema).max(4);
 
 function penceFromGbp(value: number | null | undefined) {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
@@ -33,33 +33,50 @@ function extractJsonArray(text: string) {
   return stripped.slice(start, end + 1);
 }
 function buildPrompt(context: ProductSearchContext) {
+  const minGbp = context.budgetMin ? (context.budgetMin / 100).toFixed(2) : null;
+  const maxGbp = context.budgetMax ? (context.budgetMax / 100).toFixed(2) : null;
+  const budgetLine =
+    minGbp || maxGbp
+      ? `CRITICAL BUDGET RULE: Every single product MUST fall strictly within the price range £${minGbp ?? "0"} to £${maxGbp ?? "unlimited"}. DO NOT suggest products even £0.01 above this maximum or below this minimum. If you cannot find items in range, return fewer results or an empty array.`
+      : "Budget: not specified — pick a sensible mid-range price.";
+
   return `You are helping with UK birthday gift shopping. Return ONLY a JSON array, no prose, no code fences.
 
-Suggest exactly 3 or 4 product candidates that fit this wishlist item. Prefer well-known UK retailers (Amazon UK, John Lewis, Argos, Currys, Waterstones, Lego.com, etc.). 
+Suggest 3 or 4 product candidates (max 4) that fit this wishlist item.
 
-IMPORTANT: Only include URLs you are 100% confident exist and lead directly to the product. If you are not absolutely sure of the specific product URL, provide the retailer's search results page or homepage URL instead. Do NOT hallucinate deep links.
-...
-Output schema (JSON array, 3-4 items):
+RETAILER PREFERENCE — try in this order:
+  1. Amazon UK (amazon.co.uk) — preferred for most items.
+  2. Other major UK retailers: John Lewis, Argos, Currys, Waterstones, Lego.com, Smyths, Boots.
+Only fall back to a smaller/specialty retailer if none of the above carry the item.
+
+URL RULES — links must lead to a real, currently-purchasable page:
+  - Only include URLs you are highly confident exist and lead to a CURRENT listing.
+  - Do NOT link to discontinued or out-of-stock products.
+  - If unsure of the exact product URL, use the retailer's search-results page, e.g.
+    https://www.amazon.co.uk/s?k=<url-encoded+keywords>
+    https://www.johnlewis.com/search?search-term=<keywords>
+  - Never invent /dp/ASIN or product IDs you are not certain about.
+
+${budgetLine}
+
 Wishlist item: ${context.wishlistDescription}
 Source note: ${context.sourceNote ?? "none"}
 Recipient: ${context.personName}
 Relationship: ${context.relationship ?? "not specified"}
-Budget min GBP: ${context.budgetMin ? (context.budgetMin / 100).toFixed(2) : "not specified"}
-Budget max GBP: ${context.budgetMax ? (context.budgetMax / 100).toFixed(2) : "not specified"}
 Sizes: ${JSON.stringify(context.sizes ?? {})}
 Avoid: ${context.avoid ?? "none"}
 Tags / interests: ${(context.tags ?? []).join(", ") || "none"}
 Region: UK · Currency: GBP
 
-Output schema (JSON array, each item):
+Output schema (JSON array, 3 or 4 items, each item):
 {
   "title": string,
   "description": string | null,
   "retailer": string | null,
   "url": "https://...",
   "imageUrl": "https://... | null",
-  "priceGbp": number | null,
-  "inStock": boolean | null
+  "priceGbp": number | null,    // must be within the budget above when one is given
+  "inStock": boolean | null     // true only if you are confident the item is currently available
 }`;
 }
 
@@ -73,7 +90,7 @@ export async function searchProductsWithOpenRouter(
 
   const model = process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL;
   const referer = process.env.OPENROUTER_REFERER?.trim() || "http://localhost:3000";
-  const appName = process.env.OPENROUTER_APP_NAME?.trim() || "Birthday Gift Finder";
+  const appName = process.env.OPENROUTER_APP_NAME?.trim() || "Noted";
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
