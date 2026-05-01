@@ -28,13 +28,11 @@ ENV NODE_ENV=production
 # (e.g. "do you want to truncate users?" before adding a unique constraint),
 # which is what was hanging the migrate service.
 #
-# Fix: install `expect` and use `unbuffer -p` to allocate a pseudo-TTY and
-# pass our piped newlines through as real keystrokes. Each newline accepts
-# the highlighted default ("No, add the constraint without truncating").
-# `timeout 180` is a hard backstop so the migrator fails the compose stack
-# instead of wedging it forever.
+# Fix: install `expect` and run drizzle-kit through scripts/migrate.exp,
+# which gives it a real pseudo-TTY and presses Enter on every prompt to
+# accept the highlighted default (always the safe option).
 RUN apk add --no-cache expect
-CMD ["sh", "-c", "yes '' | timeout 180 unbuffer -p npx drizzle-kit push --force"]
+CMD ["expect", "-f", "scripts/migrate.exp"]
 
 # 5. Minimal runtime image
 FROM node:22-alpine AS runner

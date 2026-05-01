@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+# Wrapper around `drizzle-kit push --force` for the docker `migrate` service.
+#
+# `--force` only auto-accepts data-loss prompts. Drizzle-kit also asks
+# "data integrity" questions (e.g. before adding a unique constraint to a
+# table that already has rows) which `--force` does not cover. Those use
+# the `prompts` package, which puts stdin into raw TTY mode and ignores
+# plain piped input — so in a non-TTY container they hang forever.
+#
+# Running drizzle-kit under expect gives it a real pseudo-TTY and lets us
+# answer each prompt by pressing Enter, which selects the highlighted
+# default (always the safe option, e.g. "No, add the constraint without
+# truncating the table").
+
+set timeout 300
+log_user 1
+
+spawn npx drizzle-kit push --force
+
+expect {
+    # Any prompt drizzle-kit shows uses "❯" as its selected-row marker.
+    # Pressing Enter accepts the highlighted default.
+    -re "❯" {
+        send "\r"
+        exp_continue
+    }
+    timeout {
+        puts stderr "migrate: timed out after 300s"
+        exit 1
+    }
+    eof
+}
+
+# Propagate drizzle-kit's exit code so a real failure fails the container.
+catch wait result
+exit [lindex $result 3]
