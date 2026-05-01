@@ -25,7 +25,7 @@ import {
 } from "../actions";
 
 const inputCls =
-  "rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
+  "rounded-md border border-neutral-300 bg-white px-3 py-2 text-base dark:border-neutral-700 dark:bg-neutral-900";
 
 function formatPenceInput(value: number | null) {
   return value === null ? "" : (value / 100).toFixed(2);
@@ -551,12 +551,19 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
         <h2 className="text-lg font-semibold">Settings</h2>
         <details className="card mt-3">
           <summary className="cursor-pointer text-sm font-medium">Edit person</summary>
-          <form action={updatePerson} className="mt-4 grid gap-3 md:grid-cols-2">
+          <form action={updatePerson} className="mt-4 grid gap-3 md:grid-cols-2" encType="multipart/form-data">
             <input type="hidden" name="personId" value={person.id} />
             <input name="name" defaultValue={person.name} required className={inputCls} />
             <input name="birthday" type="date" defaultValue={person.birthday} required className={inputCls} />
             <input name="relationship" defaultValue={person.relationship ?? ""} placeholder="Relationship" className={inputCls} />
-            <input name="photoUrl" type="url" defaultValue={person.photoUrl ?? ""} placeholder="Photo URL" className={inputCls} />
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-neutral-500">Photo (Upload)</span>
+              <input name="photoFile" type="file" accept="image/*" className={inputCls} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-neutral-500">Photo URL</span>
+              <input name="photoUrl" type="url" defaultValue={person.photoUrl ?? ""} placeholder="Photo URL" className={inputCls} />
+            </div>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"

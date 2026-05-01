@@ -21,6 +21,8 @@ import {
 import { searchProducts } from "@/lib/products/search";
 import { suggestGiftsForPerson } from "@/lib/suggestions";
 import { ensureDefaultReminders, sendReminderForPersonNow } from "@/lib/reminders";
+import { savePhoto } from "@/lib/storage";
+import { randomUUID } from "node:crypto";
 
 type PeopleFlashTone = "success" | "warning" | "error";
 
@@ -206,6 +208,17 @@ export async function createPerson(formData: FormData) {
     return;
   }
 
+  // Handle photo upload
+  let photoUrl = String(formData.get("photoUrl") ?? "").trim() || null;
+  const photoFile = formData.get("photoFile") as File | null;
+  if (photoFile && photoFile.size > 0) {
+    try {
+      photoUrl = await savePhoto(photoFile);
+    } catch (err) {
+      console.error("Failed to save photo:", err);
+    }
+  }
+
   const [created] = await db
     .insert(people)
     .values({
@@ -214,7 +227,7 @@ export async function createPerson(formData: FormData) {
       birthday,
       birthYearKnown,
       relationship: String(formData.get("relationship") ?? "").trim() || null,
-      photoUrl: String(formData.get("photoUrl") ?? "").trim() || null,
+      photoUrl,
       budgetMin: parseMoneyToPence(formData.get("budgetMin")),
       budgetMax: parseMoneyToPence(formData.get("budgetMax")),
       notes: String(formData.get("notes") ?? "").trim() || null,
@@ -248,6 +261,17 @@ export async function updatePerson(formData: FormData) {
   }
   if (!(await personBelongsToUser(personId, userId))) return;
 
+  // Handle photo upload
+  let photoUrl = String(formData.get("photoUrl") ?? "").trim() || null;
+  const photoFile = formData.get("photoFile") as File | null;
+  if (photoFile && photoFile.size > 0) {
+    try {
+      photoUrl = await savePhoto(photoFile);
+    } catch (err) {
+      console.error("Failed to save photo:", err);
+    }
+  }
+
   await db
     .update(people)
     .set({
@@ -255,7 +279,7 @@ export async function updatePerson(formData: FormData) {
       birthday,
       birthYearKnown,
       relationship: String(formData.get("relationship") ?? "").trim() || null,
-      photoUrl: String(formData.get("photoUrl") ?? "").trim() || null,
+      photoUrl,
       budgetMin: parseMoneyToPence(formData.get("budgetMin")),
       budgetMax: parseMoneyToPence(formData.get("budgetMax")),
       notes: String(formData.get("notes") ?? "").trim() || null,
@@ -374,6 +398,11 @@ export async function findProductsForWishlistItem(formData: FormData) {
   const { candidates, llmRateLimited, llmError, ebayConfigured, ebayError } = searchResult;
 
   if (candidates.length > 0) {
+    // Clear previous AI search results for this item to prevent accumulation
+    await db
+      .delete(products)
+      .where(and(eq(products.wishlistItemId, wishlistItemId), eq(products.source, "ai_search")));
+
     await db.insert(products).values(
       candidates.map((candidate) => ({
         wishlistItemId: context.wishlistItemId,
@@ -731,4 +760,12 @@ export async function backfillDefaultReminders(formData: FormData) {
   if (!(await personBelongsToUser(personId, userId))) return;
   await ensureDefaultReminders(personId);
   revalidatePath(`/people/${personId}`);
+}
+
+export async function resetIcalToken() {
+  const userId = await requireCurrentUserId();
+  const newToken = randomUUID();
+  await db.update(users).set({ icalToken: newToken }).where(eq(users.id, userId));
+  revalidatePath("/");
+  revalidatePath("/people");
 }
