@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { createPerson } from "../actions";
 
 const inputCls =
-  "rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
+  "rounded-md border border-neutral-300 bg-white px-3 py-2 text-base dark:border-neutral-700 dark:bg-neutral-900";
 
 export default async function NewPersonPage() {
   const session = await auth();
@@ -23,7 +23,7 @@ export default async function NewPersonPage() {
         Name and birthday are required. Everything else is optional and you can edit later.
       </p>
 
-      <form action={createPerson} className="card mt-6 grid gap-4">
+      <form action={createPerson} className="card mt-6 grid gap-4" encType="multipart/form-data">
         <Section title="Basics">
           <Field label="Name *">
             <input name="name" required className={inputCls} />
@@ -37,6 +37,9 @@ export default async function NewPersonPage() {
               placeholder="e.g. Mum, best friend, brother"
               className={inputCls}
             />
+          </Field>
+          <Field label="Photo (Upload)">
+            <input name="photoFile" type="file" accept="image/*" className={inputCls} />
           </Field>
           <Field label="Photo URL">
             <input name="photoUrl" type="url" placeholder="https://..." className={inputCls} />

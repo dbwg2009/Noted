@@ -94,56 +94,58 @@ export default async function CalendarPage({
         </div>
       </div>
 
-      <div className="card mt-6 overflow-hidden p-0">
-        <div className="grid grid-cols-7 border-b border-neutral-200 bg-neutral-50 text-center text-[11px] font-semibold uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
-          {WEEKDAYS.map((w) => (
-            <div key={w} className="py-2">
-              {w}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7">
-          {cells.map((cell, i) => (
-            <div
-              key={i}
-              className={cn(
-                "min-h-[88px] border-b border-r border-neutral-200 p-2 text-xs dark:border-neutral-800",
-                (i + 1) % 7 === 0 && "border-r-0",
-                i >= cells.length - 7 && "border-b-0",
-                cell.day === null && "bg-neutral-50/50 dark:bg-neutral-900/40",
-              )}
-            >
-              {cell.day !== null && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={cn(
-                        "inline-grid h-6 w-6 place-items-center rounded-full text-[11px] font-semibold",
-                        cell.isToday
-                          ? "bg-rose-500 text-white"
-                          : "text-neutral-600 dark:text-neutral-400",
-                      )}
-                    >
-                      {cell.day}
-                    </span>
-                  </div>
-                  <ul className="mt-1 space-y-1">
-                    {cell.matches.map((person) => (
-                      <li key={person.id}>
-                        <Link
-                          href={`/people/${person.id}`}
-                          className="flex items-center gap-1 truncate rounded bg-rose-100 px-1.5 py-0.5 text-[11px] font-medium text-rose-800 hover:bg-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:hover:bg-rose-900"
-                        >
-                          <Avatar name={person.name} photoUrl={person.photoUrl} size={16} />
-                          <span className="truncate">{person.name}</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </div>
-          ))}
+      <div className="card mt-6 overflow-x-auto p-0">
+        <div className="min-w-[600px]">
+          <div className="grid grid-cols-7 border-b border-neutral-200 bg-neutral-50 text-center text-[11px] font-semibold uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
+            {WEEKDAYS.map((w) => (
+              <div key={w} className="py-2">
+                {w}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7">
+            {cells.map((cell, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "min-h-[88px] border-b border-r border-neutral-200 p-2 text-xs dark:border-neutral-800",
+                  (i + 1) % 7 === 0 && "border-r-0",
+                  i >= cells.length - 7 && "border-b-0",
+                  cell.day === null && "bg-neutral-50/50 dark:bg-neutral-900/40",
+                )}
+              >
+                {cell.day !== null && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={cn(
+                          "inline-grid h-6 w-6 place-items-center rounded-full text-[11px] font-semibold",
+                          cell.isToday
+                            ? "bg-rose-500 text-white"
+                            : "text-neutral-600 dark:text-neutral-400",
+                        )}
+                      >
+                        {cell.day}
+                      </span>
+                    </div>
+                    <ul className="mt-1 space-y-1">
+                      {cell.matches.map((person) => (
+                        <li key={person.id}>
+                          <Link
+                            href={`/people/${person.id}`}
+                            className="flex items-center gap-1 truncate rounded bg-rose-100 px-1.5 py-0.5 text-[11px] font-medium text-rose-800 hover:bg-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:hover:bg-rose-900"
+                          >
+                            <Avatar name={person.name} photoUrl={person.photoUrl} size={16} />
+                            <span className="truncate">{person.name}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </main>
