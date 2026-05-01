@@ -43,6 +43,7 @@ export const users = pgTable("users", {
   image: text("image"),
   timezone: text("timezone").default("Europe/London").notNull(),
   defaultCurrency: text("default_currency").default("GBP").notNull(),
+  icalToken: uuid("ical_token").defaultRandom().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
