@@ -22,7 +22,12 @@ RUN npm run build
 # 4. Migrator — used by the `migrate` service in docker-compose
 FROM srcdeps AS migrator
 ENV NODE_ENV=production
-CMD ["npx", "drizzle-kit", "push", "--force"]
+# `yes ""` feeds newlines into stdin so any prompt drizzle-kit emits that
+# `--force` doesn't suppress (e.g. enum/type creation in non-TTY containers)
+# gets auto-answered with the default instead of hanging forever.
+# `timeout 180` is a hard backstop so the migrator fails the compose stack
+# instead of blocking it forever if drizzle-kit ever truly wedges.
+CMD ["sh", "-c", "yes '' | timeout 180 npx drizzle-kit push --force"]
 
 # 5. Minimal runtime image
 FROM node:22-alpine AS runner
