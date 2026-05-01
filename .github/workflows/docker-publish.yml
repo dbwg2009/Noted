@@ -21,6 +21,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: your-docker-username/noted:latest
+          tags: dbwg2009/noted:latest
           # You can target the 'runner' stage specifically if needed
           target: runner
