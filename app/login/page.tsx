@@ -2,8 +2,11 @@ import { signIn } from "@/lib/auth";
 
 export default function LoginPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12 text-center">
+      <div className="flex justify-center mb-4">
+        <img src="/logo/full.png" alt="Noted" className="h-16 w-auto" />
+      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Sign in to Noted</h1>
       <p className="text-sm text-neutral-600 dark:text-neutral-400">
         Enter your email. We&rsquo;ll send you a magic link.
       </p>

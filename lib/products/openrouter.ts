@@ -37,7 +37,7 @@ function buildPrompt(context: ProductSearchContext) {
   const maxGbp = context.budgetMax ? (context.budgetMax / 100).toFixed(2) : null;
   const budgetLine =
     minGbp || maxGbp
-      ? `STRICT BUDGET: £${minGbp ?? "0"} – £${maxGbp ?? "∞"}. Every product MUST fall within this range. Discard anything outside it; do not include "close" matches above the max or below the min.`
+      ? `CRITICAL BUDGET RULE: Every single product MUST fall strictly within the price range £${minGbp ?? "0"} to £${maxGbp ?? "unlimited"}. DO NOT suggest products even £0.01 above this maximum or below this minimum. If you cannot find items in range, return fewer results or an empty array.`
       : "Budget: not specified — pick a sensible mid-range price.";
 
   return `You are helping with UK birthday gift shopping. Return ONLY a JSON array, no prose, no code fences.
@@ -90,7 +90,7 @@ export async function searchProductsWithOpenRouter(
 
   const model = process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL;
   const referer = process.env.OPENROUTER_REFERER?.trim() || "http://localhost:3000";
-  const appName = process.env.OPENROUTER_APP_NAME?.trim() || "Birthday Gift Finder";
+  const appName = process.env.OPENROUTER_APP_NAME?.trim() || "Noted";
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",

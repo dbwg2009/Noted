@@ -3,8 +3,8 @@ import { Nav } from "@/components/nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Birthday Gift Finder",
-  description: "Track birthdays, capture gift ideas, and let AI find them.",
+  title: "Noted",
+  description: "Personal birthday tracking and gift planning.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
