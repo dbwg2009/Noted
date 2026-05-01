@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { listPeopleSummary, requireCurrentUserId } from "@/lib/people-queries";
+import { listPeopleSummary, requireCurrentUserId, getIcalUrl } from "@/lib/people-queries";
 import { Avatar, CountdownBadge, TagChip } from "@/components/badges";
 import { formatBirthday } from "@/lib/birthdays";
+import { resetIcalToken } from "./people/actions";
 
 export default async function Home() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const userId = await requireCurrentUserId();
+  const icalUrl = await getIcalUrl(userId);
   const people = await listPeopleSummary(userId);
   const upcoming = [...people].sort((a, b) => a.daysUntilBirthday - b.daysUntilBirthday).slice(0, 6);
   const thisMonth = people.filter((p) => p.daysUntilBirthday <= 31);
@@ -84,6 +86,37 @@ export default async function Home() {
           </ul>
         )}
       </section>
+
+      {icalUrl && (
+        <section className="mt-12 border-t border-neutral-200 pt-10 dark:border-neutral-800">
+          <h2 className="text-lg font-semibold">Calendar Sync</h2>
+          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+            Add your people&rsquo;s birthdays to your favourite calendar app (Google, Apple, Outlook).
+          </p>
+          <div className="card mt-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">iCal Feed URL</p>
+              <input
+                readOnly
+                value={icalUrl}
+                className="mt-1 w-full bg-transparent text-sm font-mono text-neutral-700 outline-none dark:text-neutral-300"
+                onFocus={(e) => e.target.select()}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <form action={resetIcalToken}>
+                <button
+                  type="submit"
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+                  title="Generate a new token. Old URL will stop working."
+                >
+                  Reset Token
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+      )}
     </main>
   );
 }

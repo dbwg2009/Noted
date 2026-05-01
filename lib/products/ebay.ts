@@ -35,7 +35,7 @@ export async function searchProductsWithEbay(context: ProductSearchContext): Pro
   const query = encodeURIComponent(context.wishlistDescription);
   const endpoint = `https://svcs.ebay.com/services/search/FindingService/v1?OPERATION-NAME=findItemsByKeywords&SERVICE-VERSION=1.0.0&SECURITY-APPNAME=${encodeURIComponent(
     appId,
-  )}&RESPONSE-DATA-FORMAT=JSON&REST-PAYLOAD&GLOBAL-ID=EBAY-GB&paginationInput.entriesPerPage=8&itemFilter(0).name=ListingType&itemFilter(0).value=FixedPrice&keywords=${query}`;
+  )}&RESPONSE-DATA-FORMAT=JSON&REST-PAYLOAD&GLOBAL-ID=EBAY-GB&paginationInput.entriesPerPage=4&itemFilter(0).name=ListingType&itemFilter(0).value=FixedPrice&keywords=${query}`;
   const response = await fetch(endpoint, { cache: "no-store" });
   if (!response.ok) return [];
 
