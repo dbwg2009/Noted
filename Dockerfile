@@ -22,12 +22,19 @@ RUN npm run build
 # 4. Migrator — used by the `migrate` service in docker-compose
 FROM srcdeps AS migrator
 ENV NODE_ENV=production
-# `yes ""` feeds newlines into stdin so any prompt drizzle-kit emits that
-# `--force` doesn't suppress (e.g. enum/type creation in non-TTY containers)
-# gets auto-answered with the default instead of hanging forever.
+# drizzle-kit push uses the `prompts` package which switches stdin into raw
+# TTY mode, so plain piped input is ignored when the container isn't a TTY.
+# `--force` suppresses data-loss prompts but NOT the "data integrity" ones
+# (e.g. "do you want to truncate users?" before adding a unique constraint),
+# which is what was hanging the migrate service.
+#
+# Fix: install `expect` and use `unbuffer -p` to allocate a pseudo-TTY and
+# pass our piped newlines through as real keystrokes. Each newline accepts
+# the highlighted default ("No, add the constraint without truncating").
 # `timeout 180` is a hard backstop so the migrator fails the compose stack
-# instead of blocking it forever if drizzle-kit ever truly wedges.
-CMD ["sh", "-c", "yes '' | timeout 180 npx drizzle-kit push --force"]
+# instead of wedging it forever.
+RUN apk add --no-cache expect
+CMD ["sh", "-c", "yes '' | timeout 180 unbuffer -p npx drizzle-kit push --force"]
 
 # 5. Minimal runtime image
 FROM node:22-alpine AS runner
