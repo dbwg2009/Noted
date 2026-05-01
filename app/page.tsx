@@ -5,6 +5,7 @@ import { listPeopleSummary, requireCurrentUserId, getIcalUrl } from "@/lib/peopl
 import { Avatar, CountdownBadge, TagChip } from "@/components/badges";
 import { formatBirthday } from "@/lib/birthdays";
 import { resetIcalToken } from "./people/actions";
+import { IcalUrlInput } from "./ical-url-input";
 
 export default async function Home() {
   const session = await auth();
@@ -95,13 +96,8 @@ export default async function Home() {
           </p>
           <div className="card mt-4 flex flex-wrap items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">iCal Feed URL</p>
-              <input
-                readOnly
-                value={icalUrl}
-                className="mt-1 w-full bg-transparent text-sm font-mono text-neutral-700 outline-none dark:text-neutral-300"
-                onFocus={(e) => e.target.select()}
-              />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Noted iCal Feed URL</p>
+              <IcalUrlInput value={icalUrl} />
             </div>
             <div className="flex items-center gap-2">
               <form action={resetIcalToken}>

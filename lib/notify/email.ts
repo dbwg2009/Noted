@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import type { DigestUserBlock, ShortlistEntry } from "@/lib/reminders";
 import { poundsFromPence } from "@/lib/birthdays";
 
-const FALLBACK_FROM = "Birthday Gift Finder <onboarding@resend.dev>";
+const FALLBACK_FROM = "Noted <onboarding@resend.dev>";
 
 function escapeHtml(value: string) {
   return value
@@ -68,7 +68,7 @@ export function renderDigestText(digest: DigestUserBlock, baseUrl: string) {
     lines.push(renderShortlistText(block.shortlist));
     lines.push(`  Open: ${baseUrl}/people/${block.personId}\n`);
   }
-  lines.push("---\nSent by Birthday Gift Finder.");
+  lines.push("---\nSent by Noted.");
   return lines.join("\n");
 }
 
@@ -92,7 +92,7 @@ export function renderDigestHtml(digest: DigestUserBlock, baseUrl: string) {
   <div style="max-width:560px;margin:24px auto;padding:0 16px;">
     <h1 style="margin:0 0 16px;font-size:20px;">🎂 Birthday reminders</h1>
     ${blocks}
-    <p style="margin:24px 0 0;font-size:12px;color:#6b7280;">Sent by Birthday Gift Finder. Manage reminders at <a href="${escapeHtml(baseUrl)}" style="color:#2563eb;">${escapeHtml(baseUrl)}</a>.</p>
+    <p style="margin:24px 0 0;font-size:12px;color:#6b7280;">Sent by Noted. Manage reminders at <a href="${escapeHtml(baseUrl)}" style="color:#2563eb;">${escapeHtml(baseUrl)}</a>.</p>
   </div>
 </body></html>`;
 }

@@ -103,7 +103,7 @@ export async function suggestGiftsForPerson(ctx: SuggestionContext): Promise<Sug
 
   const model = process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL;
   const referer = process.env.OPENROUTER_REFERER?.trim() || "http://localhost:3000";
-  const appName = process.env.OPENROUTER_APP_NAME?.trim() || "Birthday Gift Finder";
+  const appName = process.env.OPENROUTER_APP_NAME?.trim() || "Noted";
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",

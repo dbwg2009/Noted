@@ -9,10 +9,7 @@ export async function Nav() {
     <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/80 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/80">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-rose-400 to-amber-300 text-white shadow-sm">
-            <CakeIcon />
-          </span>
-          <span className="hidden sm:inline">Birthday Gift Finder</span>
+          <img src="/logo/full.png" alt="Noted" className="h-8 w-auto object-contain" />
         </Link>
 
         <nav className="flex items-center gap-1 text-sm">
