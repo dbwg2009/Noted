@@ -1,52 +1,52 @@
-# Birthday Gift Finder
+# Noted
 
-A personal web app to track friends' and family members' birthdays, manage gift ideas, and use AI to find products online (with prices + links), suggest gifts, and remind you before birthdays.
+A personal, AI-powered gift planning and birthday tracking application.
 
-> Status: **Phases 0–4 complete** (scaffolding, Docker, people + wishlist CRUD, AI product lookup, AI gift suggestions, gift history, email reminder digests). Phase 5 (polish) is next. See `docs/DESIGN.md` for the design, `docs/DECISIONS.md` for locked decisions, and `CLAUDE.md` if you're an AI agent picking this up.
+> Status: **Phases 0–5 complete** (Rebranded to Noted, Photo Uploads, iCal Sync, AI Gift Suggestions, Email Reminders). See `docs/DESIGN.md` for the full architecture.
 
-## At a glance
+## Key Features
 
-- **Dashboard** with upcoming birthdays at a glance
-- **Calendar view** — month grid showing all your people's birthdays
-- **People** with photos, birthdays, relationship, budgets, sizes, tags, notes
-- **Wishlist per person** — free-text + status workflow (idea → researching → chosen → purchased → given)
-- **AI product lookup** via OpenRouter — turn wishlist items into product candidates
-- **eBay fallback** for real product URLs and prices (free Browse API)
-- **AI gift suggestions** that consider wishlist, tags, notes, and history
-- **Gift history** with reaction notes; "Mark as given" on a wishlist item records it
-- **Manual entry** fallback for everything AI does
-- **Email reminders** at 30/14/7/1 days before each birthday, with a budget-aware shortlist of products + suggestions
+- **Dashboard:** Upcoming birthdays, quick stats, and **Calendar Sync (iCal)**.
+- **Photo Uploads:** Upload photos for your people directly (saves to local volume or Base64).
+- **Calendar View:** Month-grid showing all birthdays, optimized for mobile.
+- **Wishlist:** Manage ideas with a full status workflow (idea → research → chosen → given).
+- **AI Product Lookup:** Find real UK products within your **strict budget** using OpenRouter AI.
+- **eBay Fallback:** Reliable product links and prices from eBay UK.
+- **AI Suggestions:** Thoughtful gift ideas based on the person's interests and history.
+- **Email Reminders:** Automatic digests sent via Resend at 30, 14, 7, and 1 day before.
 
-## Stack
+## Quick Start (Docker)
 
-Next.js 15 (App Router) · TypeScript · Postgres · Drizzle · Auth.js (email magic link) · Tailwind · OpenRouter (LLM) · eBay Browse API · Resend (email) · Docker (primary) / Vercel + Neon (alt).
+The fastest way to run Noted is using pre-built images.
 
-## Local dev
+### 1. Setup Environment
+```bash
+cp .env.example .env
+# Fill in AUTH_SECRET, RESEND_API_KEY, ALLOWED_EMAIL, OPENROUTER_API_KEY
+```
 
-### Option A: Docker (recommended)
-
-Brings up the app + a Postgres container. Schema migrations run automatically.
+### 2. Run with Docker Hub Images (Recommended)
+This avoids slow local builds, especially on Raspberry Pi.
 
 ```bash
-cp .env.example .env   # fill in AUTH_SECRET, RESEND_API_KEY, ALLOWED_EMAIL, OPENROUTER_API_KEY
-# (DATABASE_URL is set by docker-compose itself — leave it blank in .env)
+# Pull the latest images
+docker compose pull
 
+# Start the application
+docker compose up -d
+```
+
+### 3. Build Locally (Development)
+If you need to make code changes:
+```bash
 docker compose up --build -d
-# starts: db → migrate (one-shot, applies schema) → app
-# open http://localhost:3000
 ```
 
-Generate `AUTH_SECRET` with `openssl rand -base64 32`.
+## Calendar Sync (iCal)
+Find your unique iCal URL at the bottom of the Dashboard. Copy and paste it into:
+- Google Calendar (Add by URL)
+- Apple Calendar (New Calendar Subscription)
+- Outlook (Add Calendar -> From Internet)
 
-The `migrate` service runs on every `docker compose up`, so schema changes are applied automatically.
-
-### Option B: Native Node
-
-```bash
-cp .env.example .env.local   # fill in everything, including DATABASE_URL
-npm install
-npm run db:push
-npm run dev
-```
-
-Required env vars are listed in `.env.example`.
+## Tech Stack
+Next.js 15 · TypeScript · Postgres (Drizzle) · Auth.js · Tailwind · OpenRouter AI · eBay API · Resend · Docker.
