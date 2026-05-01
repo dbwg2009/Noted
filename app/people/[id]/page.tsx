@@ -23,6 +23,7 @@ import {
   updatePerson,
   updateWishlistItem,
 } from "../actions";
+import { AiSubmitButton } from "./ai-submit-button";
 
 const inputCls =
   "rounded-md border border-neutral-300 bg-white px-3 py-2 text-base dark:border-neutral-700 dark:bg-neutral-900";
@@ -261,12 +262,11 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <form action={findProductsForWishlistItem}>
                     <input type="hidden" name="wishlistItemId" value={item.id} />
-                    <button
-                      type="submit"
+                    <AiSubmitButton
+                      idleLabel="🔎 Find products (AI)"
+                      pendingLabel="Searching… (up to ~60s)"
                       className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
-                    >
-                      🔎 Find products (AI)
-                    </button>
+                    />
                   </form>
                   <details className="text-xs">
                     <summary className="cursor-pointer rounded-md border border-neutral-300 px-3 py-1.5 font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900">
@@ -360,12 +360,11 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
           </div>
           <form action={suggestGifts}>
             <input type="hidden" name="personId" value={person.id} />
-            <button
-              type="submit"
+            <AiSubmitButton
+              idleLabel="✨ Suggest gifts"
+              pendingLabel="Thinking… (up to ~60s)"
               className="rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500"
-            >
-              ✨ Suggest gifts
-            </button>
+            />
           </form>
         </div>
 
