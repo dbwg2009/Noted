@@ -96,7 +96,7 @@ export default async function Home() {
           </p>
           <div className="card mt-4 flex flex-wrap items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">iCal Feed URL</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Noted iCal Feed URL</p>
               <IcalUrlInput value={icalUrl} />
             </div>
             <div className="flex items-center gap-2">

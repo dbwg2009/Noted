@@ -5,7 +5,7 @@ export function generateIcal(people: Array<{ id: string, name: string, birthday:
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Birthday Gift Finder//EN",
+    "PRODID:-//Noted//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
   ];
