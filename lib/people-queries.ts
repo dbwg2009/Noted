@@ -13,6 +13,7 @@ import {
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { daysUntil, ageOnNextBirthday } from "@/lib/birthdays";
+import { randomUUID } from "node:crypto";
 
 export async function requireCurrentUserId() {
   const session = await auth();
@@ -21,6 +22,28 @@ export async function requireCurrentUserId() {
   const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (!user) throw new Error("Authenticated user was not found in the database");
   return user.id;
+}
+
+/**
+ * Gets or generates the iCal feed URL for the current user.
+ */
+export async function getIcalUrl(userId: string) {
+  const [user] = await db
+    .select({ icalToken: users.icalToken })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) return null;
+
+  let token = user.icalToken;
+  if (!token) {
+    token = randomUUID();
+    await db.update(users).set({ icalToken: token }).where(eq(users.id, userId));
+  }
+
+  const baseUrl = process.env.AUTH_URL?.replace(/\/$/, "") || "http://localhost:3000";
+  return `${baseUrl}/api/ical/${token}`;
 }
 
 export async function listPeopleSummary(userId: string) {

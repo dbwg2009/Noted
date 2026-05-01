@@ -32,12 +32,14 @@ function extractJsonArray(text: string) {
   }
   return stripped.slice(start, end + 1);
 }
-
 function buildPrompt(context: ProductSearchContext) {
   return `You are helping with UK birthday gift shopping. Return ONLY a JSON array, no prose, no code fences.
 
-Suggest up to 6 product candidates that fit this wishlist item. Prefer well-known UK retailers (Amazon UK, John Lewis, Argos, Currys, Waterstones, Lego.com, etc.). Only include URLs you are highly confident exist; if unsure, pick the retailer's homepage and let the user search.
+Suggest exactly 3 or 4 product candidates that fit this wishlist item. Prefer well-known UK retailers (Amazon UK, John Lewis, Argos, Currys, Waterstones, Lego.com, etc.). 
 
+IMPORTANT: Only include URLs you are 100% confident exist and lead directly to the product. If you are not absolutely sure of the specific product URL, provide the retailer's search results page or homepage URL instead. Do NOT hallucinate deep links.
+...
+Output schema (JSON array, 3-4 items):
 Wishlist item: ${context.wishlistDescription}
 Source note: ${context.sourceNote ?? "none"}
 Recipient: ${context.personName}
