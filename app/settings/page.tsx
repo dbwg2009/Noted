@@ -14,7 +14,7 @@ export default async function SettingsPage() {
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (!user) redirect("/login");
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const flashCookie = cookieStore.get("settings_flash");
   let flash: { message: string; tone: string } | null = null;
   if (flashCookie?.value) {
