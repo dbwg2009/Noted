@@ -6,9 +6,9 @@ Read this first. It exists so any AI session (Claude Code, Cursor, etc.) can pic
 
 ## What this project is
 
-A personal, single-user web app for tracking friends' and family birthdays, capturing gift ideas, using AI to find real products with prices + buy links, and emailing the owner reminders ahead of each birthday.
+A personal, multi-user web app for tracking friends' and family birthdays, capturing gift ideas, using AI to find real products with prices + buy links, and emailing users reminders ahead of each birthday.
 
-Owner / sole user: **dbwg2009**.
+Owner / initial admin: **dbwg2009**.
 
 ## Where to find things
 
@@ -17,7 +17,7 @@ Owner / sole user: **dbwg2009**.
 - **`CHANGELOG.md`** — running log of every significant change: what changed, why, and when. **All AI agents must update this on every commit.** See the file for the entry format.
 - **`README.md`** — quick-start (Docker + native Node).
 - **`db/schema.ts`** — the source of truth for the DB shape.
-- **`lib/auth.ts`** — Auth.js v5 config (Resend magic-link, single-user gate via `ALLOWED_EMAIL`).
+-- **`lib/auth.ts`** — Auth.js v5 config (Credentials provider for email/password, Drizzle adapter). Previously used Resend magic-link + `ALLOWED_EMAIL`.
 - **`Dockerfile`** + **`docker-compose.yml`** — primary deployment target is Docker on a Pi.
 
 ## Locked decisions (do not silently change)
@@ -93,7 +93,7 @@ npm run dev
 - Don't switch the LLM provider away from OpenRouter without updating `DECISIONS.md`. If a different provider is genuinely needed, OpenRouter is preferred because it gives access to many free models behind one API.
 - Don't add SerpAPI or any scraping — it was explicitly rejected for cost/ToS reasons.
 - Don't introduce a JWT session strategy; we're on DB sessions because the magic-link flow needs `verification_tokens`.
-- Don't bypass `ALLOWED_EMAIL` — it's the only thing keeping randoms out.
+- `ALLOWED_EMAIL` is optional now; do not rely on it for multi-user auth.
 - Don't build features beyond the current phase without asking the user. The build order matters because each phase depends on the previous data shape.
 - Don't commit `.env` or any secrets.
 - Don't rewrite working code "for cleanliness" — small surface area, personal app, ship it.

@@ -13,6 +13,17 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-03] Password auth + multi-user
+**By:** GitHub Copilot
+**What:** Replaced email magic-link auth with password-based credentials (bcrypt hashed) and enabled multi-user support. Added `password_hash` column to the `users` table, a registration API at `app/api/auth/register/route.ts`, and updated `lib/auth.ts` to use the Credentials provider. Updated the login and register UI.
+**Why:** User requested switching to password-based authentication and multi-user capability.
+
+## [2026-05-03] Forgot-password + settings
+**By:** GitHub Copilot
+**What:** Added a forgot-password flow: `POST /api/auth/forgot` to create time-limited reset tokens and email a reset link (Resend), `POST /api/auth/reset` to apply the new password. Added UI pages `/login/forgot` and `/login/reset`. Added a `/settings` page with profile editing, password change, and iCal token reset (`app/settings/*`).
+**Why:** User requested password reset and a per-user settings page after switching to password auth.
+
+
 ## [2026-05-03] Brand blue nav bar + light blue page background
 **By:** Claude Code
 **What:** Nav bar changed from white to brand-blue-600 with white text, white/10 hover states, and semi-transparent sign-out border. Icon logo used in nav (dark text logo not readable on blue). Body background changed from pure white to brand-blue-50 (very light periwinkle).
