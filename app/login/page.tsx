@@ -5,7 +5,7 @@ export default function LoginPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12 text-center">
       <div className="flex justify-center mb-4">
-        <Image src="/logo/full.png" alt="Noted" width={240} height={60} priority />
+        <Image src="/logo/icon.png" alt="Noted" width={96} height={96} priority />
       </div>
       <h1 className="text-2xl font-semibold tracking-tight">Sign in to Noted</h1>
       <p className="text-sm text-neutral-600 dark:text-neutral-400">

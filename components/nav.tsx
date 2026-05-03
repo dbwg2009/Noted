@@ -14,18 +14,18 @@ export async function Nav() {
           <Image
             src="/logo/icon.png"
             alt="Noted"
-            width={36}
-            height={36}
+            width={40}
+            height={40}
             className="sm:hidden"
             priority
           />
-          {/* Full logo on sm+ */}
+          {/* Text logo on sm+ */}
           <Image
-            src="/logo/full.png"
+            src="/logo/text.png"
             alt="Noted"
-            width={160}
-            height={40}
-            className="hidden sm:block h-9 w-auto"
+            width={200}
+            height={56}
+            className="hidden sm:block h-11 w-auto"
             priority
           />
         </Link>
