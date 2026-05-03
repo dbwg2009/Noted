@@ -21,28 +21,46 @@ A personal, AI-powered gift planning and birthday tracking application.
 
 ## Quick Start (Docker)
 
-The fastest way to run Noted is using pre-built images.
+The fastest way to run Noted is using pre-built images — no clone required.
 
-### 1. Setup Environment
+### 1. Download the two config files
+
 ```bash
-cp .env.example .env
-# Fill in AUTH_SECRET, RESEND_API_KEY, ALLOWED_EMAIL, OPENROUTER_API_KEY
+curl -O https://raw.githubusercontent.com/dbwg2009/Noted/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/dbwg2009/Noted/main/.env.example
+mv .env.example .env
 ```
 
-### 2. Run with Docker Hub Images (Recommended)
-This avoids slow local builds, especially on Raspberry Pi.
+Or with `wget`:
+```bash
+wget https://raw.githubusercontent.com/dbwg2009/Noted/main/docker-compose.yml
+wget -O .env https://raw.githubusercontent.com/dbwg2009/Noted/main/.env.example
+```
+
+### 2. Fill in your `.env`
+
+The required keys are:
+
+| Key | Where to get it |
+|-----|----------------|
+| `AUTH_SECRET` | `openssl rand -base64 32` |
+| `ALLOWED_EMAIL` | Your email address |
+| `RESEND_API_KEY` | [resend.com](https://resend.com) — free tier is fine |
+| `OPENROUTER_API_KEY` | [openrouter.ai](https://openrouter.ai) — free tier is fine |
+| `CRON_SECRET` | `openssl rand -hex 32` |
+
+### 3. Run
 
 ```bash
-# Pull the latest images
-docker compose pull
-
-# Start the application
 docker compose up -d
 ```
 
-### 3. Build Locally (Development)
+Images are pulled from Docker Hub automatically. The `migrate` service applies the schema before the app starts — just open http://localhost:3000.
+
+### 4. Build Locally (Development)
 If you need to make code changes:
 ```bash
+git clone https://github.com/dbwg2009/Noted.git && cd Noted
 docker compose up --build -d
 ```
 
