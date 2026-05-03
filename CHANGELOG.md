@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-03] Brand blue nav bar + light blue page background
+**By:** Claude Code
+**What:** Nav bar changed from white to brand-blue-600 with white text, white/10 hover states, and semi-transparent sign-out border. Icon logo used in nav (dark text logo not readable on blue). Body background changed from pure white to brand-blue-50 (very light periwinkle).
+**Why:** The whole page looked plain white with no colour identity. The blue nav is the primary colour anchor.
+
 ## [2026-05-03] Brand colour scheme
 **By:** Claude Code
 **What:** Added `brand.blue` and `brand.teal` palettes to `tailwind.config.ts` derived from the logo colours. Defined `.btn-primary` and `.btn-secondary` utilities in `globals.css`. Replaced all `bg-neutral-900 text-white` primary buttons across every page with `btn-primary`. Avatar fallback gradient changed from rose/amber to brand blue/teal. TagChip and StatusPill `researching` state use brand teal/blue. Reminder channel badge, product links, and AI action buttons all updated to brand colours. Logo added to README.
