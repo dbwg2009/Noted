@@ -40,7 +40,7 @@ export default async function PeoplePage({
           </div>
           <Link
             href="/people/new"
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900"
+            className="btn-primary px-4 py-2 text-sm"
           >
             + Add person
           </Link>
@@ -54,7 +54,7 @@ export default async function PeoplePage({
           </p>
           <Link
             href="/people/new"
-            className="mt-3 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900"
+            className="mt-3 inline-block btn-primary px-4 py-2 text-sm"
           >
             Add your first person
           </Link>
@@ -115,7 +115,7 @@ function SortLink({
       href={`/people?sort=${sort}`}
       className={
         active
-          ? "rounded bg-neutral-900 px-2 py-1 font-medium text-white dark:bg-white dark:text-neutral-900"
+          ? "rounded bg-brand-blue-500 px-2 py-1 font-medium text-white"
           : "rounded px-2 py-1 text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
       }
     >
