@@ -23,6 +23,7 @@ services:
       dockerfile: Dockerfile
       target: migrator
       provenance: false
+      sbom: false
     restart: "no"
     depends_on:
       db:
@@ -37,6 +38,7 @@ services:
       dockerfile: Dockerfile
       target: runner
       provenance: false
+      sbom: false
     restart: unless-stopped
     depends_on:
       migrate:
