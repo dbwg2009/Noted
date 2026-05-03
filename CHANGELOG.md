@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-03] Brand colour scheme
+**By:** Claude Code
+**What:** Added `brand.blue` and `brand.teal` palettes to `tailwind.config.ts` derived from the logo colours. Defined `.btn-primary` and `.btn-secondary` utilities in `globals.css`. Replaced all `bg-neutral-900 text-white` primary buttons across every page with `btn-primary`. Avatar fallback gradient changed from rose/amber to brand blue/teal. TagChip and StatusPill `researching` state use brand teal/blue. Reminder channel badge, product links, and AI action buttons all updated to brand colours. Logo added to README.
+**Why:** App was styled entirely in neutrals with no colour identity. The brand palette ties the UI to the logo's blue-and-teal aesthetic.
+
 ## [2026-05-03] Logo layout tweaks + remove gradient background
 **By:** Claude Code
 **What:** Removed rose-to-amber gradient from body — replaced with plain `bg-white dark:bg-neutral-950`. Nav now uses `text.png` (text-only logo, larger) on sm+ instead of `full.png`. Login page now shows `icon.png` only (96×96) instead of the full logo. Stripped background from `text.png`.

@@ -167,7 +167,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
             <input name="priceMax" type="number" min="0" step="0.01" placeholder="Price max (GBP)" className={inputCls} />
             <button
               type="submit"
-              className="w-fit rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 md:col-span-2"
+              className="btn-primary w-fit px-4 py-2 text-sm md:col-span-2"
             >
               Add item
             </button>
@@ -234,7 +234,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                       <div className="flex items-center gap-2 md:col-span-2">
                         <button
                           type="submit"
-                          className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900"
+                          className="btn-primary px-3 py-1.5 text-sm"
                         >
                           Save
                         </button>
@@ -265,7 +265,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                     <AiSubmitButton
                       idleLabel="🔎 Find products (AI)"
                       pendingLabel="Searching… (up to ~60s)"
-                      className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
+                      className="btn-primary px-3 py-1.5 text-sm"
                     />
                   </form>
                   <details className="text-xs">
@@ -319,7 +319,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                             href={product.url}
                             target="_blank"
                             rel="noreferrer"
-                            className="line-clamp-2 text-sm font-medium text-blue-700 hover:underline dark:text-blue-300"
+                            className="line-clamp-2 text-sm font-medium text-brand-blue-600 hover:underline dark:text-brand-blue-300"
                           >
                             {product.title}
                           </a>
@@ -363,7 +363,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
             <AiSubmitButton
               idleLabel="✨ Suggest gifts"
               pendingLabel="Thinking… (up to ~60s)"
-              className="rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500"
+              className="btn-primary px-3 py-1.5 text-sm"
             />
           </form>
         </div>
@@ -392,7 +392,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                     <input type="hidden" name="suggestionId" value={s.id} />
                     <button
                       type="submit"
-                      className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900"
+                      className="btn-primary px-3 py-1 text-xs"
                     >
                       → Add to wishlist
                     </button>
@@ -437,7 +437,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
             />
             <button
               type="submit"
-              className="w-fit rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 md:col-span-2"
+              className="btn-primary w-fit px-4 py-2 text-sm md:col-span-2"
             >
               Add entry
             </button>
@@ -513,7 +513,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
               <input type="hidden" name="personId" value={person.id} />
               <button
                 type="submit"
-                className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900"
+                className="btn-primary px-3 py-1.5 text-sm"
               >
                 Add default schedule
               </button>
@@ -536,7 +536,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                       : "Never sent"}
                   </p>
                 </div>
-                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                <span className="rounded-full bg-brand-blue-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand-blue-800 dark:bg-brand-blue-900/40 dark:text-brand-blue-200">
                   {r.channel}
                 </span>
               </li>
@@ -610,7 +610,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
             />
             <button
               type="submit"
-              className="w-fit rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 md:col-span-2"
+              className="btn-primary w-fit px-4 py-2 text-sm md:col-span-2"
             >
               Save changes
             </button>

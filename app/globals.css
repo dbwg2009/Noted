@@ -14,9 +14,18 @@ body {
   @apply text-neutral-900 antialiased dark:text-neutral-100;
 }
 
-/* Subtle card style reused across the app */
 .card {
   @apply rounded-xl border border-neutral-200 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/70;
+}
+
+/* Primary action button — brand blue */
+.btn-primary {
+  @apply rounded-md bg-brand-blue-500 font-medium text-white transition-colors hover:bg-brand-blue-600;
+}
+
+/* Secondary / outline button */
+.btn-secondary {
+  @apply rounded-md border border-neutral-300 font-medium transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900;
 }
 
 input, textarea, select {
