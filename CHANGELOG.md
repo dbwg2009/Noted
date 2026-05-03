@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-03] Logo layout tweaks + remove gradient background
+**By:** Claude Code
+**What:** Removed rose-to-amber gradient from body — replaced with plain `bg-white dark:bg-neutral-950`. Nav now uses `text.png` (text-only logo, larger) on sm+ instead of `full.png`. Login page now shows `icon.png` only (96×96) instead of the full logo. Stripped background from `text.png`.
+**Why:** User preferred plain background over the gradient. Login page looks cleaner with just the icon. Nav text logo is cleaner than the combined mark.
+
 ## [2026-05-03] Logo polish: transparent backgrounds, Next.js Image, favicon fix
 **By:** Claude Code
 **What:** Removed off-white backgrounds from `public/logo/full.png`, `public/logo/icon.png`, and `public/favicon.png` (sampled corner pixel R253 G255 B253 and flood-filled to transparent). Replaced bare `<img>` tags in `components/nav.tsx` and `app/login/page.tsx` with Next.js `<Image>` (priority loading, proper width/height). Nav now shows icon-only on mobile, full logo on sm+. Added `app/icon.png` so Next.js App Router auto-generates the favicon `<link>` tag. Added `icons` to layout metadata as a fallback. Removed the unused `CakeIcon` component from nav.
