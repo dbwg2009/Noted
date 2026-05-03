@@ -99,6 +99,25 @@ npm run dev
 - Don't rewrite working code "for cleanliness" — small surface area, personal app, ship it.
 - Don't add a UI component library (e.g. shadcn) without asking — we're keeping deps minimal.
 
+## Versioning & GitHub releases
+
+The repo uses **semantic versioning** tied to build phases. All tags and releases live at https://github.com/dbwg2009/Noted/releases.
+
+| Tag | Phase completed | Notes |
+|-----|----------------|-------|
+| `v0.1.0` | Phase 0 — Scaffold | Initial Next.js + Docker stack |
+| `v0.3.0` | Phase 3 — Suggestions & History | AI suggestions, gift history |
+| `v0.4.0` | Phase 4 — Reminders | Email digests, cron sidecar |
+| `v1.0.0` | Phase 5 — Polish & Rebrand | All phases complete, Noted brand |
+
+**Rules for future releases:**
+- Tag format: `vMAJOR.MINOR.PATCH` (e.g. `v1.1.0` for a meaningful new feature, `v1.0.1` for a bug fix).
+- Cut a new GitHub release whenever a meaningful feature or fix ships to `main`. Use `gh release create <tag> --title "..." --notes "..."`.
+- Mark it `--latest` when it supersedes the previous release. Keep release notes concise: what changed and why, not a commit dump.
+- Do **not** tag mid-phase work-in-progress commits — only tag stable, deployable states on `main`.
+
+**GitHub milestones** (https://github.com/dbwg2009/Noted/milestones) map 1-to-1 to build phases (all currently closed). If new phases are added, create a matching milestone via `gh api repos/dbwg2009/Noted/milestones -X POST -f title="Phase N: ..." -f state=open`.
+
 ## Picking up the work
 
 1. Read `docs/DESIGN.md` and `docs/DECISIONS.md`.
@@ -107,6 +126,7 @@ npm run dev
 4. **Before committing:** add an entry to `CHANGELOG.md` describing what you changed and why. Use the format in that file.
 5. After work, push the branch and confirm with the user before opening a PR / merging to main.
 6. Update this file or `docs/DECISIONS.md` if the decisions change.
+7. When merging to `main` and the change is release-worthy, cut a GitHub release (see versioning section above).
 
 ## Known gotchas
 
