@@ -24,6 +24,8 @@ Locked decisions from the planning round. See `DESIGN.md` for the full design th
 
 - **LLM provider: Gemini → OpenRouter** (post-Phase 2). Reason: user preference + OpenRouter aggregates many free models behind one OpenAI-compatible API. Trade-off: lost Gemini's free Google Search grounding, so LLM-suggested product URLs can be hallucinated. Mitigation: eBay Browse API stays as the trusted-URL fallback, and saved products are tagged `ai_search` vs `manual` so the user knows which is which.
 - **UI structure: single `/people` page → multi-page** (post-Phase 2). Added `/` (dashboard with upcoming birthdays + stats), `/calendar` (month grid view), `/people` (card grid), `/people/new` (clean add form), `/people/[id]` (detail page with wishlist/products/settings). Shared top nav, avatars, status pills, countdown badges in `components/`.
+- **Phase 5 complete: iCal feed + photo uploads** (2026-05-01). iCal: `/api/ical/[token]` route returns a `.ics` of all birthdays; token is a UUID in `users.ical_token`, resettable from the dashboard. Photo uploads: `lib/storage.ts` handles file → URL conversion with two strategies: `local` (default, saves to `public/uploads/` for Docker volume persistence) and `base64` (for serverless). Calendar grid made horizontally scrollable. AI product search tightened to 3–4 results with hallucinated-URL avoidance prompt. eBay results reduced 8 → 4.
+- **App rebrand: "Birthday Gift Finder" → "Noted"** (2026-05-01). Updated metadata, nav, login page, iCal PRODID, email templates, package name, OpenRouter app name header, and all repo docs. New logo and favicon added under `public/logo/`.
 
 ## C. Deferred
 | # | Question | Decision |

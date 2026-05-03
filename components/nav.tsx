@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { auth, signOut } from "@/lib/auth";
 
 export async function Nav() {
@@ -8,8 +9,25 @@ export async function Nav() {
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/80 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/80">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <img src="/logo/full.png" alt="Noted" className="h-8 w-auto object-contain" />
+        <Link href="/" className="flex items-center">
+          {/* Icon only on small screens */}
+          <Image
+            src="/logo/icon.png"
+            alt="Noted"
+            width={36}
+            height={36}
+            className="sm:hidden"
+            priority
+          />
+          {/* Full logo on sm+ */}
+          <Image
+            src="/logo/full.png"
+            alt="Noted"
+            width={160}
+            height={40}
+            className="hidden sm:block h-9 w-auto"
+            priority
+          />
         </Link>
 
         <nav className="flex items-center gap-1 text-sm">
@@ -47,31 +65,5 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
     >
       {children}
     </Link>
-  );
-}
-
-function CakeIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8" />
-      <path d="M4 16s1-1 2-1 2 1 4 1 3-1 4-1 2 1 4 1 2-1 2-1" />
-      <path d="M2 21h20" />
-      <path d="M7 8v3" />
-      <path d="M12 8v3" />
-      <path d="M17 8v3" />
-      <path d="M7 4l1 2" />
-      <path d="M12 3v3" />
-      <path d="M17 4l-1 2" />
-    </svg>
   );
 }

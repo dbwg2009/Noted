@@ -14,6 +14,7 @@ Owner / sole user: **dbwg2009**.
 
 - **`docs/DESIGN.md`** — full design: goals, features, data model, architecture, build phases, repo layout. **Read this before changing anything non-trivial.**
 - **`docs/DECISIONS.md`** — locked decisions and a change log (single-user, email reminders, UK/GBP, OpenRouter LLM, Docker primary). Update this when a decision changes; do not silently override.
+- **`CHANGELOG.md`** — running log of every significant change: what changed, why, and when. **All AI agents must update this on every commit.** See the file for the entry format.
 - **`README.md`** — quick-start (Docker + native Node).
 - **`db/schema.ts`** — the source of truth for the DB shape.
 - **`lib/auth.ts`** — Auth.js v5 config (Resend magic-link, single-user gate via `ALLOWED_EMAIL`).
@@ -45,7 +46,7 @@ If a decision genuinely needs to change, update `docs/DECISIONS.md` in the same 
 | 2.5 — UI polish | **done** | Multi-page layout: dashboard `/`, calendar `/calendar`, people `/people` (cards) → `/people/new` and `/people/[id]`. Shared nav, avatars, status pills, countdown badges |
 | 3 — Suggestions & history | **done** | "Suggest gifts" via OpenRouter with full person context (wishlist + tags + notes + history + budget). `suggestions` table. Promote suggestion → wishlist item, or dismiss. Gift history with reaction notes; "Mark as given" on wishlist items auto-creates history entry; standalone history form for retroactive entries |
 | 4 — Reminders | **done** | Default 30/14/7/1-day reminders auto-created per person. Daily digest email via Resend with budget-aware shortlist (products + suggestions). `/api/cron/reminders` endpoint protected by `CRON_SECRET`; `cron` sidecar in compose pings it on `CRON_INTERVAL_SECONDS` (default 86400). Per-person "Send test now" button. |
-| 5 — Polish | **next** | Photo uploads (currently URL-only), iCal feed, mobile tweaks |
+| 5 — Polish | **done** | Photo uploads (`lib/storage.ts`, local filesystem or base64), iCal feed (`/api/ical/[token]`, `users.ical_token`), mobile tweaks (horizontal scroll on calendar) |
 
 When starting work, find the next pending task in this list. **Don't skip phases** without explicit user approval — Phase 1 lays the data flow Phase 2+ build on.
 
@@ -103,8 +104,9 @@ npm run dev
 1. Read `docs/DESIGN.md` and `docs/DECISIONS.md`.
 2. Check the build phase table above; the first **pending** phase is your next job.
 3. Small, focused commits with descriptive messages. Match existing commit style (imperative subject + short body explaining the why).
-4. After work, push the branch (`claude/birthday-gift-finder-2Yg28` is the working branch — confirm with the user before opening a PR / merging to main).
-5. Update this file or `docs/DECISIONS.md` if the decisions change.
+4. **Before committing:** add an entry to `CHANGELOG.md` describing what you changed and why. Use the format in that file.
+5. After work, push the branch and confirm with the user before opening a PR / merging to main.
+6. Update this file or `docs/DECISIONS.md` if the decisions change.
 
 ## Known gotchas
 
@@ -117,6 +119,8 @@ npm run dev
 - LLM-generated product URLs are NOT verified — the model can hallucinate. The eBay fallback is the only path for guaranteed-real URLs. UI labels saved products with their `source` (`AI` vs `Manual`) so the user knows.
 - `app/people/page.tsx` is the **list page only**; person detail is `app/people/[id]/page.tsx`. Wishlist + product UI lives in the detail page. Server actions are still in `app/people/actions.ts` and shared between both.
 - `lib/people-queries.ts` holds the read queries (`listPeopleSummary`, `getPersonDetail`). Server actions in `app/people/actions.ts` only do writes; don't move them around without updating both pages.
+- Photo uploads use `lib/storage.ts`. Default strategy is `local` (writes to `public/uploads/`, needs a Docker volume for persistence). Set `STORAGE_STRATEGY=base64` for serverless/Vercel deployments (stores the file as a `data:` URI in `photo_url`).
+- The iCal feed is at `/api/ical/[token]`. The token is `users.ical_token` (a UUID). Resetting it invalidates old calendar subscriptions. Token must be non-null for the feed route to work — it is auto-generated on account creation via `defaultRandom()`.
 
 ## When something is unclear
 
