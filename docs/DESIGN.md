@@ -1,4 +1,4 @@
-# Design Plan — Birthday Gift Finder
+# Design Plan — Noted
 
 This document describes the architecture, features, data model, and tech stack. Decisions made together with the user are locked in (see `DECISIONS.md` for the answered questions list).
 
@@ -40,7 +40,16 @@ Non-goals (v1):
   - Estimated budget band (cheap / mid / splurge) or specific price range
   - Linked products (zero or more — see 2.3)
 
-### 2.3 Product lookup (the AI part)
+### 2.3 Photos
+Each person can have a profile photo. Upload is via a file input (`multipart/form-data`); the file is handled by `lib/storage.ts`.
+
+Two storage strategies, selected by `STORAGE_STRATEGY` env var:
+- `local` (default): saved to `public/uploads/` as a UUID-named file. Works well with a Docker volume mount.
+- `base64`: stored as a `data:` URI directly in `photo_url`. Useful for Vercel/serverless where the filesystem is ephemeral.
+
+The person's `photo_url` column stores the resulting URL or data URI.
+
+### 2.4 Product lookup (the AI part)
 For any wishlist item, "Find products" does:
 1. Sends free-text description + person context (budget, sizes, region=UK, currency=GBP) to **OpenRouter** (default model `meta-llama/llama-3.3-70b-instruct:free`).
 2. The LLM returns up to 6 product candidates as JSON: title, retailer, URL, priceGbp, image (optional), short description.
@@ -51,16 +60,19 @@ For any wishlist item, "Find products" does:
 
 **Manual entry path**: every AI step is optional. You can paste a URL or fill fields by hand at any point.
 
-### 2.4 AI gift suggestions
+### 2.5 AI gift suggestions
 "Suggest gifts" uses OpenRouter with full context (wishlist + tags + notes + past gifts + budget + sizes + avoid list) to propose new gift ideas. Each suggestion can be promoted to a wishlist item and sent through the product lookup flow.
 
-### 2.5 Reminders (email)
+### 2.6 iCal feed
+`/api/ical/[token]` returns a `.ics` file of all birthdays. The token is a per-user UUID stored in `users.ical_token`; it can be reset via the dashboard. This allows calendar apps (Google Calendar, Apple Calendar, etc.) to subscribe to the feed without requiring auth.
+
+### 2.7 Reminders (email)
 - Channel: **email** via Resend (free tier).
 - Default lead times: **30, 14, 7, 1 days** before birthday.
 - Each reminder includes a budget-aware shortlist (top N items / suggestions within the person's budget).
 - Sent from a daily Vercel Cron job.
 
-### 2.6 Gift history
+### 2.8 Gift history
 - Marking an item `given` records: date, price paid (GBP), **reaction notes** ("loved it" / "polite smile").
 - Used to avoid duplicate suggestions and to inform future AI suggestions.
 
@@ -82,7 +94,9 @@ For any wishlist item, "Find products" does:
 ```
 User
   id, email, timezone (default Europe/London),
-  default_currency (default GBP), created_at
+  default_currency (default GBP),
+  ical_token (uuid, unique — used as the secret path segment for the iCal feed),
+  created_at
 
 Person
   id, user_id, name,
@@ -172,7 +186,7 @@ AIRequestLog
 - **DB driver:** `postgres-js` (works with any Postgres).
 - **ORM:** Drizzle.
 - **Auth:** Auth.js with email magic link (single-user via `ALLOWED_EMAIL`; scaffolding supports multi).
-- **Styling:** Tailwind + shadcn/ui.
+- **Styling:** Tailwind v3 — bespoke components in `components/`. No UI component library (shadcn, etc.) to keep deps minimal.
 - **AI:** OpenRouter via plain `fetch` to `/api/v1/chat/completions` (no SDK). Default model `meta-llama/llama-3.3-70b-instruct:free`.
 - **Email:** `resend` SDK (used for both magic-link auth and reminder emails).
 - **Cron:** local cron / a long-running scheduler in the app container (Phase 4 detail). On Vercel deploys this becomes Vercel Cron.
@@ -249,7 +263,7 @@ endpoint with the `CRON_SECRET` bearer token on a schedule.
 | 2 | OpenRouter LLM product lookup + eBay fallback + manual entry polish | **done** |
 | 3 | Suggestions + gift history with reaction notes | **done** |
 | 4 | Email reminders via Resend + cron sidecar + budget-aware shortlist | **done** |
-| 5 | iCal feed export, mobile polish, photo uploads | ongoing |
+| 5 | iCal feed export, mobile polish, photo uploads | **done** |
 
 ---
 
@@ -273,7 +287,7 @@ endpoint with the `CRON_SECRET` bearer token on a schedule.
     /[id]           person detail: header, notes, wishlist UI, settings
   /api/auth/...     Auth.js handlers
   /api/cron         reminder jobs (POST/GET /reminders, requires CRON_SECRET)
-  /api/ical         calendar feed (Phase 5)
+  /api/ical         iCal feed: /api/ical/[token]/route.ts
 /components
   nav.tsx           top nav bar (rendered in root layout)
   badges.tsx        StatusPill, CountdownBadge, TagChip, Avatar
@@ -292,6 +306,8 @@ endpoint with the `CRON_SECRET` bearer token on a schedule.
   /products         openrouter.ts, ebay.ts, search.ts (orchestrator), types.ts
   /notify           email adapter — Resend (Phase 4)
   /reminders        scheduling logic (Phase 4)
+  ical.ts           iCal feed generator (builds .ics content, PRODID: Noted)
+  storage.ts        photo upload handler; local filesystem or base64 strategy
 middleware.ts       redirects unauthenticated users to /login
 Dockerfile          multi-stage: deps → srcdeps → builder | migrator → runner
 docker-compose.yml  db + migrate (one-shot) + app

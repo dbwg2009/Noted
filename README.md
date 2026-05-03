@@ -1,5 +1,9 @@
 # Noted
 
+<p align="center">
+  <img src="public/logo/full.png" alt="Noted" width="320" />
+</p>
+
 A personal, AI-powered gift planning and birthday tracking application.
 
 > Status: **Phases 0–5 complete** (Rebranded to Noted, Photo Uploads, iCal Sync, AI Gift Suggestions, Email Reminders). See `docs/DESIGN.md` for the full architecture.
