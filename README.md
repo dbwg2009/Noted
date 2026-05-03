@@ -44,7 +44,7 @@ The required keys are:
 | Key | Where to get it |
 |-----|----------------|
 | `AUTH_SECRET` | `openssl rand -base64 32` |
-| `ALLOWED_EMAIL` | Your email address |
+| `ALLOWED_EMAIL` | Optional — only used for magic-link single-user mode; not required for password-based multi-user setups |
 | `RESEND_API_KEY` | [resend.com](https://resend.com) — free tier is fine |
 | `OPENROUTER_API_KEY` | [openrouter.ai](https://openrouter.ai) — free tier is fine |
 | `CRON_SECRET` | `openssl rand -hex 32` |

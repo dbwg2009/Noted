@@ -45,7 +45,7 @@ services:
       AUTH_URL: "${AUTH_URL:-http://localhost:3000}"
       RESEND_API_KEY: "${RESEND_API_KEY:?RESEND_API_KEY is required}"
       EMAIL_FROM: "${EMAIL_FROM:-Noted <onboarding@resend.dev>}"
-      ALLOWED_EMAIL: "${ALLOWED_EMAIL:?ALLOWED_EMAIL is required}"
+      ALLOWED_EMAIL: "${ALLOWED_EMAIL:-}"
       OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:?OPENROUTER_API_KEY is required}"
       OPENROUTER_MODEL: "${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct:free}"
       OPENROUTER_REFERER: "${OPENROUTER_REFERER:-http://localhost:3000}"
