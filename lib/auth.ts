@@ -28,7 +28,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const email = credentials.email.toLowerCase().trim();
+        const email = String(credentials.email).toLowerCase().trim();
         const [userRow] = await db
           .select({ id: users.id, email: users.email, name: users.name, image: users.image, passwordHash: users.passwordHash })
           .from(users)
@@ -37,7 +37,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!userRow || !userRow.passwordHash) return null;
 
-        const ok = bcrypt.compareSync(credentials.password, userRow.passwordHash);
+        const ok = bcrypt.compareSync(String(credentials.password), userRow.passwordHash);
         if (!ok) return null;
 
         return { id: userRow.id, email: userRow.email, name: userRow.name, image: userRow.image };
