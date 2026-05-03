@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const token = randomBytes(32).toString("hex");
     const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    await db.insert(verificationTokens).values({ identifier: email, token, expires }).run();
+    await db.insert(verificationTokens).values({ identifier: email, token, expires });
 
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) return NextResponse.json({ ok: true });
