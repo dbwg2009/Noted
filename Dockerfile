@@ -27,6 +27,9 @@ COPY . .
 # Build the Next.js app (standalone output)
 FROM srcdeps AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS=--max-old-space-size=512
+# Limit Node's heap during build to avoid OOM on low-memory devices.
+# Keep the build command; Next.js will use the reduced heap.
 RUN npm run build
 
 # Migrator — used by the `migrate` service in docker-compose. Uses the
@@ -37,6 +40,7 @@ RUN apk add --no-cache expect
 COPY --from=deps-all /app/node_modules ./node_modules
 COPY . .
 ENV NODE_ENV=production
+ENV NODE_OPTIONS=--max-old-space-size=256
 CMD ["expect", "-f", "scripts/migrate.exp"]
 
 # Minimal runtime image using prod-only node_modules
