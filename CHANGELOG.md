@@ -13,6 +13,17 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-04] Docker: Pi build optimisations
+**By:** GitHub Copilot
+**What:**
+- Optimised `Dockerfile` to split production and development dependency stages, use `npm ci` for deterministic installs, and leverage BuildKit cache mounts to speed repeated installs on low-powered devices (Raspberry Pi).
+- Added a `deps-prod` stage so the runtime image only contains prod dependencies, reducing image size and memory footprint.
+- Migrator stage keeps devDeps (drizzle-kit) separate so migrations still run in CI/dev without bloating the runtime image.
+- Updated `docker-compose.yml` with commented `platform` hints to help Pi users set `PLATFORM=linux/arm64` or `linux/arm/v7` when building on ARM.
+**Why:**
+- Building on Raspberry Pi can be slow and memory-constrained; separating deps, using `npm ci`, and enabling BuildKit cache significantly reduces build time and runtime image size while keeping migrations functional.
+
+
 ## [2026-05-04] Phase 6: Other Occasions (schema, reminders, UI)
 **By:** GitHub Copilot
 **What:**
