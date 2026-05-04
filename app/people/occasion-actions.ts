@@ -65,6 +65,7 @@ export async function updateOccasion(formData: FormData) {
   const id = Number(formData.get("occasionId") ?? 0);
   const kind = String(formData.get("kind") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim() || null;
+  const date = parseDate(formData.get("date"));
   const yearRecurring = formData.get("yearRecurring") === "on";
   const notes = String(formData.get("notes") ?? "").trim() || null;
 

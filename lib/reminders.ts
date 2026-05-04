@@ -139,32 +139,35 @@ export async function findDueReminders(today = new Date()): Promise<DueReminder[
   });
 
   // Merge occasionRows as well
-  const occasionMapped = occasionRows.map((row) => {
-    const parsed = new Date(row.birthday);
-    // compute next occurrence year for recurring occasions
-    let candidateYear = todayStart.getFullYear();
-    let target = new Date(candidateYear, parsed.getMonth(), parsed.getDate());
-    if (target < todayStart) {
-      target = new Date(candidateYear + 1, parsed.getMonth(), parsed.getDate());
-    }
-    const lead = row.leadDays;
-    const sendOn = addDays(target, -lead);
-    return {
-      reminderId: row.reminderId,
-      personId: row.personId,
-      personName: row.personName,
-      relationship: row.relationship,
-      birthday: formatIso(parsed),
-      birthYearKnown: false,
-      budgetMin: row.budgetMin,
-      budgetMax: row.budgetMax,
-      leadDays: row.leadDays,
-      targetDate: formatIso(target),
-      targetYear: target.getFullYear(),
-      userId: row.userId,
-      userEmail: row.userEmail,
-    } as DueReminder;
-  });
+  const occasionMapped = occasionRows
+    .map((row) => {
+      if (!row.birthday) return null;
+      const parsed = new Date(row.birthday);
+      // compute next occurrence year for recurring occasions
+      let candidateYear = todayStart.getFullYear();
+      let target = new Date(candidateYear, parsed.getMonth(), parsed.getDate());
+      if (target < todayStart) {
+        target = new Date(candidateYear + 1, parsed.getMonth(), parsed.getDate());
+      }
+      const lead = row.leadDays;
+      const sendOn = addDays(target, -lead);
+      return {
+        reminderId: row.reminderId,
+        personId: row.personId,
+        personName: row.personName,
+        relationship: row.relationship,
+        birthday: formatIso(parsed),
+        birthYearKnown: false,
+        budgetMin: row.budgetMin,
+        budgetMax: row.budgetMax,
+        leadDays: row.leadDays,
+        targetDate: formatIso(target),
+        targetYear: target.getFullYear(),
+        userId: row.userId,
+        userEmail: row.userEmail,
+      } as DueReminder;
+    })
+    .filter((v): v is DueReminder => v !== null);
 
   return [...baseMapped, ...occasionMapped];
 }
