@@ -41,6 +41,14 @@ function getSizeValue(sizes: Record<string, string> | null, key: string) {
   return typeof v === "string" ? v : "";
 }
 
+function getBirthdayParts(birthday: string) {
+  const [year, month, day] = birthday.split("-");
+  return {
+    month: month?.padStart(2, "0") ?? "01",
+    day: day?.padStart(2, "0") ?? "01",
+  };
+}
+
 export default async function PersonDetail({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -372,16 +380,33 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
               <option value="christmas">Christmas</option>
               <option value="mothers_day">Mother's Day</option>
               <option value="fathers_day">Father's Day</option>
-              <option value="valentines">Valentines</option>
+              <option value="valentines">Valentine's Day</option>
               <option value="easter">Easter</option>
               <option value="custom">Custom</option>
             </select>
-            <input id="add-occasion-name" name="name" placeholder="Name (required for custom)" className={inputCls} />
-            <input id="add-occasion-date" name="date" type="date" className={inputCls} />
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="yearRecurring" defaultChecked className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700" />
-              Yearly recurring
-            </label>
+            <input id="add-occasion-name" name="name" placeholder="Name (optional for holidays)" className={inputCls} />
+            <input id="add-occasion-date" name="date" type="hidden" />
+            <div id="add-occasion-date-row" className="grid gap-1">
+              <div id="add-occasion-date-fields" className="grid gap-2 sm:grid-cols-2">
+                <select id="add-occasion-month" name="occasionMonth" className={inputCls}>
+                  {[...Array(12)].map((_, index) => {
+                    const month = index + 1;
+                    return (
+                      <option key={month} value={month.toString().padStart(2, "0")}>{month}</option>
+                    );
+                  })}
+                </select>
+                <select id="add-occasion-day" name="occasionDay" className={inputCls}>
+                  {[...Array(31)].map((_, index) => {
+                    const day = index + 1;
+                    return (
+                      <option key={day} value={day.toString().padStart(2, "0")}>{day}</option>
+                    );
+                  })}
+                </select>
+              </div>
+              <p id="add-occasion-date-preview" className="hidden text-sm text-neutral-500 dark:text-neutral-400"></p>
+            </div>
             <textarea name="notes" rows={2} placeholder="Notes" className={`${inputCls} md:col-span-2`} />
             <button type="submit" className="btn-primary w-fit px-4 py-2 text-sm md:col-span-2">Add occasion</button>
           </form>
@@ -396,7 +421,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold">{o.name ?? o.kind}</p>
-                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">{formatOccasionDate(o.date, o.yearRecurring)}</p>
+                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">{formatOccasionDate(o.date, false, o.kind)}</p>
                   </div>
                   <details>
                               <summary className="cursor-pointer text-xs text-neutral-600 hover:underline dark:text-neutral-400">Edit</summary>
@@ -404,11 +429,48 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                       <input type="hidden" name="occasionId" value={o.id} />
                       <input type="hidden" name="kind" value={o.kind} />
                       <input name="name" defaultValue={o.name ?? ""} className={inputCls} />
-                      <input name="date" type="date" defaultValue={o.date ?? ""} className={inputCls} />
-                      <label className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" name="yearRecurring" defaultChecked={o.yearRecurring} className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700" />
-                        Yearly recurring
-                      </label>
+                      {o.kind === "custom" ? (
+                        <>
+                          <input
+                            id={`edit-occasion-date-${o.id}`}
+                            name="date"
+                            type="hidden"
+                            defaultValue={o.date ?? ""}
+                          />
+                          <div id={`edit-occasion-date-fields-${o.id}`} className="grid gap-2 sm:grid-cols-2">
+                            <select
+                              id={`edit-occasion-month-${o.id}`}
+                              name="occasionMonth"
+                              defaultValue={o.date?.slice(5, 7) ?? "01"}
+                              className={inputCls}
+                            >
+                              {[...Array(12)].map((_, index) => {
+                                const month = index + 1;
+                                return (
+                                  <option key={month} value={month.toString().padStart(2, "0")}>{month}</option>
+                                );
+                              })}
+                            </select>
+                            <select
+                              id={`edit-occasion-day-${o.id}`}
+                              name="occasionDay"
+                              defaultValue={o.date?.slice(8, 10) ?? "01"}
+                              className={inputCls}
+                            >
+                              {[...Array(31)].map((_, index) => {
+                                const day = index + 1;
+                                return (
+                                  <option key={day} value={day.toString().padStart(2, "0")}>{day}</option>
+                                );
+                              })}
+                            </select>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-300">
+                          {formatOccasionDate(o.date, false, o.kind)}
+                        </div>
+                      )}
                       <textarea name="notes" rows={2} defaultValue={o.notes ?? ""} className={inputCls} />
                       <div className="flex gap-2">
                         <button type="submit" className="btn-primary px-3 py-1.5 text-sm">Save</button>
@@ -607,6 +669,16 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                   <p className="font-medium">
                     {r.leadDays === 0 ? "On the day" : `${r.leadDays} day${r.leadDays === 1 ? "" : "s"} before`}
                   </p>
+                  <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                    {r.occasionId ? (
+                      <>
+                        {r.occasionName ?? "Occasion"}
+                        {r.occasionDate ? ` · ${formatOccasionDate(r.occasionDate, false)}` : ""}
+                      </>
+                    ) : (
+                      "Birthday"
+                    )}
+                  </p>
                   <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
                     {r.lastSentAt
                       ? `Last sent ${new Date(r.lastSentAt).toLocaleDateString("en-GB")}${r.lastSentForYear ? ` (for ${r.lastSentForYear})` : ""}`
@@ -630,7 +702,27 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
           <form action={updatePerson} id="edit-person-form" className="mt-4 grid gap-3 md:grid-cols-2" encType="multipart/form-data">
             <input type="hidden" name="personId" value={person.id} />
             <input name="name" defaultValue={person.name} required className={inputCls} />
-            <input id="edit-birthday" name="birthday" type="date" defaultValue={person.birthday} required={person.birthYearKnown} className={inputCls} />
+            <div id="edit-birthday-full" className={`${person.birthYearKnown ? "" : "hidden"}`}>
+              <input id="edit-birthday" name="birthday" type="date" defaultValue={person.birthday} required={person.birthYearKnown} className={inputCls} />
+            </div>
+            <div id="edit-birthday-monthday" className={`grid gap-2 sm:grid-cols-2 ${person.birthYearKnown ? "hidden" : ""}`}>
+              <select id="edit-birthday-month" name="birthdayMonth" defaultValue={getBirthdayParts(person.birthday).month} className={inputCls}>
+                {[...Array(12)].map((_, index) => {
+                  const month = index + 1;
+                  return (
+                    <option key={month} value={month.toString().padStart(2, "0")}>{month}</option>
+                  );
+                })}
+              </select>
+              <select id="edit-birthday-day" name="birthdayDay" defaultValue={getBirthdayParts(person.birthday).day} className={inputCls}>
+                {[...Array(31)].map((_, index) => {
+                  const day = index + 1;
+                  return (
+                    <option key={day} value={day.toString().padStart(2, "0")}>{day}</option>
+                  );
+                })}
+              </select>
+            </div>
             <input name="relationship" defaultValue={person.relationship ?? ""} placeholder="Relationship" className={inputCls} />
             <div className="flex flex-col gap-1">
               <span className="text-xs font-medium text-neutral-500">Photo (Upload)</span>
@@ -706,19 +798,149 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
         </form>
       </section>
     <script dangerouslySetInnerHTML={{ __html: `(function(){
-      function toggleRequired(bxId, dtId){
-        var bx = document.getElementById(bxId); var dt = document.getElementById(dtId);
-        if(!bx||!dt) return; function t(){ dt.required = !!bx.checked; } bx.addEventListener('change', t); t();
+      function toggleBirthday(checkboxId, fullId, monthDayId, dateInputId) {
+        var checkbox = document.getElementById(checkboxId);
+        var full = document.getElementById(fullId);
+        var monthDay = document.getElementById(monthDayId);
+        var dateInput = document.getElementById(dateInputId);
+        if (!checkbox || !full || !monthDay || !dateInput) return;
+        function update() {
+          if (checkbox.checked) {
+            full.classList.remove('hidden');
+            monthDay.classList.add('hidden');
+            dateInput.required = true;
+          } else {
+            full.classList.add('hidden');
+            monthDay.classList.remove('hidden');
+            dateInput.required = false;
+          }
+        }
+        checkbox.addEventListener('change', update);
+        update();
       }
-      function toggleOccasion(kindId,nameId,dateId){
-        var kd=document.getElementById(kindId); var nm=document.getElementById(nameId); var dt=document.getElementById(dateId);
-        if(!kd||!nm||!dt) return; function t(){ if(kd.value==='custom'){ nm.required=true; dt.required=true;} else { nm.required=false; dt.required=false; } }
-        kd.addEventListener('change', t); t();
+
+      function pad(n) { return n.toString().padStart(2, '0'); }
+      function formatDate(year, month, day) { return year + '-' + pad(month) + '-' + pad(day); }
+      function easter(year) {
+        var a = year % 19;
+        var b = Math.floor(year / 100);
+        var c = year % 100;
+        var d = Math.floor(b / 4);
+        var e = b % 4;
+        var f = Math.floor((b + 8) / 25);
+        var g = Math.floor((b - f + 1) / 3);
+        var h = (19 * a + b - d - g + 15) % 30;
+        var i = Math.floor(c / 4);
+        var k = c % 4;
+        var l = (32 + 2 * e + 2 * i - h - k) % 7;
+        var m = Math.floor((a + 11 * h + 22 * l) / 451);
+        var month = Math.floor((h + l - 7 * m + 114) / 31);
+        var day = ((h + l - 7 * m + 114) % 31) + 1;
+        return { month: month, day: day };
+      }
+      function nthWeekdayOfMonth(year, month, weekday, n) {
+        var firstDay = new Date(year, month - 1, 1).getDay();
+        var offset = (weekday - firstDay + 7) % 7;
+        return 1 + offset + 7 * (n - 1);
+      }
+      function holidayDate(kind, today) {
+        var year = today.getFullYear();
+        switch (kind) {
+          case 'christmas': return formatDate(year, 12, 25);
+          case 'valentines': return formatDate(year, 2, 14);
+          case 'mothers_day': {
+            var e = easter(year);
+            var date = new Date(year, e.month - 1, e.day);
+            date.setDate(date.getDate() - 21);
+            if (date < today) {
+              date = new Date(year + 1, e.month - 1, e.day);
+              date.setDate(date.getDate() - 21);
+            }
+            return formatDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+          }
+          case 'fathers_day': {
+            var day = nthWeekdayOfMonth(year, 6, 0, 3);
+            var date = new Date(year, 5, day);
+            if (date < today) {
+              date = new Date(year + 1, 5, nthWeekdayOfMonth(year + 1, 6, 0, 3));
+            }
+            return formatDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+          }
+          case 'easter': {
+            var e = easter(year);
+            var date = new Date(year, e.month - 1, e.day);
+            if (date < today) {
+              e = easter(year + 1);
+              date = new Date(year + 1, e.month - 1, e.day);
+            }
+            return formatDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+          }
+          default: return null;
+        }
+      }
+      function buildIsoDate(year, month, day) {
+        return year + '-' + pad(month) + '-' + pad(day);
+      }
+      function syncHiddenDate(hiddenId, monthId, dayId, year) {
+        var hidden = document.getElementById(hiddenId);
+        var month = document.getElementById(monthId);
+        var day = document.getElementById(dayId);
+        if (!hidden || !month || !day) return;
+        function update() {
+          hidden.value = buildIsoDate(year, Number(month.value), Number(day.value));
+        }
+        month.addEventListener('change', update);
+        day.addEventListener('change', update);
+        update();
+      }
+      function updateOccasionForm() {
+        var kind = document.getElementById('add-occasion-kind');
+        var name = document.getElementById('add-occasion-name');
+        var dateRow = document.getElementById('add-occasion-date-row');
+        var dateInput = document.getElementById('add-occasion-date');
+        var dateFields = document.getElementById('add-occasion-date-fields');
+        var monthField = document.getElementById('add-occasion-month');
+        var dayField = document.getElementById('add-occasion-day');
+        var datePreview = document.getElementById('add-occasion-date-preview');
+        if (!kind || !name || !dateRow || !dateInput || !dateFields || !monthField || !dayField || !datePreview) return;
+        function refresh() {
+          if (kind.value === 'custom') {
+            dateRow.classList.remove('hidden');
+            dateInput.required = true;
+            dateFields.classList.remove('hidden');
+            name.required = false;
+            datePreview.classList.add('hidden');
+            syncHiddenDate('add-occasion-date', 'add-occasion-month', 'add-occasion-day', new Date().getFullYear());
+          } else {
+            var dateValue = holidayDate(kind.value, new Date());
+            dateInput.value = dateValue || '';
+            dateInput.required = false;
+            dateFields.classList.add('hidden');
+            name.required = false;
+            dateRow.classList.remove('hidden');
+            datePreview.textContent = dateValue ? dateValue.split('-').slice(1).join('/') : '';
+            datePreview.classList.remove('hidden');
+          }
+        }
+        kind.addEventListener('change', refresh);
+        refresh();
+      }
+      function setupEditOccasionDates() {
+        var allHidden = document.querySelectorAll('[id^="edit-occasion-date-"]');
+        allHidden.forEach(function(hidden) {
+          var id = hidden.id.split('-').slice(-1)[0];
+          var month = document.getElementById('edit-occasion-month-' + id);
+          var day = document.getElementById('edit-occasion-day-' + id);
+          if (!month || !day) return;
+          var year = hidden.value ? hidden.value.slice(0, 4) : String(new Date().getFullYear());
+          syncHiddenDate(hidden.id, month.id, day.id, Number(year));
+        });
       }
       document.addEventListener('DOMContentLoaded', function(){
-        toggleRequired('new-birthyear-known','new-birthday');
-        toggleRequired('edit-birthyear-known','edit-birthday');
-        toggleOccasion('add-occasion-kind','add-occasion-name','add-occasion-date');
+        toggleBirthday('new-birthyear-known','new-birthday-full','new-birthday-monthday','new-birthday');
+        toggleBirthday('edit-birthyear-known','edit-birthday-full','edit-birthday-monthday','edit-birthday');
+        updateOccasionForm();
+        setupEditOccasionDates();
       });
     })();` }} />
     </main>
