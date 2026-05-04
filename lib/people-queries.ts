@@ -5,6 +5,7 @@ import {
   giftHistory,
   people,
   personTags,
+  occasions,
   products,
   reminders,
   suggestions,
@@ -93,7 +94,21 @@ export async function getPersonDetail(personId: string, userId: string) {
     db.select().from(wishlistItems).where(eq(wishlistItems.personId, personId)).orderBy(desc(wishlistItems.createdAt)),
     db.select().from(suggestions).where(eq(suggestions.personId, personId)).orderBy(desc(suggestions.createdAt)),
     db.select().from(giftHistory).where(eq(giftHistory.personId, personId)).orderBy(desc(giftHistory.givenOn)),
-    db.select().from(reminders).where(eq(reminders.personId, personId)).orderBy(asc(reminders.leadDays)),
+    db
+      .select({
+        id: reminders.id,
+        leadDays: reminders.leadDays,
+        channel: reminders.channel,
+        lastSentAt: reminders.lastSentAt,
+        lastSentForYear: reminders.lastSentForYear,
+        occasionId: reminders.occasionId,
+        occasionName: occasions.name,
+        occasionDate: occasions.date,
+      })
+      .from(reminders)
+      .leftJoin(occasions, eq(reminders.occasionId, occasions.id))
+      .where(eq(reminders.personId, personId))
+      .orderBy(asc(reminders.leadDays)),
   ]);
 
   const wishlistIds = wishlistRows.map((w) => w.id);
