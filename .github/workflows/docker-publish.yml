@@ -43,6 +43,8 @@ jobs:
           target: runner
           provenance: false
           sbom: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and push Migrator
         uses: docker/build-push-action@v6
@@ -54,6 +56,8 @@ jobs:
           target: migrator
           provenance: false
           sbom: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Update Docker Hub Description
         if: github.ref == 'refs/heads/main'

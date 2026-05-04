@@ -3,7 +3,7 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json* ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+RUN npm install --prefer-offline 2>/dev/null || npm install
 
 # 2. Source + node_modules — shared base for build and migrate
 FROM node:22-alpine AS srcdeps
