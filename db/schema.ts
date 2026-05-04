@@ -41,6 +41,7 @@ export const users = pgTable("users", {
   emailVerified: timestamp("email_verified", { mode: "date" }),
   name: text("name"),
   image: text("image"),
+  passwordHash: text("password_hash"),
   timezone: text("timezone").default("Europe/London").notNull(),
   defaultCurrency: text("default_currency").default("GBP").notNull(),
   icalToken: uuid("ical_token").defaultRandom().unique(),

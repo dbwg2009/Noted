@@ -29,7 +29,19 @@ export async function Nav() {
         </nav>
 
         <div className="flex items-center gap-2 text-xs text-brand-blue-100">
-          <span className="hidden md:inline">{session.user.email}</span>
+          <Link
+            href="/settings"
+            className="hidden rounded-md px-3 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white md:block"
+          >
+            {session.user.name ?? session.user.email}
+          </Link>
+          <Link
+            href="/settings"
+            className="rounded-md p-1.5 text-white/80 hover:bg-white/10 hover:text-white md:hidden"
+            aria-label="Settings"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>
+          </Link>
           <form
             action={async () => {
               "use server";
