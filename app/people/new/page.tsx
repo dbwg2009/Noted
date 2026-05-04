@@ -29,7 +29,27 @@ export default async function NewPersonPage() {
             <input name="name" required className={inputCls} />
           </Field>
           <Field label="Birthday *">
-            <input name="birthday" type="date" required className={inputCls} />
+            <div id="new-birthday-full" className="grid gap-1">
+              <input id="new-birthday" name="birthday" type="date" required className={inputCls} />
+            </div>
+            <div id="new-birthday-monthday" className="hidden grid gap-2 sm:grid-cols-2">
+              <select id="new-birthday-month" name="birthdayMonth" className={inputCls}>
+                {[...Array(12)].map((_, index) => {
+                  const month = index + 1;
+                  return (
+                    <option key={month} value={month.toString().padStart(2, "0")}>{month}</option>
+                  );
+                })}
+              </select>
+              <select id="new-birthday-day" name="birthdayDay" className={inputCls}>
+                {[...Array(31)].map((_, index) => {
+                  const day = index + 1;
+                  return (
+                    <option key={day} value={day.toString().padStart(2, "0")}>{day}</option>
+                  );
+                })}
+              </select>
+            </div>
           </Field>
           <Field label="Relationship">
             <input
@@ -46,6 +66,7 @@ export default async function NewPersonPage() {
           </Field>
           <label className="flex items-center gap-2 text-sm">
             <input
+              id="new-birthyear-known"
               type="checkbox"
               name="birthYearKnown"
               defaultChecked
@@ -115,6 +136,26 @@ export default async function NewPersonPage() {
           </Link>
         </div>
       </form>
+      <script dangerouslySetInnerHTML={{ __html: `(function(){
+        var checkbox = document.getElementById('new-birthyear-known');
+        var full = document.getElementById('new-birthday-full');
+        var monthDay = document.getElementById('new-birthday-monthday');
+        var fullInput = document.getElementById('new-birthday');
+        function toggle() {
+          if (!checkbox || !full || !monthDay || !fullInput) return;
+          if (checkbox.checked) {
+            full.classList.remove('hidden');
+            monthDay.classList.add('hidden');
+            fullInput.required = true;
+          } else {
+            full.classList.add('hidden');
+            monthDay.classList.remove('hidden');
+            fullInput.required = false;
+          }
+        }
+        checkbox?.addEventListener('change', toggle);
+        toggle();
+      })();` }} />
     </main>
   );
 }
