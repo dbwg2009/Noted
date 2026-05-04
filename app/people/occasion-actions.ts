@@ -73,12 +73,14 @@ export async function updateOccasion(formData: FormData) {
   // custom occasions must have a date
   if (kind === "custom" && !date) return;
 
+<<<<<<< Updated upstream
   const [row] = await db.select({ personId: occasions.personId }).from(occasions).where(eq(occasions.id, id)).limit(1);
+=======
+  const [row] = await db.select({ personId: occasions.personId, userId: occasions.userId }).from(occasions).where(eq(occasions.id, id)).limit(1);
+>>>>>>> Stashed changes
   if (!row) return;
 
   // verify ownership
-  const [ownerCheck] = await db.select({ id: users.id }).from(users).where(eq(users.id, row.personId ? row.personId : userId)).limit(1);
-  // If occasion is person-scoped, ensure that person belongs to user
   if (row.personId) {
     const [p] = await db.select({ id: people.id }).from(people).where(and(eq(people.id, row.personId), eq(people.userId, userId))).limit(1);
     if (!p) return;
