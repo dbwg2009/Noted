@@ -8,8 +8,10 @@ RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json* ./
 # Use npm ci for deterministic installs; omit dev deps to keep the prod
 # node_modules small. Use a cache mount when BuildKit is enabled to speed
-# repeated installs on low-powered devices.
-RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --prefer-offline
+# repeated installs on low-powered devices. If `npm ci` fails (no lockfile
+# or engine mismatch), fall back to `npm install --omit=dev` so the build
+# doesn't hard-fail on environments where `npm ci` isn't usable.
+RUN --mount=type=cache,target=/root/.npm sh -lc "npm ci --omit=dev --prefer-offline || npm install --omit=dev --prefer-offline"
 
 # Full dependency set (includes devDeps) for building and migrations
 FROM node:22-alpine AS deps-all
