@@ -22,13 +22,24 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Resolve image tags
+        id: tags
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "app=dbwg2009/noted:latest" >> $GITHUB_OUTPUT
+            echo "migrator=dbwg2009/noted-migrator:latest" >> $GITHUB_OUTPUT
+          else
+            echo "app=dbwg2009/noted:development" >> $GITHUB_OUTPUT
+            echo "migrator=dbwg2009/noted-migrator:development" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push App
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: dbwg2009/noted:latest
+          tags: ${{ steps.tags.outputs.app }}
           target: runner
           provenance: false
           sbom: false
@@ -39,7 +50,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: dbwg2009/noted-migrator:latest
+          tags: ${{ steps.tags.outputs.migrator }}
           target: migrator
           provenance: false
           sbom: false
