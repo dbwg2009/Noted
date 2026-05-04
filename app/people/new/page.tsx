@@ -29,7 +29,7 @@ export default async function NewPersonPage() {
             <input name="name" required className={inputCls} />
           </Field>
           <Field label="Birthday *">
-            <input name="birthday" type="date" required className={inputCls} />
+            <input id="new-birthday" name="birthday" type="date" required className={inputCls} />
           </Field>
           <Field label="Relationship">
             <input
@@ -46,6 +46,7 @@ export default async function NewPersonPage() {
           </Field>
           <label className="flex items-center gap-2 text-sm">
             <input
+              id="new-birthyear-known"
               type="checkbox"
               name="birthYearKnown"
               defaultChecked
@@ -115,6 +116,12 @@ export default async function NewPersonPage() {
           </Link>
         </div>
       </form>
+      <script dangerouslySetInnerHTML={{ __html: `(function(){
+        function toggleRequired(bxId, dtId){
+          var bx=document.getElementById(bxId); var dt=document.getElementById(dtId); if(!bx||!dt) return; function t(){ dt.required = !!bx.checked; } bx.addEventListener('change', t); t();
+        }
+        document.addEventListener('DOMContentLoaded', function(){ toggleRequired('new-birthyear-known','new-birthday'); });
+      })();` }} />
     </main>
   );
 }
