@@ -2,8 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { listPeopleSummary, requireCurrentUserId } from "@/lib/people-queries";
-import { listUpcomingOccasions } from "@/lib/occasions-queries";
-import { nextOccurrenceDate } from "@/lib/occasions";
 import { parseBirthday } from "@/lib/birthdays";
 import { Avatar } from "@/components/badges";
 import { cn } from "@/lib/cn";
@@ -43,38 +41,22 @@ export default async function CalendarPage({
     peopleByDay.set(parsed.day, list);
   }
 
-  // Load occasions and map any that occur in this month
-  const occasions = await listUpcomingOccasions(userId, 100);
-  const occasionsByDay = new Map<number, Array<typeof occasions[0]>>();
-  for (const occ of occasions) {
-    if (!occ.nextDate) continue;
-    const [yStr, mStr, dStr] = occ.nextDate.split("-");
-    const oy = Number.parseInt(yStr, 10);
-    const om = Number.parseInt(mStr, 10) - 1;
-    const od = Number.parseInt(dStr, 10);
-    if (oy !== year || om !== month) continue;
-    const list = occasionsByDay.get(od) ?? [];
-    list.push(occ);
-    occasionsByDay.set(od, list);
-  }
-
   const firstDay = new Date(year, month, 1);
   // weekday: 0 = Sunday, but we want Mon=0
   const startOffset = (firstDay.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells: Array<{ day: number | null; isToday: boolean; matches: typeof allPeople; occasions: Array<typeof occasions[0]> }> = [];
+  const cells: Array<{ day: number | null; isToday: boolean; matches: typeof allPeople }> = [];
   for (let i = 0; i < startOffset; i++) {
-    cells.push({ day: null, isToday: false, matches: [], occasions: [] });
+    cells.push({ day: null, isToday: false, matches: [] });
   }
   for (let d = 1; d <= daysInMonth; d++) {
     cells.push({
       day: d,
       isToday: today.getFullYear() === year && today.getMonth() === month && today.getDate() === d,
-        matches: peopleByDay.get(d) ?? [],
-        occasions: occasionsByDay.get(d) ?? [],
+      matches: peopleByDay.get(d) ?? [],
     });
   }
-  while (cells.length % 7 !== 0) cells.push({ day: null, isToday: false, matches: [], occasions: [] });
+  while (cells.length % 7 !== 0) cells.push({ day: null, isToday: false, matches: [] });
 
   const prev = prevMonth(year, month);
   const next = nextMonth(year, month);
@@ -155,16 +137,6 @@ export default async function CalendarPage({
                           >
                             <Avatar name={person.name} photoUrl={person.photoUrl} size={16} />
                             <span className="truncate">{person.name}</span>
-                          </Link>
-                        </li>
-                      ))}
-                      {cell.occasions.map((occ) => (
-                        <li key={`occ-${occ.id}`}>
-                          <Link
-                            href={occ.personId ? `/people/${occ.personId}` : "/people"}
-                            className="flex items-center gap-1 truncate rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 hover:bg-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900"
-                          >
-                            <span className="truncate">{occ.name ?? occ.kind}</span>
                           </Link>
                         </li>
                       ))}
