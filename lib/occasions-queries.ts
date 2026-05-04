@@ -31,7 +31,7 @@ export async function listUpcomingOccasions(userId: string, limit = 20) {
     .limit(limit);
 
   const mapped = rows.map((r) => {
-    const next = nextOccurrenceDate(r.date, r.yearRecurring);
+    const next = nextOccurrenceDate(r.date ?? null, r.yearRecurring);
     return {
       ...r,
       nextDate: next ? next.toISOString().slice(0, 10) : null,
