@@ -38,9 +38,14 @@ export default function LoginPage() {
               <button type="submit" className="btn-primary px-4 py-2 text-sm">
                 Sign in
               </button>
-              <a href="/login/register" className="text-sm text-neutral-500 hover:underline">
-                Create account
-              </a>
+              <div className="flex flex-col items-end gap-1">
+                <a href="/login/register" className="text-sm text-neutral-500 hover:underline">
+                  Create account
+                </a>
+                <a href="/login/forgot" className="text-sm text-neutral-500 hover:underline">
+                  Forgot password?
+                </a>
+              </div>
             </div>
           </form>
     </main>
