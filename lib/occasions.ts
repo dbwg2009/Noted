@@ -4,7 +4,8 @@ export type OccasionAnchor = {
   day: number;
 };
 
-export function parseOccasionDate(value: string) {
+export function parseOccasionDate(value: string | null) {
+  if (!value) return null;
   const [yearStr, monthStr, dayStr] = value.split("-");
   const year = Number.parseInt(yearStr ?? "", 10);
   const month = Number.parseInt(monthStr ?? "", 10);
@@ -17,7 +18,8 @@ function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-export function nextOccurrenceDate(occasionDate: string, yearRecurring = true, today = new Date()): Date | null {
+export function nextOccurrenceDate(occasionDate: string | null, yearRecurring = true, today = new Date()): Date | null {
+  if (!occasionDate) return null;
   const parsed = parseOccasionDate(occasionDate);
   if (!parsed) return null;
   const { year, month, day } = parsed;
