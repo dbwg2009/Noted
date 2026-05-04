@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { occasions, people, users } from "@/db/schema";
 import { ensureDefaultReminders } from "@/lib/reminders";
+import { getKnownOccasionDate, getKnownOccasionLabel } from "@/lib/occasions";
 
 async function requireCurrentUserId() {
   const session = await auth();
@@ -32,13 +33,17 @@ export async function createOccasion(formData: FormData) {
   const userId = await requireCurrentUserId();
   const personId = String(formData.get("personId") ?? "").trim() || null;
   const kind = String(formData.get("kind") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim() || null;
-  const date = parseDate(formData.get("date"));
-  const yearRecurring = formData.get("yearRecurring") === "on";
+  let name = String(formData.get("name") ?? "").trim() || null;
+  let date = parseDate(formData.get("date"));
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  // For custom occasions date is required; for named kinds date may be omitted.
   if (!kind) return;
+  if (!name && kind !== "custom") {
+    name = getKnownOccasionLabel(kind);
+  }
+  if (!date) {
+    date = getKnownOccasionDate(kind);
+  }
   if (kind === "custom" && !date) return;
 
   if (personId) {
@@ -48,7 +53,7 @@ export async function createOccasion(formData: FormData) {
 
   const [created] = await db
     .insert(occasions)
-    .values({ userId, personId: personId ?? undefined, kind: kind as any, name, date, yearRecurring, notes })
+    .values({ userId, personId: personId ?? undefined, kind: kind as any, name, date, yearRecurring: true, notes })
     .returning({ id: occasions.id });
 
   if (created && personId) {
@@ -64,13 +69,17 @@ export async function updateOccasion(formData: FormData) {
   const userId = await requireCurrentUserId();
   const id = Number(formData.get("occasionId") ?? 0);
   const kind = String(formData.get("kind") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim() || null;
-  const date = parseDate(formData.get("date"));
-  const yearRecurring = formData.get("yearRecurring") === "on";
+  let name = String(formData.get("name") ?? "").trim() || null;
+  let date = parseDate(formData.get("date"));
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
   if (!id || !kind) return;
-  // custom occasions must have a date
+  if (!name && kind !== "custom") {
+    name = getKnownOccasionLabel(kind);
+  }
+  if (!date) {
+    date = getKnownOccasionDate(kind);
+  }
   if (kind === "custom" && !date) return;
 
   const [row] = await db.select({ personId: occasions.personId }).from(occasions).where(eq(occasions.id, id)).limit(1);
@@ -86,7 +95,7 @@ export async function updateOccasion(formData: FormData) {
 
   await db
     .update(occasions)
-    .set({ kind: kind as any, name, date, yearRecurring, notes })
+    .set({ kind: kind as any, name, date, yearRecurring: true, notes })
     .where(eq(occasions.id, id));
 
   revalidatePath("/people");
