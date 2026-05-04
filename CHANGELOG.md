@@ -13,6 +13,15 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-04] V2 roadmap: design doc, CLAUDE.md + DESIGN.md updates, GitHub milestones
+**By:** Claude Code
+**What:**
+- Created `docs/V2_DESIGN.md` — full V2 spec covering Phases 6–10 (Other Occasions, Shareable Wishlists, Group Gifts, Price-Drop Alerts, Browser Extension). Each phase has schema deltas, new routes/actions, key files to create/modify, and step-by-step implementation notes for any AI agent to follow.
+- Updated `CLAUDE.md`: added V2 reference to the "Where to find things" section and split the build-phase table into V1 (complete) and V2 (pending) sections.
+- Updated `docs/DESIGN.md` Section 3 (Stretch/v2): replaced bullet list with a structured V2 phase table pointing to the new spec.
+- Created five GitHub milestones (one per V2 phase) with descriptions.
+**Why:** V1 is shipped at v1.1.0. This commit establishes the V2 roadmap so any future AI agent (or the owner) can pick up from Phase 6 without re-deriving the plan.
+
 ## [2026-05-04] Performance optimisations: indexes, connection pool, caching, reminders
 **By:** Claude Code
 **What:**

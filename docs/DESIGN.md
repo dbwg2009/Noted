@@ -78,14 +78,17 @@ For any wishlist item, "Find products" does:
 
 ---
 
-## 3. Stretch / v2 (deferred, but schema-aware)
+## 3. V2 roadmap
 
-- **Other occasions** (Christmas, anniversary, Mother's/Father's Day) — schema designed so an `Occasion` model can be added without a migration overhaul.
-- **Calendar export / Google Calendar sync** (you said you're interested) — likely v1.5: a generated iCal feed URL is cheap to add.
-- **Group gifts**.
-- **Browser extension** — right-click → save to wishlist.
-- **Price-drop watching** on saved products.
-- **Family-shared mode** (multi-user).
+Full spec is in **`docs/V2_DESIGN.md`** — schema deltas, route lists, and implementation notes for each phase.
+
+| Phase | Name | Key additions |
+|-------|------|---------------|
+| 6 | **Other Occasions** | `occasions` table, per-occasion reminders, dashboard/calendar updates |
+| 7 | **Shareable Wishlists** | `wishlist_shares` table, `/share/[token]` public route |
+| 8 | **Group Gifts** | `gift_groups` + `gift_group_contributors`, `/gift-groups` UI |
+| 9 | **Price-Drop Alerts** | `price_alerts` table, cron price-check via eBay, email alert |
+| 10 | **Browser Extension** | Chrome/Firefox MV3 extension, `/api/v1/wishlist-items` REST endpoint, `api_keys` table |
 
 ---
 
