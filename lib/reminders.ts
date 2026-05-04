@@ -343,12 +343,15 @@ export async function ensureDefaultReminders(personId: string) {
 
   // Ensure occasion-linked reminders for any occasions belonging to the person
   const personOccasions = await db
-    .select({ id: occasions.id })
+    .select({ id: occasions.id, date: occasions.date })
     .from(occasions)
     .where(eq(occasions.personId, personId));
   if (personOccasions.length === 0) return;
 
   for (const occ of personOccasions) {
+    // Skip occasions without a configured date — we can't schedule reminders for them yet.
+    if (!occ.date) continue;
+
     const existingOcc = await db
       .select({ leadDays: reminders.leadDays })
       .from(reminders)
