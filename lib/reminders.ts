@@ -1,7 +1,6 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
-  giftHistory,
   people,
   products,
   reminders,
@@ -49,12 +48,14 @@ function formatIso(date: Date) {
 
 export async function findDueReminders(today = new Date()): Promise<DueReminder[]> {
   const todayStart = startOfDay(today);
+  const todayIso = formatIso(todayStart);
 
+  // Filter in SQL: birthday month/day must equal (today + lead_days) month/day,
+  // and the reminder must not have already been sent for that target year.
   const rows = await db
     .select({
       reminderId: reminders.id,
       leadDays: reminders.leadDays,
-      lastSentForYear: reminders.lastSentForYear,
       personId: people.id,
       personName: people.name,
       relationship: people.relationship,
@@ -67,16 +68,21 @@ export async function findDueReminders(today = new Date()): Promise<DueReminder[
     })
     .from(reminders)
     .innerJoin(people, eq(reminders.personId, people.id))
-    .innerJoin(users, eq(people.userId, users.id));
+    .innerJoin(users, eq(people.userId, users.id))
+    .where(
+      and(
+        sql`EXTRACT(MONTH FROM ${people.birthday}) = EXTRACT(MONTH FROM ${todayIso}::date + ${reminders.leadDays})`,
+        sql`EXTRACT(DAY FROM ${people.birthday}) = EXTRACT(DAY FROM ${todayIso}::date + ${reminders.leadDays})`,
+        or(
+          isNull(reminders.lastSentForYear),
+          sql`${reminders.lastSentForYear} != EXTRACT(YEAR FROM ${todayIso}::date + ${reminders.leadDays})::int`,
+        ),
+      ),
+    );
 
-  const due: DueReminder[] = [];
-  for (const row of rows) {
-    const parsed = parseBirthday(row.birthday);
-    if (!parsed) continue;
+  return rows.map((row) => {
     const target = addDays(todayStart, row.leadDays);
-    if (target.getMonth() + 1 !== parsed.month || target.getDate() !== parsed.day) continue;
-    if (row.lastSentForYear === target.getFullYear()) continue;
-    due.push({
+    return {
       reminderId: row.reminderId,
       personId: row.personId,
       personName: row.personName,
@@ -90,9 +96,8 @@ export async function findDueReminders(today = new Date()): Promise<DueReminder[
       targetYear: target.getFullYear(),
       userId: row.userId,
       userEmail: row.userEmail,
-    });
-  }
-  return due;
+    };
+  });
 }
 
 export type ShortlistEntry = {
@@ -228,12 +233,20 @@ export async function runDailyReminders(today = new Date()) {
     try {
       await sendReminderDigest(digest);
       sent += 1;
-      // Mark every reminder as sent for this target year.
-      for (const reminder of userDue) {
+      // Batch-update reminders grouped by targetYear (almost always one year, but
+      // could differ near year-end when lead windows straddle January).
+      const sentAt = new Date();
+      const byYear = new Map<number, string[]>();
+      for (const r of userDue) {
+        const ids = byYear.get(r.targetYear) ?? [];
+        ids.push(r.reminderId);
+        byYear.set(r.targetYear, ids);
+      }
+      for (const [year, ids] of byYear) {
         await db
           .update(reminders)
-          .set({ lastSentAt: new Date(), lastSentForYear: reminder.targetYear })
-          .where(eq(reminders.id, reminder.reminderId));
+          .set({ lastSentAt: sentAt, lastSentForYear: year })
+          .where(inArray(reminders.id, ids));
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -354,6 +367,3 @@ export async function getNextScheduledReminder(personId: string, today = new Dat
 
   return best;
 }
-// Suppress unused-import warning if giftHistory / and not used in this module yet.
-void giftHistory;
-void and;
