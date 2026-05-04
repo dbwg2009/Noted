@@ -377,7 +377,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
               <option value="custom">Custom</option>
             </select>
             <input name="name" placeholder="Name (required for custom)" className={inputCls} />
-            <input name="date" type="date" required className={inputCls} />
+            <input name="date" type="date" className={inputCls} />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="yearRecurring" defaultChecked className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700" />
               Yearly recurring
@@ -403,7 +403,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                     <form action={updateOccasion} className="mt-2 grid gap-2">
                       <input type="hidden" name="occasionId" value={o.id} />
                       <input name="name" defaultValue={o.name ?? ""} className={inputCls} />
-                      <input name="date" type="date" defaultValue={o.date} className={inputCls} />
+                      <input name="date" type="date" defaultValue={o.date ?? ""} className={inputCls} />
                       <label className="flex items-center gap-2 text-sm">
                         <input type="checkbox" name="yearRecurring" defaultChecked={o.yearRecurring} className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700" />
                         Yearly recurring
