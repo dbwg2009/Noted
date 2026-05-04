@@ -34,6 +34,16 @@ export const aiRequestKind = pgEnum("ai_request_kind", [
   "reminder_shortlist",
 ]);
 
+export const occasionKind = pgEnum("occasion_kind", [
+  "anniversary",
+  "christmas",
+  "mothers_day",
+  "fathers_day",
+  "valentines",
+  "easter",
+  "custom",
+]);
+
 // --- Auth.js tables (Drizzle adapter shape) ---
 
 export const users = pgTable("users", {
@@ -231,6 +241,27 @@ export const suggestions = pgTable(
   (t) => [index("suggestions_person_id_idx").on(t.personId)],
 );
 
+export const occasions = pgTable(
+  "occasions",
+  {
+    id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    personId: uuid("person_id").references(() => people.id, { onDelete: "cascade" }),
+    kind: occasionKind("kind").notNull(),
+    name: text("name"),
+    date: date("date"),
+    yearRecurring: boolean("year_recurring").notNull().default(true),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("occasions_user_id_idx").on(t.userId),
+    index("occasions_person_id_idx").on(t.personId),
+  ],
+);
+
 export const reminders = pgTable(
   "reminders",
   {
@@ -238,12 +269,13 @@ export const reminders = pgTable(
     personId: uuid("person_id")
       .notNull()
       .references(() => people.id, { onDelete: "cascade" }),
+    occasionId: integer("occasion_id").references(() => occasions.id),
     leadDays: integer("lead_days").notNull(),
     channel: text("channel").default("email").notNull(),
     lastSentAt: timestamp("last_sent_at"),
     lastSentForYear: integer("last_sent_for_year"),
   },
-  (t) => [index("reminders_person_id_idx").on(t.personId)],
+  (t) => [index("reminders_person_id_idx").on(t.personId), index("reminders_occasion_id_idx").on(t.occasionId)],
 );
 
 export const aiRequestLog = pgTable(

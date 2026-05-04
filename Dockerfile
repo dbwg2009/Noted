@@ -1,38 +1,53 @@
-# 1. Install dependencies (incl. devDeps so drizzle-kit is available)
-FROM node:22-alpine AS deps
+# Use separate stages for production-only deps and full dev deps to optimize
+# build size and speed on resource-constrained devices (e.g. Raspberry Pi).
+
+# Production dependencies only (used by runtime image)
+FROM node:22-alpine AS deps-prod
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json* ./
-RUN npm install --prefer-offline 2>/dev/null || npm install
+# Use npm ci for deterministic installs; omit dev deps to keep the prod
+# node_modules small. Use a cache mount when BuildKit is enabled to speed
+# repeated installs on low-powered devices. If `npm ci` fails (no lockfile
+# or engine mismatch), fall back to `npm install --omit=dev` so the build
+# doesn't hard-fail on environments where `npm ci` isn't usable.
+RUN --mount=type=cache,target=/root/.npm sh -lc "npm ci --omit=dev --prefer-offline || npm install --omit=dev --prefer-offline"
 
-# 2. Source + node_modules — shared base for build and migrate
-FROM node:22-alpine AS srcdeps
+# Full dependency set (includes devDeps) for building and migrations
+FROM node:22-alpine AS deps-all
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
-COPY --from=deps /app/node_modules ./node_modules
+COPY package.json package-lock.json* ./
+# Use `npm ci` when possible for deterministic installs; fall back to
+# `npm install` if the lockfile is out of sync (common during rapid updates).
+RUN --mount=type=cache,target=/root/.npm sh -lc "npm ci --prefer-offline || npm install --prefer-offline"
+
+# Source + full node_modules — base for build (needs devDeps)
+FROM deps-all AS srcdeps
+WORKDIR /app
+COPY --from=deps-all /app/node_modules ./node_modules
 COPY . .
 
-# 3. Build the Next.js app (standalone output)
+# Build the Next.js app (standalone output)
 FROM srcdeps AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS=--max-old-space-size=512
+# Limit Node's heap during build to avoid OOM on low-memory devices.
+# Keep the build command; Next.js will use the reduced heap.
 RUN npm run build
 
-# 4. Migrator — used by the `migrate` service in docker-compose
-FROM srcdeps AS migrator
-ENV NODE_ENV=production
-# drizzle-kit push uses the `prompts` package which switches stdin into raw
-# TTY mode, so plain piped input is ignored when the container isn't a TTY.
-# `--force` suppresses data-loss prompts but NOT the "data integrity" ones
-# (e.g. "do you want to truncate users?" before adding a unique constraint),
-# which is what was hanging the migrate service.
-#
-# Fix: install `expect` and run drizzle-kit through scripts/migrate.exp,
-# which gives it a real pseudo-TTY and presses Enter on every prompt to
-# accept the highlighted default (always the safe option).
+# Migrator — used by the `migrate` service in docker-compose. Uses the
+# full dependency set (drizzle-kit is a devDep) and `expect` to drive prompts.
+FROM deps-all AS migrator
+WORKDIR /app
 RUN apk add --no-cache expect
+COPY --from=deps-all /app/node_modules ./node_modules
+COPY . .
+ENV NODE_ENV=production
+ENV NODE_OPTIONS=--max-old-space-size=256
 CMD ["expect", "-f", "scripts/migrate.exp"]
 
-# 5. Minimal runtime image
+# Minimal runtime image using prod-only node_modules
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
@@ -43,9 +58,12 @@ ENV NODE_ENV=production \
 RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
 
+# Copy only what's needed for runtime: public assets + standalone server +
+# production node_modules (already baked into the builder output via npm ci).
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=deps-prod /app/node_modules ./node_modules
 
 USER nextjs
 EXPOSE 3000
