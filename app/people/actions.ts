@@ -51,6 +51,18 @@ function parseDate(value: FormDataEntryValue | null) {
   return trimmed;
 }
 
+function parseBirthMonthDay(monthValue: FormDataEntryValue | null, dayValue: FormDataEntryValue | null) {
+  if (typeof monthValue !== "string" || typeof dayValue !== "string") return null;
+  const month = monthValue.trim();
+  const day = dayValue.trim();
+  if (!/^\d{1,2}$/.test(month) || !/^\d{1,2}$/.test(day)) return null;
+  const monthNum = Number(month);
+  const dayNum = Number(day);
+  const date = new Date(2000, monthNum - 1, dayNum);
+  if (date.getMonth() + 1 !== monthNum || date.getDate() !== dayNum) return null;
+  return `2000-${monthNum.toString().padStart(2, "0")}-${dayNum.toString().padStart(2, "0")}`;
+}
+
 function parseMoneyToPence(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || !value.trim()) return null;
   const numeric = Number.parseFloat(value);
@@ -201,21 +213,16 @@ async function getWishlistContextForSearch(wishlistItemId: string, userId: strin
 export async function createPerson(formData: FormData) {
   const userId = await requireCurrentUserId();
   const name = String(formData.get("name") ?? "").trim();
-  const birthday = parseDate(formData.get("birthday"));
   const birthYearKnown = formData.get("birthYearKnown") === "on";
+  const birthday = birthYearKnown
+    ? parseDate(formData.get("birthday"))
+    : parseBirthMonthDay(formData.get("birthdayMonth"), formData.get("birthdayDay"));
 
   if (!name || !birthday) {
     return;
   }
 
-  // If the year is unknown, normalise the stored birthday to a placeholder year (2000)
-  let storedBirthday = birthday;
-  if (!birthYearKnown) {
-    const parts = birthday.split("-");
-    if (parts.length === 3) {
-      storedBirthday = `2000-${parts[1]}-${parts[2]}`;
-    }
-  }
+  const storedBirthday = birthday;
 
   // Handle photo upload
   let photoUrl = String(formData.get("photoUrl") ?? "").trim() || null;
@@ -262,24 +269,15 @@ export async function updatePerson(formData: FormData) {
   const userId = await requireCurrentUserId();
   const personId = String(formData.get("personId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
-  const birthday = parseDate(formData.get("birthday"));
   const birthYearKnown = formData.get("birthYearKnown") === "on";
+  const birthday = birthYearKnown
+    ? parseDate(formData.get("birthday"))
+    : parseBirthMonthDay(formData.get("birthdayMonth"), formData.get("birthdayDay"));
 
   if (!personId || !name || !birthday) {
     return;
   }
   if (!(await personBelongsToUser(personId, userId))) return;
-
-  // Handle photo upload
-  let photoUrl = String(formData.get("photoUrl") ?? "").trim() || null;
-  const photoFile = formData.get("photoFile") as File | null;
-  if (photoFile && photoFile.size > 0) {
-    try {
-      photoUrl = await savePhoto(photoFile);
-    } catch (err) {
-      console.error("Failed to save photo:", err);
-    }
-  }
 
   // If the birth year is unknown, normalise to placeholder year 2000 so the DB stores a valid date.
   let storedBirthday = birthday;
@@ -287,6 +285,21 @@ export async function updatePerson(formData: FormData) {
     const parts = birthday.split("-");
     if (parts.length === 3) {
       storedBirthday = `2000-${parts[1]}-${parts[2]}`;
+    }
+  }
+
+  // Handle photo upload - prefer new file, then fall back to existing URL from form
+  const photoFile = formData.get("photoFile") as File | null;
+  let photoUrl = String(formData.get("photoUrl") ?? "").trim() || null;
+  
+  if (photoFile && photoFile.size > 0) {
+    try {
+      const savedPath = await savePhoto(photoFile);
+      if (savedPath) {
+        photoUrl = savedPath;
+      }
+    } catch (err) {
+      console.error("Failed to save photo:", err);
     }
   }
 

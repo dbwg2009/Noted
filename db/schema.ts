@@ -269,7 +269,7 @@ export const reminders = pgTable(
     personId: uuid("person_id")
       .notNull()
       .references(() => people.id, { onDelete: "cascade" }),
-    occasionId: integer("occasion_id").references(() => occasions.id),
+    occasionId: integer("occasion_id").references(() => occasions.id, { onDelete: "cascade" }),
     leadDays: integer("lead_days").notNull(),
     channel: text("channel").default("email").notNull(),
     lastSentAt: timestamp("last_sent_at"),
