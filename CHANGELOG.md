@@ -13,39 +13,6 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
-## [2026-05-04] Docker: Pi build optimisations
-**By:** GitHub Copilot
-**What:**
-- Optimised `Dockerfile` to split production and development dependency stages, use `npm ci` for deterministic installs, and leverage BuildKit cache mounts to speed repeated installs on low-powered devices (Raspberry Pi).
-- Added a `deps-prod` stage so the runtime image only contains prod dependencies, reducing image size and memory footprint.
-- Migrator stage keeps devDeps (drizzle-kit) separate so migrations still run in CI/dev without bloating the runtime image.
-- Updated `docker-compose.yml` with commented `platform` hints to help Pi users set `PLATFORM=linux/arm64` or `linux/arm/v7` when building on ARM.
-**Why:**
-- Building on Raspberry Pi can be slow and memory-constrained; separating deps, using `npm ci`, and enabling BuildKit cache significantly reduces build time and runtime image size while keeping migrations functional.
-
-
-## [2026-05-04] Phase 6: Other Occasions (schema, reminders, UI)
-**By:** GitHub Copilot
-**What:**
-- Added `occasion_kind` enum and `occasions` table to `db/schema.ts` with indexes and a nullable `occasion_id` FK on `reminders`.
-- Extended `lib/reminders.ts` to detect and send reminders for occasion rows, and to create default reminders for person-linked occasions.
-- Added `lib/occasions.ts` helper functions (`nextOccurrenceDate`, `daysUntilOccasion`, `formatOccasionDate`).
-- Implemented `lib/occasions-queries.ts` (`listUpcomingOccasions`, `getOccasionsForPerson`).
-- Added server actions in `app/people/occasion-actions.ts` for creating, updating, and deleting occasions.
-- Updated UI: dashboard (`app/page.tsx`), calendar (`app/calendar/page.tsx`), and person detail (`app/people/[id]/page.tsx`) to surface occasions and provide add/edit/delete forms.
-**Why:**
-Extend the app beyond birthdays so users can track anniversaries, Christmas, and custom occasions; wire reminders into the existing reminder/email shortlist system so occasion-based reminders behave like birthday reminders.
-
-
-## [2026-05-04] V2 roadmap: design doc, CLAUDE.md + DESIGN.md updates, GitHub milestones
-**By:** Claude Code
-**What:**
-- Created `docs/V2_DESIGN.md` — full V2 spec covering Phases 6–10 (Other Occasions, Shareable Wishlists, Group Gifts, Price-Drop Alerts, Browser Extension). Each phase has schema deltas, new routes/actions, key files to create/modify, and step-by-step implementation notes for any AI agent to follow.
-- Updated `CLAUDE.md`: added V2 reference to the "Where to find things" section and split the build-phase table into V1 (complete) and V2 (pending) sections.
-- Updated `docs/DESIGN.md` Section 3 (Stretch/v2): replaced bullet list with a structured V2 phase table pointing to the new spec.
-- Created five GitHub milestones (one per V2 phase) with descriptions.
-**Why:** V1 is shipped at v1.1.0. This commit establishes the V2 roadmap so any future AI agent (or the owner) can pick up from Phase 6 without re-deriving the plan.
-
 ## [2026-05-04] Performance optimisations: indexes, connection pool, caching, reminders
 **By:** Claude Code
 **What:**
