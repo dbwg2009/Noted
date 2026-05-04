@@ -1,15 +1,15 @@
 import NextAuth from "next-auth";
-import Resend from "next-auth/providers/resend";
+import Credentials from "next-auth/providers/credentials";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "@/db";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import {
   users,
   accounts,
   sessions,
   verificationTokens,
 } from "@/db/schema";
-
-const allowedEmail = process.env.ALLOWED_EMAIL?.toLowerCase().trim();
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db, {
@@ -18,22 +18,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
   }),
-  session: { strategy: "database" },
+  session: { strategy: "jwt" },
   providers: [
-    Resend({
-      apiKey: process.env.RESEND_API_KEY,
-      from: process.env.EMAIL_FROM ?? "onboarding@resend.dev",
+    Credentials({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+        const email = String(credentials.email).toLowerCase().trim();
+        const [userRow] = await db
+          .select({ id: users.id, email: users.email, name: users.name, image: users.image, passwordHash: users.passwordHash })
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1);
+
+        if (!userRow || !userRow.passwordHash) return null;
+
+        const ok = bcrypt.compareSync(String(credentials.password), userRow.passwordHash);
+        if (!ok) return null;
+
+        return { id: userRow.id, email: userRow.email, name: userRow.name, image: userRow.image };
+      },
     }),
   ],
-  callbacks: {
-    async signIn({ user }) {
-      // Single-user mode: only ALLOWED_EMAIL may sign in.
-      if (!allowedEmail) return false;
-      return user.email?.toLowerCase() === allowedEmail;
-    },
-  },
   pages: {
     signIn: "/login",
-    verifyRequest: "/login/check-email",
   },
 });

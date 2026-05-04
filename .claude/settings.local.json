@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)",
+      "Bash(magick --version)",
+      "Bash(convert --version)",
+      "Bash(node -e \"require\\('sharp'\\)\")",
+      "Bash(node -e \"require\\('jimp'\\)\")",
+      "PowerShell(Get-Command python, python3, py -ErrorAction SilentlyContinue)",
+      "Bash(node -e ' *)",
+      "PowerShell(Get-Command npm, node, npx -ErrorAction SilentlyContinue)",
+      "PowerShell($env:PATH -split \";\" | Where-Object { Test-Path \"$_\\\\npm.cmd\" -or Test-Path \"$_\\\\node.exe\" } | Select-Object -First 5)",
+      "PowerShell(Copy-Item \"C:\\\\Users\\\\dbwg2\\\\Downloads\\\\Noted\\\\public\\\\favicon.png\" \"C:\\\\Users\\\\dbwg2\\\\Downloads\\\\Noted\\\\app\\\\icon.png\" -Force)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh repo *)"
+    ]
+  }
+}

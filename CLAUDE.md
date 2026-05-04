@@ -6,9 +6,9 @@ Read this first. It exists so any AI session (Claude Code, Cursor, etc.) can pic
 
 ## What this project is
 
-A personal, single-user web app for tracking friends' and family birthdays, capturing gift ideas, using AI to find real products with prices + buy links, and emailing the owner reminders ahead of each birthday.
+A personal, multi-user web app for tracking friends' and family birthdays, capturing gift ideas, using AI to find real products with prices + buy links, and emailing users reminders ahead of each birthday.
 
-Owner / sole user: **dbwg2009**.
+Owner / initial admin: **dbwg2009**.
 
 ## Where to find things
 
@@ -17,7 +17,7 @@ Owner / sole user: **dbwg2009**.
 - **`CHANGELOG.md`** — running log of every significant change: what changed, why, and when. **All AI agents must update this on every commit.** See the file for the entry format.
 - **`README.md`** — quick-start (Docker + native Node).
 - **`db/schema.ts`** — the source of truth for the DB shape.
-- **`lib/auth.ts`** — Auth.js v5 config (Resend magic-link, single-user gate via `ALLOWED_EMAIL`).
+-- **`lib/auth.ts`** — Auth.js v5 config (Credentials provider for email/password, Drizzle adapter). Previously used Resend magic-link + `ALLOWED_EMAIL`.
 - **`Dockerfile`** + **`docker-compose.yml`** — primary deployment target is Docker on a Pi.
 
 ## Locked decisions (do not silently change)
@@ -92,12 +92,31 @@ npm run dev
 
 - Don't switch the LLM provider away from OpenRouter without updating `DECISIONS.md`. If a different provider is genuinely needed, OpenRouter is preferred because it gives access to many free models behind one API.
 - Don't add SerpAPI or any scraping — it was explicitly rejected for cost/ToS reasons.
-- Don't introduce a JWT session strategy; we're on DB sessions because the magic-link flow needs `verification_tokens`.
-- Don't bypass `ALLOWED_EMAIL` — it's the only thing keeping randoms out.
+- Session strategy is **JWT** (required by the Credentials provider). Do not switch back to database sessions — Credentials + DB sessions is explicitly unsupported by Auth.js.
+- `ALLOWED_EMAIL` is optional now; do not rely on it for multi-user auth.
 - Don't build features beyond the current phase without asking the user. The build order matters because each phase depends on the previous data shape.
 - Don't commit `.env` or any secrets.
 - Don't rewrite working code "for cleanliness" — small surface area, personal app, ship it.
 - Don't add a UI component library (e.g. shadcn) without asking — we're keeping deps minimal.
+
+## Versioning & GitHub releases
+
+The repo uses **semantic versioning** tied to build phases. All tags and releases live at https://github.com/dbwg2009/Noted/releases.
+
+| Tag | Phase completed | Notes |
+|-----|----------------|-------|
+| `v0.1.0` | Phase 0 — Scaffold | Initial Next.js + Docker stack |
+| `v0.3.0` | Phase 3 — Suggestions & History | AI suggestions, gift history |
+| `v0.4.0` | Phase 4 — Reminders | Email digests, cron sidecar |
+| `v1.0.0` | Phase 5 — Polish & Rebrand | All phases complete, Noted brand |
+
+**Rules for future releases:**
+- Tag format: `vMAJOR.MINOR.PATCH` (e.g. `v1.1.0` for a meaningful new feature, `v1.0.1` for a bug fix).
+- Cut a new GitHub release whenever a meaningful feature or fix ships to `main`. Use `gh release create <tag> --title "..." --notes "..."`.
+- Mark it `--latest` when it supersedes the previous release. Keep release notes concise: what changed and why, not a commit dump.
+- Do **not** tag mid-phase work-in-progress commits — only tag stable, deployable states on `main`.
+
+**GitHub milestones** (https://github.com/dbwg2009/Noted/milestones) map 1-to-1 to build phases (all currently closed). If new phases are added, create a matching milestone via `gh api repos/dbwg2009/Noted/milestones -X POST -f title="Phase N: ..." -f state=open`.
 
 ## Picking up the work
 
@@ -107,6 +126,7 @@ npm run dev
 4. **Before committing:** add an entry to `CHANGELOG.md` describing what you changed and why. Use the format in that file.
 5. After work, push the branch and confirm with the user before opening a PR / merging to main.
 6. Update this file or `docs/DECISIONS.md` if the decisions change.
+7. When merging to `main` and the change is release-worthy, cut a GitHub release (see versioning section above).
 
 ## Known gotchas
 

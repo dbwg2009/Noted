@@ -5,7 +5,7 @@ Locked decisions from the planning round. See `DESIGN.md` for the full design th
 ## A. Foundations
 | # | Question | Decision |
 |---|----------|----------|
-| A1 | Single-user or multi-user? | **Single-user** (auth scaffolding still in place) |
+| A1 | Single-user or multi-user? | **Multi-user** (migrated from single-user) |
 | A2 | Reminder channel | **Email** (Resend) |
 | A3 | Country / currency | **UK / GBP**, locale `en-GB`, timezone `Europe/London` |
 | A4 | Tech stack | **Next.js 15 + TS + Postgres (Neon) + Tailwind + Vercel** |
@@ -48,7 +48,7 @@ Locked decisions from the planning round. See `DESIGN.md` for the full design th
 - Multiple budgets per person — **out** for v1 (one budget range per person)
 
 ## E. Confirmed-out (v1)
-- Multi-user / shared wishlists
+ -
 - Auto-purchasing
 - Native mobile app
 - Price-drop watching
