@@ -37,7 +37,7 @@ export async function GET(
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Content-Disposition": `attachment; filename="birthdays.ics"`,
-      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "Cache-Control": "private, max-age=3600, stale-while-revalidate=86400",
     },
   });
 }

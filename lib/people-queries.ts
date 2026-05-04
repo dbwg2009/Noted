@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { cache } from "react";
 import { db } from "@/db";
 import {
   giftHistory,
@@ -15,14 +16,15 @@ import { auth } from "@/lib/auth";
 import { daysUntil, ageOnNextBirthday } from "@/lib/birthdays";
 import { randomUUID } from "node:crypto";
 
-export async function requireCurrentUserId() {
+// cache() deduplicates across Server Components and actions within the same request.
+export const requireCurrentUserId = cache(async () => {
   const session = await auth();
   const email = session?.user?.email?.toLowerCase().trim();
   if (!email) throw new Error("Not authenticated");
   const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (!user) throw new Error("Authenticated user was not found in the database");
   return user.id;
-}
+});
 
 /**
  * Gets or generates the iCal feed URL for the current user.

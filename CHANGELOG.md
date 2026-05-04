@@ -13,6 +13,17 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-04] Performance optimisations: indexes, connection pool, caching, reminders
+**By:** Claude Code
+**What:**
+- `db/schema.ts`: added explicit indexes on every FK column (`people.userId`, `tags.userId`, `sessions.userId`, `accounts.userId`, `wishlistItems.personId`, `products.personId`, `products.wishlistItemId`, `giftHistory.personId`, `suggestions.personId`, `reminders.personId`, `aiRequestLog.userId`). PostgreSQL does not auto-index foreign keys.
+- `db/index.ts`: raised `idle_timeout` from 20 s to 600 s to stop the connection pool from thrashing on a low-traffic Pi.
+- `lib/people-queries.ts`: wrapped `requireCurrentUserId` in `React.cache()` so repeated calls within the same request (server components + actions) are deduplicated — eliminates redundant `auth()` + user-lookup DB hits.
+- `lib/reminders.ts`: `findDueReminders` now filters entirely in SQL (birthday month/day vs. `today + lead_days`, `lastSentForYear` exclusion) instead of loading all reminders and filtering in JS. Reminder `lastSentForYear` updates are now batched with `inArray` per target year instead of one `UPDATE` per row.
+- `app/api/ical/[token]/route.ts`: changed `Cache-Control` from `no-store` to `private, max-age=3600, stale-while-revalidate=86400` — calendar clients can cache the feed for an hour rather than recomputing on every poll.
+- `docker-compose.yml`: added `deploy.resources.limits` — `memory: 512M` for app, `memory: 64M` for cron — to prevent OOM kills on the Pi.
+**Why:** User requested a full efficiency pass. Biggest gains are the missing DB indexes (table scans on every request) and the cron full-table scan. All changes are safe and backwards-compatible; no schema data migrations needed — `db:push` will add the indexes.
+
 ## [2026-05-03] Password auth + multi-user
 **By:** GitHub Copilot
 **What:** Replaced email magic-link auth with password-based credentials (bcrypt hashed) and enabled multi-user support. Added `password_hash` column to the `users` table, a registration API at `app/api/auth/register/route.ts`, and updated `lib/auth.ts` to use the Credentials provider. Updated the login and register UI.

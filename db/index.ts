@@ -10,7 +10,7 @@ if (!connectionString) {
 
 const client = postgres(connectionString ?? "postgres://invalid", {
   max: 10,
-  idle_timeout: 20,
+  idle_timeout: 600,
   prepare: false,
 });
 
