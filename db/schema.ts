@@ -10,6 +10,7 @@ import {
   pgEnum,
   serial,
   uuid,
+  index,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -65,16 +66,23 @@ export const accounts = pgTable(
     id_token: text("id_token"),
     session_state: text("session_state"),
   },
-  (t) => [primaryKey({ columns: [t.provider, t.providerAccountId] })],
+  (t) => [
+    primaryKey({ columns: [t.provider, t.providerAccountId] }),
+    index("accounts_user_id_idx").on(t.userId),
+  ],
 );
 
-export const sessions = pgTable("sessions", {
-  sessionToken: text("session_token").primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  expires: timestamp("expires", { mode: "date" }).notNull(),
-});
+export const sessions = pgTable(
+  "sessions",
+  {
+    sessionToken: text("session_token").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expires: timestamp("expires", { mode: "date" }).notNull(),
+  },
+  (t) => [index("sessions_user_id_idx").on(t.userId)],
+);
 
 export const verificationTokens = pgTable(
   "verification_tokens",
@@ -88,33 +96,41 @@ export const verificationTokens = pgTable(
 
 // --- Domain tables ---
 
-export const people = pgTable("people", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  birthday: date("birthday").notNull(), // ISO yyyy-mm-dd; year may be a placeholder
-  birthYearKnown: boolean("birth_year_known").default(true).notNull(),
-  relationship: text("relationship"),
-  photoUrl: text("photo_url"),
-  notes: text("notes"),
-  budgetMin: integer("budget_min"), // pence/cents — kept as smallest unit
-  budgetMax: integer("budget_max"),
-  currency: text("currency").default("GBP").notNull(),
-  sizes: jsonb("sizes").$type<Record<string, string>>(),
-  avoid: text("avoid"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+export const people = pgTable(
+  "people",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    birthday: date("birthday").notNull(), // ISO yyyy-mm-dd; year may be a placeholder
+    birthYearKnown: boolean("birth_year_known").default(true).notNull(),
+    relationship: text("relationship"),
+    photoUrl: text("photo_url"),
+    notes: text("notes"),
+    budgetMin: integer("budget_min"), // pence/cents — kept as smallest unit
+    budgetMax: integer("budget_max"),
+    currency: text("currency").default("GBP").notNull(),
+    sizes: jsonb("sizes").$type<Record<string, string>>(),
+    avoid: text("avoid"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("people_user_id_idx").on(t.userId)],
+);
 
-export const tags = pgTable("tags", {
-  id: serial("id").primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-});
+export const tags = pgTable(
+  "tags",
+  {
+    id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+  },
+  (t) => [index("tags_user_id_idx").on(t.userId)],
+);
 
 export const personTags = pgTable(
   "person_tags",
@@ -129,95 +145,122 @@ export const personTags = pgTable(
   (t) => [primaryKey({ columns: [t.personId, t.tagId] })],
 );
 
-export const wishlistItems = pgTable("wishlist_items", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  personId: uuid("person_id")
-    .notNull()
-    .references(() => people.id, { onDelete: "cascade" }),
-  description: text("description").notNull(),
-  sourceNote: text("source_note"),
-  heardOn: date("heard_on"),
-  status: wishlistStatus("status").default("idea").notNull(),
-  priceMin: integer("price_min"),
-  priceMax: integer("price_max"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+export const wishlistItems = pgTable(
+  "wishlist_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    description: text("description").notNull(),
+    sourceNote: text("source_note"),
+    heardOn: date("heard_on"),
+    status: wishlistStatus("status").default("idea").notNull(),
+    priceMin: integer("price_min"),
+    priceMax: integer("price_max"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("wishlist_items_person_id_idx").on(t.personId)],
+);
 
-export const products = pgTable("products", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  wishlistItemId: uuid("wishlist_item_id").references(() => wishlistItems.id, {
-    onDelete: "set null",
-  }),
-  personId: uuid("person_id")
-    .notNull()
-    .references(() => people.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  description: text("description"),
-  imageUrl: text("image_url"),
-  retailer: text("retailer"),
-  url: text("url").notNull(),
-  price: integer("price"), // smallest unit (pence)
-  currency: text("currency").default("GBP").notNull(),
-  inStock: boolean("in_stock"),
-  source: productSource("source").default("manual").notNull(),
-  rawPayload: jsonb("raw_payload"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const products = pgTable(
+  "products",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    wishlistItemId: uuid("wishlist_item_id").references(() => wishlistItems.id, {
+      onDelete: "set null",
+    }),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    imageUrl: text("image_url"),
+    retailer: text("retailer"),
+    url: text("url").notNull(),
+    price: integer("price"), // smallest unit (pence)
+    currency: text("currency").default("GBP").notNull(),
+    inStock: boolean("in_stock"),
+    source: productSource("source").default("manual").notNull(),
+    rawPayload: jsonb("raw_payload"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("products_person_id_idx").on(t.personId),
+    index("products_wishlist_item_id_idx").on(t.wishlistItemId),
+  ],
+);
 
-export const giftHistory = pgTable("gift_history", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  personId: uuid("person_id")
-    .notNull()
-    .references(() => people.id, { onDelete: "cascade" }),
-  productId: uuid("product_id").references(() => products.id, {
-    onDelete: "set null",
-  }),
-  wishlistItemId: uuid("wishlist_item_id").references(() => wishlistItems.id, {
-    onDelete: "set null",
-  }),
-  title: text("title").notNull(),
-  pricePaid: integer("price_paid"),
-  currency: text("currency").default("GBP").notNull(),
-  givenOn: date("given_on").notNull(),
-  reactionNotes: text("reaction_notes"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const giftHistory = pgTable(
+  "gift_history",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    productId: uuid("product_id").references(() => products.id, {
+      onDelete: "set null",
+    }),
+    wishlistItemId: uuid("wishlist_item_id").references(() => wishlistItems.id, {
+      onDelete: "set null",
+    }),
+    title: text("title").notNull(),
+    pricePaid: integer("price_paid"),
+    currency: text("currency").default("GBP").notNull(),
+    givenOn: date("given_on").notNull(),
+    reactionNotes: text("reaction_notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("gift_history_person_id_idx").on(t.personId)],
+);
 
-export const suggestions = pgTable("suggestions", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  personId: uuid("person_id")
-    .notNull()
-    .references(() => people.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  rationale: text("rationale"),
-  estimatedPriceMin: integer("estimated_price_min"),
-  estimatedPriceMax: integer("estimated_price_max"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const suggestions = pgTable(
+  "suggestions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    rationale: text("rationale"),
+    estimatedPriceMin: integer("estimated_price_min"),
+    estimatedPriceMax: integer("estimated_price_max"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("suggestions_person_id_idx").on(t.personId)],
+);
 
-export const reminders = pgTable("reminders", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  personId: uuid("person_id")
-    .notNull()
-    .references(() => people.id, { onDelete: "cascade" }),
-  leadDays: integer("lead_days").notNull(),
-  channel: text("channel").default("email").notNull(),
-  lastSentAt: timestamp("last_sent_at"),
-  lastSentForYear: integer("last_sent_for_year"),
-});
+export const reminders = pgTable(
+  "reminders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    leadDays: integer("lead_days").notNull(),
+    channel: text("channel").default("email").notNull(),
+    lastSentAt: timestamp("last_sent_at"),
+    lastSentForYear: integer("last_sent_for_year"),
+  },
+  (t) => [index("reminders_person_id_idx").on(t.personId)],
+);
 
-export const aiRequestLog = pgTable("ai_request_log", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  kind: aiRequestKind("kind").notNull(),
-  promptTokens: integer("prompt_tokens"),
-  completionTokens: integer("completion_tokens"),
-  costEstimate: integer("cost_estimate"), // smallest unit
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const aiRequestLog = pgTable(
+  "ai_request_log",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: aiRequestKind("kind").notNull(),
+    promptTokens: integer("prompt_tokens"),
+    completionTokens: integer("completion_tokens"),
+    costEstimate: integer("cost_estimate"), // smallest unit
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("ai_request_log_user_id_idx").on(t.userId)],
+);
 
 // --- Relations (helpful for query builder) ---
 
