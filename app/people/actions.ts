@@ -208,15 +208,6 @@ export async function createPerson(formData: FormData) {
     return;
   }
 
-  // If the year is unknown, normalise the stored birthday to a placeholder year (2000)
-  let storedBirthday = birthday;
-  if (!birthYearKnown) {
-    const parts = birthday.split("-");
-    if (parts.length === 3) {
-      storedBirthday = `2000-${parts[1]}-${parts[2]}`;
-    }
-  }
-
   // Handle photo upload
   let photoUrl = String(formData.get("photoUrl") ?? "").trim() || null;
   const photoFile = formData.get("photoFile") as File | null;
@@ -233,7 +224,7 @@ export async function createPerson(formData: FormData) {
     .values({
       userId,
       name,
-      birthday: storedBirthday,
+      birthday,
       birthYearKnown,
       relationship: String(formData.get("relationship") ?? "").trim() || null,
       photoUrl,
@@ -281,20 +272,11 @@ export async function updatePerson(formData: FormData) {
     }
   }
 
-  // If the birth year is unknown, normalise to placeholder year 2000 so the DB stores a valid date.
-  let storedBirthday = birthday;
-  if (!birthYearKnown) {
-    const parts = birthday.split("-");
-    if (parts.length === 3) {
-      storedBirthday = `2000-${parts[1]}-${parts[2]}`;
-    }
-  }
-
   await db
     .update(people)
     .set({
       name,
-      birthday: storedBirthday,
+      birthday,
       birthYearKnown,
       relationship: String(formData.get("relationship") ?? "").trim() || null,
       photoUrl,

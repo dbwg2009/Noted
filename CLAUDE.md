@@ -13,7 +13,6 @@ Owner / initial admin: **dbwg2009**.
 ## Where to find things
 
 - **`docs/DESIGN.md`** — full design: goals, features, data model, architecture, build phases, repo layout. **Read this before changing anything non-trivial.**
-- **`docs/V2_DESIGN.md`** — **V2 roadmap**: five new phases (6–10) with schema deltas, new routes, and step-by-step implementation notes. **Read this before starting any V2 phase.** Each phase has a corresponding GitHub milestone.
 - **`docs/DECISIONS.md`** — locked decisions and a change log (single-user, email reminders, UK/GBP, OpenRouter LLM, Docker primary). Update this when a decision changes; do not silently override.
 - **`CHANGELOG.md`** — running log of every significant change: what changed, why, and when. **All AI agents must update this on every commit.** See the file for the entry format.
 - **`README.md`** — quick-start (Docker + native Node).
@@ -39,8 +38,6 @@ If a decision genuinely needs to change, update `docs/DECISIONS.md` in the same 
 
 ## Build phases
 
-### V1 (complete)
-
 | Phase | Status | Scope |
 |-------|--------|-------|
 | 0 — Scaffold | **done** | Next.js + Tailwind + Drizzle + Auth.js + Docker stack |
@@ -51,17 +48,7 @@ If a decision genuinely needs to change, update `docs/DECISIONS.md` in the same 
 | 4 — Reminders | **done** | Default 30/14/7/1-day reminders auto-created per person. Daily digest email via Resend with budget-aware shortlist (products + suggestions). `/api/cron/reminders` endpoint protected by `CRON_SECRET`; `cron` sidecar in compose pings it on `CRON_INTERVAL_SECONDS` (default 86400). Per-person "Send test now" button. |
 | 5 — Polish | **done** | Photo uploads (`lib/storage.ts`, local filesystem or base64), iCal feed (`/api/ical/[token]`, `users.ical_token`), mobile tweaks (horizontal scroll on calendar) |
 
-### V2 (in progress — see `docs/V2_DESIGN.md` for full spec)
-
-| Phase | Status | Scope |
-|-------|--------|-------|
-| 6 — Other Occasions | **pending** | Anniversary, Christmas, Mother's/Father's Day, custom occasions. New `occasions` table + per-occasion reminders. Dashboard + calendar updated. |
-| 7 — Shareable Wishlists | **pending** | Read-only token-based public link to a person's wishlist. New `wishlist_shares` table. `/share/[token]` public route. |
-| 8 — Group Gifts | **pending** | Coordinate split purchases. `gift_groups` + `gift_group_contributors` tables. `/gift-groups` UI. |
-| 9 — Price-Drop Alerts | **pending** | Watch a saved product; email when price drops below target. `price_alerts` table + cron extension + eBay price check. |
-| 10 — Browser Extension | **pending** | Chrome/Firefox MV3 extension: right-click → save product to wishlist. New `/api/v1/wishlist-items` REST endpoint + `api_keys` table. |
-
-When starting work, find the first **pending** phase above. **Don't skip phases** without explicit user approval. For V2, read `docs/V2_DESIGN.md` before implementing anything — it has the schema deltas, file lists, and implementation notes for each phase.
+When starting work, find the next pending task in this list. **Don't skip phases** without explicit user approval — Phase 1 lays the data flow Phase 2+ build on.
 
 ## Tech stack quick reference
 
