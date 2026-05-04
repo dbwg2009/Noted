@@ -82,15 +82,7 @@ export async function updateOccasion(formData: FormData) {
   }
   if (kind === "custom" && !date) return;
 
-<<<<<<< Updated upstream
-  const [row] = await db.select({ personId: occasions.personId }).from(occasions).where(eq(occasions.id, id)).limit(1);
-<<<<<<< HEAD
-=======
   const [row] = await db.select({ personId: occasions.personId, userId: occasions.userId }).from(occasions).where(eq(occasions.id, id)).limit(1);
->>>>>>> Stashed changes
-=======
-  const [row] = await db.select({ personId: occasions.personId, userId: occasions.userId }).from(occasions).where(eq(occasions.id, id)).limit(1);
->>>>>>> 0a8bf03418684fa5ebf8fe0b2e0e71921ffd343e
   if (!row) return;
 
   // verify ownership
