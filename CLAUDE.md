@@ -92,7 +92,7 @@ npm run dev
 
 - Don't switch the LLM provider away from OpenRouter without updating `DECISIONS.md`. If a different provider is genuinely needed, OpenRouter is preferred because it gives access to many free models behind one API.
 - Don't add SerpAPI or any scraping — it was explicitly rejected for cost/ToS reasons.
-- Don't introduce a JWT session strategy; we're on DB sessions because the magic-link flow needs `verification_tokens`.
+- Session strategy is **JWT** (required by the Credentials provider). Do not switch back to database sessions — Credentials + DB sessions is explicitly unsupported by Auth.js.
 - `ALLOWED_EMAIL` is optional now; do not rely on it for multi-user auth.
 - Don't build features beyond the current phase without asking the user. The build order matters because each phase depends on the previous data shape.
 - Don't commit `.env` or any secrets.
