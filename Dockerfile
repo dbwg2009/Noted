@@ -18,7 +18,9 @@ FROM node:22-alpine AS deps-all
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json* ./
-RUN --mount=type=cache,target=/root/.npm npm ci --prefer-offline
+# Use `npm ci` when possible for deterministic installs; fall back to
+# `npm install` if the lockfile is out of sync (common during rapid updates).
+RUN --mount=type=cache,target=/root/.npm sh -lc "npm ci --prefer-offline || npm install --prefer-offline"
 
 # Source + full node_modules — base for build (needs devDeps)
 FROM deps-all AS srcdeps
