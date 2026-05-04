@@ -34,9 +34,9 @@ export default function RegisterPage() {
       </div>
       <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        <input name="name" placeholder="Your name (optional)" className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm" />
-        <input required name="email" type="email" placeholder="you@example.com" className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm" />
-        <input required name="password" type="password" placeholder="Password (min 8 chars)" className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm" />
+        <input name="name" placeholder="Your name (optional)" className="input-field" />
+        <input required name="email" type="email" placeholder="you@example.com" className="input-field" />
+        <input required name="password" type="password" placeholder="Password (min 8 chars)" className="input-field" />
         {error && <div className="text-sm text-red-600">{error}</div>}
         <div className="flex items-center justify-between">
           <button type="submit" disabled={loading} className="btn-primary px-4 py-2 text-sm">
