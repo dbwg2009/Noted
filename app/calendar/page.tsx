@@ -62,9 +62,9 @@ export default async function CalendarPage({
   // weekday: 0 = Sunday, but we want Mon=0
   const startOffset = (firstDay.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells: Array<{ day: number | null; isToday: boolean; matches: typeof allPeople }> = [];
+  const cells: Array<{ day: number | null; isToday: boolean; matches: typeof allPeople; occasions: Array<typeof occasions[0]> }> = [];
   for (let i = 0; i < startOffset; i++) {
-    cells.push({ day: null, isToday: false, matches: [] });
+    cells.push({ day: null, isToday: false, matches: [], occasions: [] });
   }
   for (let d = 1; d <= daysInMonth; d++) {
     cells.push({
@@ -74,7 +74,7 @@ export default async function CalendarPage({
         occasions: occasionsByDay.get(d) ?? [],
     });
   }
-  while (cells.length % 7 !== 0) cells.push({ day: null, isToday: false, matches: [] });
+  while (cells.length % 7 !== 0) cells.push({ day: null, isToday: false, matches: [], occasions: [] });
 
   const prev = prevMonth(year, month);
   const next = nextMonth(year, month);
