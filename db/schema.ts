@@ -251,7 +251,7 @@ export const occasions = pgTable(
     personId: uuid("person_id").references(() => people.id, { onDelete: "cascade" }),
     kind: occasionKind("kind").notNull(),
     name: text("name"),
-    date: date("date").notNull(),
+    date: date("date"),
     yearRecurring: boolean("year_recurring").notNull().default(true),
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),

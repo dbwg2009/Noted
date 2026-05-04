@@ -37,7 +37,9 @@ export async function createOccasion(formData: FormData) {
   const yearRecurring = formData.get("yearRecurring") === "on";
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  if (!kind || !date) return;
+  // For custom occasions date is required; for named kinds date may be omitted.
+  if (!kind) return;
+  if (kind === "custom" && !date) return;
 
   if (personId) {
     const [p] = await db.select({ id: people.id }).from(people).where(and(eq(people.id, personId), eq(people.userId, userId))).limit(1);
@@ -67,7 +69,9 @@ export async function updateOccasion(formData: FormData) {
   const yearRecurring = formData.get("yearRecurring") === "on";
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  if (!id || !kind || !date) return;
+  if (!id || !kind) return;
+  // custom occasions must have a date
+  if (kind === "custom" && !date) return;
 
   const [row] = await db.select({ personId: occasions.personId }).from(occasions).where(eq(occasions.id, id)).limit(1);
   if (!row) return;
