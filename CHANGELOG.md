@@ -13,6 +13,19 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-04] Phase 6: Other Occasions (schema, reminders, UI)
+**By:** GitHub Copilot
+**What:**
+- Added `occasion_kind` enum and `occasions` table to `db/schema.ts` with indexes and a nullable `occasion_id` FK on `reminders`.
+- Extended `lib/reminders.ts` to detect and send reminders for occasion rows, and to create default reminders for person-linked occasions.
+- Added `lib/occasions.ts` helper functions (`nextOccurrenceDate`, `daysUntilOccasion`, `formatOccasionDate`).
+- Implemented `lib/occasions-queries.ts` (`listUpcomingOccasions`, `getOccasionsForPerson`).
+- Added server actions in `app/people/occasion-actions.ts` for creating, updating, and deleting occasions.
+- Updated UI: dashboard (`app/page.tsx`), calendar (`app/calendar/page.tsx`), and person detail (`app/people/[id]/page.tsx`) to surface occasions and provide add/edit/delete forms.
+**Why:**
+Extend the app beyond birthdays so users can track anniversaries, Christmas, and custom occasions; wire reminders into the existing reminder/email shortlist system so occasion-based reminders behave like birthday reminders.
+
+
 ## [2026-05-04] V2 roadmap: design doc, CLAUDE.md + DESIGN.md updates, GitHub milestones
 **By:** Claude Code
 **What:**

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { listPeopleSummary, requireCurrentUserId, getIcalUrl } from "@/lib/people-queries";
+import { listUpcomingOccasions } from "@/lib/occasions-queries";
+import { formatOccasionDate } from "@/lib/occasions";
 import { Avatar, CountdownBadge, TagChip } from "@/components/badges";
 import { formatBirthday } from "@/lib/birthdays";
 import { resetIcalToken } from "./people/actions";
@@ -15,6 +17,8 @@ export default async function Home() {
   const icalUrl = await getIcalUrl(userId);
   const people = await listPeopleSummary(userId);
   const upcoming = [...people].sort((a, b) => a.daysUntilBirthday - b.daysUntilBirthday).slice(0, 6);
+  const occasions = await listUpcomingOccasions(userId, 6);
+  const upcomingOccasions = occasions.slice(0, 6);
   const thisMonth = people.filter((p) => p.daysUntilBirthday <= 31);
 
   return (
@@ -80,6 +84,37 @@ export default async function Home() {
                         ))}
                       </div>
                     )}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <div className="flex items-end justify-between">
+          <h2 className="text-lg font-semibold">Upcoming occasions</h2>
+          <Link href="/calendar" className="text-sm text-neutral-600 hover:underline dark:text-neutral-400">
+            See calendar →
+          </Link>
+        </div>
+        {upcomingOccasions.length === 0 ? (
+          <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">No upcoming occasions.</p>
+        ) : (
+          <ul className="mt-4 grid gap-3 md:grid-cols-2">
+            {upcomingOccasions.map((o) => (
+              <li key={o.id}>
+                <Link
+                  href={o.personId ? `/people/${o.personId}` : "/people"}
+                  className="card flex items-center gap-4 transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-semibold">{o.name ?? o.kind}</p>
+                      <span className="text-xs text-neutral-600 dark:text-neutral-400">{o.daysUntil !== null ? `${o.daysUntil}d` : "—"}</span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-neutral-600 dark:text-neutral-400">{formatOccasionDate(o.date, true)}</p>
                   </div>
                 </Link>
               </li>
