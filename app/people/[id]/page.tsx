@@ -365,9 +365,9 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
 
         <details className="card mt-3">
           <summary className="cursor-pointer text-sm font-medium">+ Add occasion</summary>
-          <form action={createOccasion} className="mt-4 grid gap-3 md:grid-cols-2">
+          <form id="add-occasion-form" action={createOccasion} className="mt-4 grid gap-3 md:grid-cols-2">
             <input type="hidden" name="personId" value={person.id} />
-            <select name="kind" required className={inputCls}>
+            <select id="add-occasion-kind" name="kind" required className={inputCls}>
               <option value="anniversary">Anniversary</option>
               <option value="christmas">Christmas</option>
               <option value="mothers_day">Mother's Day</option>
@@ -376,8 +376,8 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
               <option value="easter">Easter</option>
               <option value="custom">Custom</option>
             </select>
-            <input name="name" placeholder="Name (required for custom)" className={inputCls} />
-            <input name="date" type="date" className={inputCls} />
+            <input id="add-occasion-name" name="name" placeholder="Name (required for custom)" className={inputCls} />
+            <input id="add-occasion-date" name="date" type="date" className={inputCls} />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="yearRecurring" defaultChecked className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700" />
               Yearly recurring
@@ -399,9 +399,10 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                     <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">{formatOccasionDate(o.date, o.yearRecurring)}</p>
                   </div>
                   <details>
-                    <summary className="cursor-pointer text-xs text-neutral-600 hover:underline dark:text-neutral-400">Edit</summary>
-                    <form action={updateOccasion} className="mt-2 grid gap-2">
+                              <summary className="cursor-pointer text-xs text-neutral-600 hover:underline dark:text-neutral-400">Edit</summary>
+                              <form id={`update-occ-${o.id}`} action={updateOccasion} className="mt-2 grid gap-2">
                       <input type="hidden" name="occasionId" value={o.id} />
+                      <input type="hidden" name="kind" value={o.kind} />
                       <input name="name" defaultValue={o.name ?? ""} className={inputCls} />
                       <input name="date" type="date" defaultValue={o.date ?? ""} className={inputCls} />
                       <label className="flex items-center gap-2 text-sm">
@@ -411,11 +412,11 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                       <textarea name="notes" rows={2} defaultValue={o.notes ?? ""} className={inputCls} />
                       <div className="flex gap-2">
                         <button type="submit" className="btn-primary px-3 py-1.5 text-sm">Save</button>
-                        <form action={deleteOccasion}>
-                          <input type="hidden" name="occasionId" value={o.id} />
-                          <button type="submit" className="rounded-md border border-red-300 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950">Delete</button>
-                        </form>
                       </div>
+                    </form>
+                    <form action={deleteOccasion} className="mt-2">
+                      <input type="hidden" name="occasionId" value={o.id} />
+                      <button type="submit" className="rounded-md border border-red-300 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950">Delete</button>
                     </form>
                   </details>
                 </div>
@@ -626,10 +627,10 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
         <h2 className="text-lg font-semibold">Settings</h2>
         <details className="card mt-3">
           <summary className="cursor-pointer text-sm font-medium">Edit person</summary>
-          <form action={updatePerson} className="mt-4 grid gap-3 md:grid-cols-2" encType="multipart/form-data">
+          <form action={updatePerson} id="edit-person-form" className="mt-4 grid gap-3 md:grid-cols-2" encType="multipart/form-data">
             <input type="hidden" name="personId" value={person.id} />
             <input name="name" defaultValue={person.name} required className={inputCls} />
-            <input name="birthday" type="date" defaultValue={person.birthday} required className={inputCls} />
+            <input id="edit-birthday" name="birthday" type="date" defaultValue={person.birthday} required={person.birthYearKnown} className={inputCls} />
             <input name="relationship" defaultValue={person.relationship ?? ""} placeholder="Relationship" className={inputCls} />
             <div className="flex flex-col gap-1">
               <span className="text-xs font-medium text-neutral-500">Photo (Upload)</span>
@@ -641,6 +642,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
             </div>
             <label className="flex items-center gap-2 text-sm">
               <input
+                id="edit-birthyear-known"
                 type="checkbox"
                 name="birthYearKnown"
                 defaultChecked={person.birthYearKnown}
@@ -703,6 +705,24 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
           </button>
         </form>
       </section>
+    <script dangerouslySetInnerHTML={{ __html: `(function(){
+      function toggleRequired(bxId, dtId){
+        var bx = document.getElementById(bxId); var dt = document.getElementById(dtId);
+        if(!bx||!dt) return; function t(){ dt.required = !!bx.checked; } bx.addEventListener('change', t); t();
+      }
+      function toggleOccasion(kindId,nameId,dateId){
+        var kd=document.getElementById(kindId); var nm=document.getElementById(nameId); var dt=document.getElementById(dateId);
+        if(!kd||!nm||!dt) return; function t(){ if(kd.value==='custom'){ nm.required=true; dt.required=true;} else { nm.required=false; dt.required=false; } }
+        kd.addEventListener('change', t); t();
+      }
+      document.addEventListener('DOMContentLoaded', function(){
+        toggleRequired('new-birthyear-known','new-birthday');
+        toggleRequired('edit-birthyear-known','edit-birthday');
+        toggleOccasion('add-occasion-kind','add-occasion-name','add-occasion-date');
+      });
+    })();` }} />
     </main>
   );
 }
+
+
