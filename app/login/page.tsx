@@ -25,14 +25,14 @@ export default function LoginPage() {
               name="email"
               required
               placeholder="you@example.com"
-              className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+              className="input-field"
             />
             <input
               type="password"
               name="password"
               required
               placeholder="Password"
-              className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+              className="input-field"
             />
             <div className="flex items-center justify-between">
               <button type="submit" className="btn-primary px-4 py-2 text-sm">

@@ -46,8 +46,8 @@ export default function ResetForm() {
       {error && <div className="text-sm text-red-600">{error}</div>}
       {status && <div className="text-sm text-green-600">{status}</div>}
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        <input name="password" type="password" required placeholder="New password (min 8 chars)" className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm" />
-        <input name="passwordConfirm" type="password" required placeholder="Confirm password" className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm" />
+        <input name="password" type="password" required placeholder="New password (min 8 chars)" className="input-field" />
+        <input name="passwordConfirm" type="password" required placeholder="Confirm password" className="input-field" />
         <div className="flex items-center justify-between">
           <button type="submit" className="btn-primary px-4 py-2 text-sm">Set password</button>
           <a href="/login" className="text-sm text-neutral-500 hover:underline">Back to login</a>
