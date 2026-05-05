@@ -29,11 +29,9 @@ export default async function NewPersonPage() {
             <input name="name" required className={inputCls} />
           </Field>
           <Field label="Birthday *">
-            <div id="new-birthday-full" className="grid gap-1">
-              <input id="new-birthday" name="birthday" type="date" required className={inputCls} />
-            </div>
-            <div id="new-birthday-monthday" className="hidden grid gap-2 sm:grid-cols-2">
-              <select id="new-birthday-month" name="birthdayMonth" className={inputCls}>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <select name="birthdayMonth" required className={inputCls}>
+                <option value="">Month</option>
                 {[...Array(12)].map((_, index) => {
                   const month = index + 1;
                   return (
@@ -41,7 +39,8 @@ export default async function NewPersonPage() {
                   );
                 })}
               </select>
-              <select id="new-birthday-day" name="birthdayDay" className={inputCls}>
+              <select name="birthdayDay" required className={inputCls}>
+                <option value="">Day</option>
                 {[...Array(31)].map((_, index) => {
                   const day = index + 1;
                   return (
@@ -49,6 +48,14 @@ export default async function NewPersonPage() {
                   );
                 })}
               </select>
+              <div id="new-birthday-year-container">
+                <input
+                  name="birthdayYear"
+                  type="number"
+                  placeholder="Year"
+                  className={inputCls}
+                />
+              </div>
             </div>
           </Field>
           <Field label="Relationship">
@@ -69,7 +76,6 @@ export default async function NewPersonPage() {
               id="new-birthyear-known"
               type="checkbox"
               name="birthYearKnown"
-              defaultChecked
               className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700"
             />
             Birth year known
@@ -138,19 +144,13 @@ export default async function NewPersonPage() {
       </form>
       <script dangerouslySetInnerHTML={{ __html: `(function(){
         var checkbox = document.getElementById('new-birthyear-known');
-        var full = document.getElementById('new-birthday-full');
-        var monthDay = document.getElementById('new-birthday-monthday');
-        var fullInput = document.getElementById('new-birthday');
+        var yearContainer = document.getElementById('new-birthday-year-container');
         function toggle() {
-          if (!checkbox || !full || !monthDay || !fullInput) return;
+          if (!checkbox || !yearContainer) return;
           if (checkbox.checked) {
-            full.classList.remove('hidden');
-            monthDay.classList.add('hidden');
-            fullInput.required = true;
+            yearContainer.classList.remove('hidden');
           } else {
-            full.classList.add('hidden');
-            monthDay.classList.remove('hidden');
-            fullInput.required = false;
+            yearContainer.classList.add('hidden');
           }
         }
         checkbox?.addEventListener('change', toggle);

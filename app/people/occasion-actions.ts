@@ -44,7 +44,7 @@ export async function createOccasion(formData: FormData) {
   if (!date) {
     date = getKnownOccasionDate(kind);
   }
-  if (kind === "custom" && !date) return;
+  if ((kind === "custom" || kind === "anniversary") && !date) return;
 
   if (personId) {
     const [p] = await db.select({ id: people.id }).from(people).where(and(eq(people.id, personId), eq(people.userId, userId))).limit(1);
@@ -80,15 +80,12 @@ export async function updateOccasion(formData: FormData) {
   if (!date) {
     date = getKnownOccasionDate(kind);
   }
-  if (kind === "custom" && !date) return;
+  if ((kind === "custom" || kind === "anniversary") && !date) return;
 
-  const [row] = await db.select({ personId: occasions.personId }).from(occasions).where(eq(occasions.id, id)).limit(1);
   const [row] = await db.select({ personId: occasions.personId, userId: occasions.userId }).from(occasions).where(eq(occasions.id, id)).limit(1);
   if (!row) return;
 
   // verify ownership
-  const [ownerCheck] = await db.select({ id: users.id }).from(users).where(eq(users.id, row.personId ? row.personId : userId)).limit(1);
-  // If occasion is person-scoped, ensure that person belongs to user
   if (row.personId) {
     const [p] = await db.select({ id: people.id }).from(people).where(and(eq(people.id, row.personId), eq(people.userId, userId))).limit(1);
     if (!p) return;
