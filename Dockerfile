@@ -63,6 +63,10 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Standalone mode needs public and static folders inside the standalone directory to serve them
+RUN mkdir -p .next/standalone/public && cp -r public/* .next/standalone/public/ || true
+RUN mkdir -p .next/standalone/.next/static && cp -r .next/static/* .next/standalone/.next/static/ || true
+
 COPY --from=deps-prod /app/node_modules ./node_modules
 
 # Ensure uploads directory exists and is writable by nextjs

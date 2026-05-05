@@ -13,6 +13,14 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-05] DOB refactor, occasion autofill, and Docker standalone fixes
+**By:** Gemini CLI
+**What:**
+- Refactored birthday/DOB input to use separate Day/Month/Year fields, making Year truly optional and removing native date picker constraints.
+- Fixed occasion autofill logic to correctly populate date and name for holidays.
+- Updated `Dockerfile` to correctly handle `public` and `static` assets in standalone mode, fixing 404s for uploaded photos.
+**Why:** User reported DOB still required a year, occasions didn't autofill correctly, and photos were 404ing.
+
 ## [2026-05-05] Phase 6 & Bug Fixes
 **By:** Gemini CLI
 **What:**

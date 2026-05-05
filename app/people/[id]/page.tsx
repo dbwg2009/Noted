@@ -702,11 +702,8 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
           <form action={updatePerson} id="edit-person-form" className="mt-4 grid gap-3 md:grid-cols-2" encType="multipart/form-data">
             <input type="hidden" name="personId" value={person.id} />
             <input name="name" defaultValue={person.name} required className={inputCls} />
-            <div id="edit-birthday-full" className={`${person.birthYearKnown ? "" : "hidden"}`}>
-              <input id="edit-birthday" name="birthday" type="date" defaultValue={person.birthday} required={person.birthYearKnown} className={inputCls} />
-            </div>
-            <div id="edit-birthday-monthday" className={`grid gap-2 sm:grid-cols-2 ${person.birthYearKnown ? "hidden" : ""}`}>
-              <select id="edit-birthday-month" name="birthdayMonth" defaultValue={getBirthdayParts(person.birthday).month} className={inputCls}>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <select name="birthdayMonth" defaultValue={getBirthdayParts(person.birthday).month} required className={inputCls}>
                 {[...Array(12)].map((_, index) => {
                   const month = index + 1;
                   return (
@@ -714,7 +711,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                   );
                 })}
               </select>
-              <select id="edit-birthday-day" name="birthdayDay" defaultValue={getBirthdayParts(person.birthday).day} className={inputCls}>
+              <select name="birthdayDay" defaultValue={getBirthdayParts(person.birthday).day} required className={inputCls}>
                 {[...Array(31)].map((_, index) => {
                   const day = index + 1;
                   return (
@@ -722,6 +719,15 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                   );
                 })}
               </select>
+              <div id="edit-birthday-year-container">
+                <input
+                  name="birthdayYear"
+                  type="number"
+                  defaultValue={person.birthYearKnown ? person.birthday.slice(0, 4) : ""}
+                  placeholder="Year"
+                  className={inputCls}
+                />
+              </div>
             </div>
             <input name="relationship" defaultValue={person.relationship ?? ""} placeholder="Relationship" className={inputCls} />
             <div className="flex flex-col gap-1">
@@ -798,21 +804,15 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
         </form>
       </section>
     <script dangerouslySetInnerHTML={{ __html: `(function(){
-      function toggleBirthday(checkboxId, fullId, monthDayId, dateInputId) {
+      function toggleBirthday(checkboxId, yearContainerId) {
         var checkbox = document.getElementById(checkboxId);
-        var full = document.getElementById(fullId);
-        var monthDay = document.getElementById(monthDayId);
-        var dateInput = document.getElementById(dateInputId);
-        if (!checkbox || !full || !monthDay || !dateInput) return;
+        var yearContainer = document.getElementById(yearContainerId);
+        if (!checkbox || !yearContainer) return;
         function update() {
           if (checkbox.checked) {
-            full.classList.remove('hidden');
-            monthDay.classList.add('hidden');
-            dateInput.required = true;
+            yearContainer.classList.remove('hidden');
           } else {
-            full.classList.add('hidden');
-            monthDay.classList.remove('hidden');
-            dateInput.required = false;
+            yearContainer.classList.add('hidden');
           }
         }
         checkbox.addEventListener('change', update);
@@ -881,7 +881,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
       function buildIsoDate(year, month, day) {
         return year + '-' + pad(month) + '-' + pad(day);
       }
-      function syncHiddenDate(hiddenId, monthId, dayId, year) {
+      function setupSync(hiddenId, monthId, dayId, year) {
         var hidden = document.getElementById(hiddenId);
         var month = document.getElementById(monthId);
         var day = document.getElementById(dayId);
@@ -893,6 +893,17 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
         day.addEventListener('change', update);
         update();
       }
+      function getOccasionLabel(kind) {
+        switch (kind) {
+          case 'christmas': return 'Christmas';
+          case 'mothers_day': return "Mother's Day";
+          case 'fathers_day': return "Father's Day";
+          case 'valentines': return "Valentine's Day";
+          case 'easter': return 'Easter';
+          case 'anniversary': return 'Anniversary';
+          default: return '';
+        }
+      }
       function updateOccasionForm() {
         var kind = document.getElementById('add-occasion-kind');
         var name = document.getElementById('add-occasion-name');
@@ -903,29 +914,38 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
         var dayField = document.getElementById('add-occasion-day');
         var datePreview = document.getElementById('add-occasion-date-preview');
         if (!kind || !name || !dateRow || !dateInput || !dateFields || !monthField || !dayField || !datePreview) return;
+        
+        setupSync('add-occasion-date', 'add-occasion-month', 'add-occasion-day', new Date().getFullYear());
+
         function refresh() {
           if (kind.value === 'custom' || kind.value === 'anniversary') {
             dateRow.classList.remove('hidden');
             dateInput.required = true;
             dateFields.classList.remove('hidden');
-            name.required = false;
             datePreview.classList.add('hidden');
-            syncHiddenDate('add-occasion-date', 'add-occasion-month', 'add-occasion-day', new Date().getFullYear());
+            // Force update of hidden input from current dropdown values
+            dateInput.value = buildIsoDate(new Date().getFullYear(), Number(monthField.value), Number(dayField.value));
+            if (kind.value === 'anniversary' && !name.value) {
+              name.value = 'Anniversary';
+            }
           } else {
             var dateValue = holidayDate(kind.value, new Date());
             dateInput.value = dateValue || '';
             dateInput.required = false;
             dateFields.classList.add('hidden');
-            name.required = false;
             dateRow.classList.remove('hidden');
             datePreview.textContent = dateValue ? dateValue.split('-').slice(1).join('/') : '';
             datePreview.classList.remove('hidden');
+            if (!name.value || getOccasionLabel(name.dataset.lastKind) === name.value) {
+              name.value = getOccasionLabel(kind.value);
+            }
           }
+          name.dataset.lastKind = kind.value;
         }
         kind.addEventListener('change', refresh);
         refresh();
       }
-      function setupEditOccasionDates() {
+      function setupEditOccasions() {
         var allHidden = document.querySelectorAll('[id^="edit-occasion-date-"]');
         allHidden.forEach(function(hidden) {
           var id = hidden.id.split('-').slice(-1)[0];
@@ -933,14 +953,13 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
           var day = document.getElementById('edit-occasion-day-' + id);
           if (!month || !day) return;
           var year = hidden.value ? hidden.value.slice(0, 4) : String(new Date().getFullYear());
-          syncHiddenDate(hidden.id, month.id, day.id, Number(year));
+          setupSync(hidden.id, month.id, day.id, Number(year));
         });
       }
       document.addEventListener('DOMContentLoaded', function(){
-        toggleBirthday('new-birthyear-known','new-birthday-full','new-birthday-monthday','new-birthday');
-        toggleBirthday('edit-birthyear-known','edit-birthday-full','edit-birthday-monthday','edit-birthday');
+        toggleBirthday('edit-birthyear-known','edit-birthday-year-container');
         updateOccasionForm();
-        setupEditOccasionDates();
+        setupEditOccasions();
       });
     })();` }} />
     </main>
