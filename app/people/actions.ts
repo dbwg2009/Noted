@@ -51,172 +51,32 @@ function parseDate(value: FormDataEntryValue | null) {
   return trimmed;
 }
 
-function parseBirthMonthDay(monthValue: FormDataEntryValue | null, dayValue: FormDataEntryValue | null) {
-  if (typeof monthValue !== "string" || typeof dayValue !== "string") return null;
-  const month = monthValue.trim();
-  const day = dayValue.trim();
-  if (!/^\d{1,2}$/.test(month) || !/^\d{1,2}$/.test(day)) return null;
-  const monthNum = Number(month);
-  const dayNum = Number(day);
-  const date = new Date(2000, monthNum - 1, dayNum);
-  if (date.getMonth() + 1 !== monthNum || date.getDate() !== dayNum) return null;
-  return `2000-${monthNum.toString().padStart(2, "0")}-${dayNum.toString().padStart(2, "0")}`;
-}
+function parseBirthday(formData: FormData) {
+  const birthYearKnown = formData.get("birthYearKnown") === "on";
+  const yearStr = String(formData.get("birthdayYear") ?? "").trim();
+  const monthStr = String(formData.get("birthdayMonth") ?? "").trim();
+  const dayStr = String(formData.get("birthdayDay") ?? "").trim();
 
-function parseMoneyToPence(value: FormDataEntryValue | null) {
-  if (typeof value !== "string" || !value.trim()) return null;
-  const numeric = Number.parseFloat(value);
-  if (!Number.isFinite(numeric) || numeric < 0) return null;
-  return Math.round(numeric * 100);
-}
+  if (!monthStr || !dayStr) return null;
 
-function parseTagNames(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") return [];
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const raw of value.split(",")) {
-    const trimmed = raw.trim();
-    const key = trimmed.toLowerCase();
-    if (!trimmed || seen.has(key)) continue;
-    seen.add(key);
-    result.push(trimmed);
-  }
-  return result;
-}
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  const year = birthYearKnown && yearStr ? Number(yearStr) : 2000;
 
-function parseSizes(formData: FormData) {
-  const top = String(formData.get("sizeTop") ?? "").trim();
-  const bottom = String(formData.get("sizeBottom") ?? "").trim();
-  const shoe = String(formData.get("sizeShoe") ?? "").trim();
-  const ring = String(formData.get("sizeRing") ?? "").trim();
-  const sizes = {
-    ...(top ? { top } : {}),
-    ...(bottom ? { bottom } : {}),
-    ...(shoe ? { shoe } : {}),
-    ...(ring ? { ring } : {}),
-  };
-  return Object.keys(sizes).length > 0 ? sizes : null;
-}
+  if (isNaN(month) || isNaN(day) || isNaN(year)) return null;
 
-function parseWishlistStatus(value: FormDataEntryValue | null): (typeof wishlistStatus.enumValues)[number] {
-  const asString = typeof value === "string" ? value : "";
-  if (wishlistStatus.enumValues.includes(asString as (typeof wishlistStatus.enumValues)[number])) {
-    return asString as (typeof wishlistStatus.enumValues)[number];
-  }
-  return "idea";
-}
+  // Validate date
+  const date = new Date(year, month - 1, day);
+  if (date.getMonth() + 1 !== month || date.getDate() !== day) return null;
 
-async function requireCurrentUserId() {
-  const session = await auth();
-  const email = session?.user?.email?.toLowerCase().trim();
-
-  if (!email) {
-    throw new Error("Not authenticated");
-  }
-
-  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
-
-  if (!user) {
-    throw new Error("Authenticated user was not found in the database");
-  }
-
-  return user.id;
-}
-
-async function syncTagsForPerson(userId: string, personId: string, tagValue: FormDataEntryValue | null) {
-  const tagNames = parseTagNames(tagValue);
-
-  await db.delete(personTags).where(eq(personTags.personId, personId));
-  if (tagNames.length === 0) return;
-
-  const existing = await db
-    .select({ id: tags.id, name: tags.name })
-    .from(tags)
-    .where(and(eq(tags.userId, userId), inArray(tags.name, tagNames)));
-
-  const existingByName = new Map(existing.map((row) => [row.name.toLowerCase(), row.id]));
-  const missing = tagNames.filter((name) => !existingByName.has(name.toLowerCase()));
-
-  if (missing.length > 0) {
-    const inserted = await db
-      .insert(tags)
-      .values(missing.map((name) => ({ userId, name })))
-      .returning({ id: tags.id, name: tags.name });
-
-    for (const row of inserted) {
-      existingByName.set(row.name.toLowerCase(), row.id);
-    }
-  }
-
-  const tagIds = tagNames
-    .map((name) => existingByName.get(name.toLowerCase()))
-    .filter((id): id is number => typeof id === "number");
-
-  if (tagIds.length > 0) {
-    await db.insert(personTags).values(tagIds.map((tagId) => ({ personId, tagId })));
-  }
-}
-
-async function personBelongsToUser(personId: string, userId: string) {
-  const [row] = await db
-    .select({ id: people.id })
-    .from(people)
-    .where(and(eq(people.id, personId), eq(people.userId, userId)))
-    .limit(1);
-  return row?.id === personId;
-}
-
-async function wishlistBelongsToUser(wishlistItemId: string, userId: string) {
-  const [row] = await db
-    .select({ id: wishlistItems.id })
-    .from(wishlistItems)
-    .innerJoin(people, eq(wishlistItems.personId, people.id))
-    .where(and(eq(wishlistItems.id, wishlistItemId), eq(people.userId, userId)))
-    .limit(1);
-  return row?.id === wishlistItemId;
-}
-
-async function getWishlistContextForSearch(wishlistItemId: string, userId: string) {
-  const [row] = await db
-    .select({
-      wishlistItemId: wishlistItems.id,
-      wishlistDescription: wishlistItems.description,
-      sourceNote: wishlistItems.sourceNote,
-      personId: people.id,
-      personName: people.name,
-      relationship: people.relationship,
-      budgetMin: people.budgetMin,
-      budgetMax: people.budgetMax,
-      sizes: people.sizes,
-      avoid: people.avoid,
-    })
-    .from(wishlistItems)
-    .innerJoin(people, eq(wishlistItems.personId, people.id))
-    .where(and(eq(wishlistItems.id, wishlistItemId), eq(people.userId, userId)))
-    .limit(1);
-
-  if (!row) return null;
-
-  const tagRows = await db
-    .select({ name: tags.name })
-    .from(personTags)
-    .innerJoin(tags, eq(personTags.tagId, tags.id))
-    .where(and(eq(personTags.personId, row.personId), eq(tags.userId, userId)))
-    .orderBy(asc(tags.name));
-
-  return {
-    ...row,
-    tags: tagRows.map((tag) => tag.name),
-  };
+  return `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
 }
 
 export async function createPerson(formData: FormData) {
   const userId = await requireCurrentUserId();
   const name = String(formData.get("name") ?? "").trim();
   const birthYearKnown = formData.get("birthYearKnown") === "on";
-  const birthday = birthYearKnown
-    ? parseDate(formData.get("birthday"))
-    : parseBirthMonthDay(formData.get("birthdayMonth"), formData.get("birthdayDay"));
+  const birthday = parseBirthday(formData);
 
   if (!name || !birthday) {
     return;
@@ -270,9 +130,7 @@ export async function updatePerson(formData: FormData) {
   const personId = String(formData.get("personId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const birthYearKnown = formData.get("birthYearKnown") === "on";
-  const birthday = birthYearKnown
-    ? parseDate(formData.get("birthday"))
-    : parseBirthMonthDay(formData.get("birthdayMonth"), formData.get("birthdayDay"));
+  const birthday = parseBirthday(formData);
 
   if (!personId || !name || !birthday) {
     return;
@@ -281,12 +139,6 @@ export async function updatePerson(formData: FormData) {
 
   // If the birth year is unknown, normalise to placeholder year 2000 so the DB stores a valid date.
   let storedBirthday = birthday;
-  if (!birthYearKnown) {
-    const parts = birthday.split("-");
-    if (parts.length === 3) {
-      storedBirthday = `2000-${parts[1]}-${parts[2]}`;
-    }
-  }
 
   // Handle photo upload - prefer new file, then fall back to existing URL from form
   const photoFile = formData.get("photoFile") as File | null;
@@ -324,6 +176,7 @@ export async function updatePerson(formData: FormData) {
 
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${personId}`);
 }
 
 export async function deletePerson(formData: FormData) {
@@ -362,6 +215,7 @@ export async function createWishlistItem(formData: FormData) {
 
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${personId}`);
 }
 
 export async function updateWishlistItem(formData: FormData) {
@@ -371,6 +225,12 @@ export async function updateWishlistItem(formData: FormData) {
 
   if (!wishlistItemId || !description) return;
   if (!(await wishlistBelongsToUser(wishlistItemId, userId))) return;
+
+  const [item] = await db
+    .select({ personId: wishlistItems.personId })
+    .from(wishlistItems)
+    .where(eq(wishlistItems.id, wishlistItemId))
+    .limit(1);
 
   await db
     .update(wishlistItems)
@@ -387,6 +247,7 @@ export async function updateWishlistItem(formData: FormData) {
 
   revalidatePath("/people");
   revalidatePath("/");
+  if (item) revalidatePath(`/people/${item.personId}`);
 }
 
 export async function deleteWishlistItem(formData: FormData) {
@@ -396,9 +257,16 @@ export async function deleteWishlistItem(formData: FormData) {
   if (!wishlistItemId) return;
   if (!(await wishlistBelongsToUser(wishlistItemId, userId))) return;
 
+  const [item] = await db
+    .select({ personId: wishlistItems.personId })
+    .from(wishlistItems)
+    .where(eq(wishlistItems.id, wishlistItemId))
+    .limit(1);
+
   await db.delete(wishlistItems).where(eq(wishlistItems.id, wishlistItemId));
   revalidatePath("/people");
   revalidatePath("/");
+  if (item) revalidatePath(`/people/${item.personId}`);
 }
 
 export async function findProductsForWishlistItem(formData: FormData) {
@@ -487,6 +355,7 @@ export async function findProductsForWishlistItem(formData: FormData) {
 
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${context.personId}`);
 }
 
 export async function addManualProduct(formData: FormData) {
@@ -514,6 +383,7 @@ export async function addManualProduct(formData: FormData) {
 
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${context.personId}`);
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -522,7 +392,7 @@ export async function deleteProduct(formData: FormData) {
   if (!productId) return;
 
   const [row] = await db
-    .select({ id: products.id })
+    .select({ id: products.id, personId: products.personId })
     .from(products)
     .innerJoin(people, eq(products.personId, people.id))
     .where(and(eq(products.id, productId), eq(people.userId, userId)))
@@ -533,6 +403,7 @@ export async function deleteProduct(formData: FormData) {
   await db.delete(products).where(eq(products.id, productId));
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${row.personId}`);
 }
 
 
@@ -642,23 +513,25 @@ export async function suggestGifts(formData: FormData) {
 
 async function suggestionBelongsToUser(suggestionId: string, userId: string) {
   const [row] = await db
-    .select({ id: suggestions.id })
+    .select({ id: suggestions.id, personId: suggestions.personId })
     .from(suggestions)
     .innerJoin(people, eq(suggestions.personId, people.id))
     .where(and(eq(suggestions.id, suggestionId), eq(people.userId, userId)))
     .limit(1);
-  return row?.id === suggestionId;
+  return row;
 }
 
 export async function dismissSuggestion(formData: FormData) {
   const userId = await requireCurrentUserId();
   const suggestionId = String(formData.get("suggestionId") ?? "");
   if (!suggestionId) return;
-  if (!(await suggestionBelongsToUser(suggestionId, userId))) return;
+  const row = await suggestionBelongsToUser(suggestionId, userId);
+  if (!row) return;
 
   await db.delete(suggestions).where(eq(suggestions.id, suggestionId));
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${row.personId}`);
 }
 
 export async function promoteSuggestionToWishlist(formData: FormData) {
@@ -690,6 +563,7 @@ export async function promoteSuggestionToWishlist(formData: FormData) {
   await setPeopleFlash(`"${s.title}" added to wishlist.`, "success");
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${s.personId}`);
 }
 
 // --- Phase 3: gift history ---
@@ -726,6 +600,7 @@ export async function markWishlistItemGiven(formData: FormData) {
   await setPeopleFlash(`Marked "${item.description}" as given.`, "success");
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${item.personId}`);
 }
 
 export async function addGiftHistoryEntry(formData: FormData) {

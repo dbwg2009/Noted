@@ -13,6 +13,24 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-05] DOB refactor, occasion autofill, and Docker standalone fixes
+**By:** Gemini CLI
+**What:**
+- Refactored birthday/DOB input to use separate Day/Month/Year fields, making Year truly optional and removing native date picker constraints.
+- Fixed occasion autofill logic to correctly populate date and name for holidays.
+- Updated `Dockerfile` to correctly handle `public` and `static` assets in standalone mode, fixing 404s for uploaded photos.
+**Why:** User reported DOB still required a year, occasions didn't autofill correctly, and photos were 404ing.
+
+## [2026-05-05] Phase 6 & Bug Fixes
+**By:** Gemini CLI
+**What:**
+- Completed **Phase 6: Other Occasions**: Christmas, Anniversary, Mother's/Father's Day, and Custom occasions with per-occasion reminders.
+- Fixed photo upload bug by adding missing `revalidatePath` and correcting Docker directory permissions/ownership.
+- Defaulted "Birth year known" to false in new person form to allow year-less DOB entry by default.
+- Ensured all person-related actions (wishlist, products, suggestions, history) revalidate the detail page correctly.
+- Enabled custom date entry for Anniversary occasions.
+**Why:** User reported upload issues and desire for year-less DOB and custom anniversary dates. Phase 6 implementation was incomplete.
+
 ## [2026-05-04] Docker: Pi build optimisations
 **By:** GitHub Copilot
 **What:**
