@@ -919,23 +919,24 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
 
         function refresh() {
           if (kind.value === 'custom' || kind.value === 'anniversary') {
-            dateRow.classList.remove('hidden');
-            dateInput.required = true;
-            dateFields.classList.remove('hidden');
-            datePreview.classList.add('hidden');
-            // Force update of hidden input from current dropdown values
+            dateRow.style.display = 'grid';
+            dateFields.style.display = 'grid';
+            datePreview.style.display = 'none';
+            
+            // Sync hidden date immediately
             dateInput.value = buildIsoDate(new Date().getFullYear(), Number(monthField.value), Number(dayField.value));
+            
             if (kind.value === 'anniversary' && !name.value) {
               name.value = 'Anniversary';
             }
           } else {
             var dateValue = holidayDate(kind.value, new Date());
             dateInput.value = dateValue || '';
-            dateInput.required = false;
-            dateFields.classList.add('hidden');
-            dateRow.classList.remove('hidden');
-            datePreview.textContent = dateValue ? dateValue.split('-').slice(1).join('/') : '';
-            datePreview.classList.remove('hidden');
+            dateFields.style.display = 'none';
+            dateRow.style.display = 'grid';
+            datePreview.textContent = dateValue ? dateValue.split('-').slice(1).reverse().join('/') : '';
+            datePreview.style.display = 'block';
+            
             if (!name.value || getOccasionLabel(name.dataset.lastKind) === name.value) {
               name.value = getOccasionLabel(kind.value);
             }
