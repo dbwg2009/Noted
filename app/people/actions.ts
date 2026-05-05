@@ -324,6 +324,7 @@ export async function updatePerson(formData: FormData) {
 
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${personId}`);
 }
 
 export async function deletePerson(formData: FormData) {
@@ -362,6 +363,7 @@ export async function createWishlistItem(formData: FormData) {
 
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${personId}`);
 }
 
 export async function updateWishlistItem(formData: FormData) {
@@ -371,6 +373,12 @@ export async function updateWishlistItem(formData: FormData) {
 
   if (!wishlistItemId || !description) return;
   if (!(await wishlistBelongsToUser(wishlistItemId, userId))) return;
+
+  const [item] = await db
+    .select({ personId: wishlistItems.personId })
+    .from(wishlistItems)
+    .where(eq(wishlistItems.id, wishlistItemId))
+    .limit(1);
 
   await db
     .update(wishlistItems)
@@ -387,6 +395,7 @@ export async function updateWishlistItem(formData: FormData) {
 
   revalidatePath("/people");
   revalidatePath("/");
+  if (item) revalidatePath(`/people/${item.personId}`);
 }
 
 export async function deleteWishlistItem(formData: FormData) {
@@ -396,9 +405,16 @@ export async function deleteWishlistItem(formData: FormData) {
   if (!wishlistItemId) return;
   if (!(await wishlistBelongsToUser(wishlistItemId, userId))) return;
 
+  const [item] = await db
+    .select({ personId: wishlistItems.personId })
+    .from(wishlistItems)
+    .where(eq(wishlistItems.id, wishlistItemId))
+    .limit(1);
+
   await db.delete(wishlistItems).where(eq(wishlistItems.id, wishlistItemId));
   revalidatePath("/people");
   revalidatePath("/");
+  if (item) revalidatePath(`/people/${item.personId}`);
 }
 
 export async function findProductsForWishlistItem(formData: FormData) {
@@ -487,6 +503,7 @@ export async function findProductsForWishlistItem(formData: FormData) {
 
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${context.personId}`);
 }
 
 export async function addManualProduct(formData: FormData) {
@@ -514,6 +531,7 @@ export async function addManualProduct(formData: FormData) {
 
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${context.personId}`);
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -522,7 +540,7 @@ export async function deleteProduct(formData: FormData) {
   if (!productId) return;
 
   const [row] = await db
-    .select({ id: products.id })
+    .select({ id: products.id, personId: products.personId })
     .from(products)
     .innerJoin(people, eq(products.personId, people.id))
     .where(and(eq(products.id, productId), eq(people.userId, userId)))
@@ -533,6 +551,7 @@ export async function deleteProduct(formData: FormData) {
   await db.delete(products).where(eq(products.id, productId));
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${row.personId}`);
 }
 
 
@@ -642,23 +661,25 @@ export async function suggestGifts(formData: FormData) {
 
 async function suggestionBelongsToUser(suggestionId: string, userId: string) {
   const [row] = await db
-    .select({ id: suggestions.id })
+    .select({ id: suggestions.id, personId: suggestions.personId })
     .from(suggestions)
     .innerJoin(people, eq(suggestions.personId, people.id))
     .where(and(eq(suggestions.id, suggestionId), eq(people.userId, userId)))
     .limit(1);
-  return row?.id === suggestionId;
+  return row;
 }
 
 export async function dismissSuggestion(formData: FormData) {
   const userId = await requireCurrentUserId();
   const suggestionId = String(formData.get("suggestionId") ?? "");
   if (!suggestionId) return;
-  if (!(await suggestionBelongsToUser(suggestionId, userId))) return;
+  const row = await suggestionBelongsToUser(suggestionId, userId);
+  if (!row) return;
 
   await db.delete(suggestions).where(eq(suggestions.id, suggestionId));
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${row.personId}`);
 }
 
 export async function promoteSuggestionToWishlist(formData: FormData) {
@@ -690,6 +711,7 @@ export async function promoteSuggestionToWishlist(formData: FormData) {
   await setPeopleFlash(`"${s.title}" added to wishlist.`, "success");
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${s.personId}`);
 }
 
 // --- Phase 3: gift history ---
@@ -726,6 +748,7 @@ export async function markWishlistItemGiven(formData: FormData) {
   await setPeopleFlash(`Marked "${item.description}" as given.`, "success");
   revalidatePath("/people");
   revalidatePath("/");
+  revalidatePath(`/people/${item.personId}`);
 }
 
 export async function addGiftHistoryEntry(formData: FormData) {

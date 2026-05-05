@@ -13,6 +13,16 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-05] Phase 6 & Bug Fixes
+**By:** Gemini CLI
+**What:**
+- Completed **Phase 6: Other Occasions**: Christmas, Anniversary, Mother's/Father's Day, and Custom occasions with per-occasion reminders.
+- Fixed photo upload bug by adding missing `revalidatePath` and correcting Docker directory permissions/ownership.
+- Defaulted "Birth year known" to false in new person form to allow year-less DOB entry by default.
+- Ensured all person-related actions (wishlist, products, suggestions, history) revalidate the detail page correctly.
+- Enabled custom date entry for Anniversary occasions.
+**Why:** User reported upload issues and desire for year-less DOB and custom anniversary dates. Phase 6 implementation was incomplete.
+
 ## [2026-05-04] Docker: Pi build optimisations
 **By:** GitHub Copilot
 **What:**

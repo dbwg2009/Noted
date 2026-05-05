@@ -65,6 +65,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=deps-prod /app/node_modules ./node_modules
 
+# Ensure uploads directory exists and is writable by nextjs
+RUN mkdir -p public/uploads && chown -R nextjs:nodejs public/uploads
+
 USER nextjs
 EXPOSE 3000
 CMD ["node", "server.js"]

@@ -22,8 +22,11 @@ export async function savePhoto(file: File): Promise<string> {
   
   try {
     await mkdir(uploadDir, { recursive: true });
-  } catch (err) {
-    // Ignore if directory already exists
+  } catch (err: any) {
+    if (err.code !== "EEXIST") {
+      console.error("Failed to create upload directory:", err);
+      throw err;
+    }
   }
 
   const ext = file.name.split(".").pop() || "jpg";
