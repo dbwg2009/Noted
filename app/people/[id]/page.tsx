@@ -805,141 +805,131 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
       </section>
     <script dangerouslySetInnerHTML={{ __html: `(function(){
       function pad(n) { return n.toString().padStart(2, '0'); }
-      function formatDate(year, month, day) { return year + '-' + pad(month) + '-' + pad(day); }
+      function formatDate(y, m, d) { return y + '-' + pad(m) + '-' + pad(d); }
       
-      function easter(year) {
-        var a = year % 19, b = Math.floor(year / 100), c = year % 100;
-        var d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+      function easter(y) {
+        var a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4;
+        var f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
         var h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
         var l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
         var month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
         return { month: month, day: day };
       }
 
-      function nthWeekdayOfMonth(year, month, weekday, n) {
-        var firstDay = new Date(year, month - 1, 1).getDay();
-        var offset = (weekday - firstDay + 7) % 7;
+      function nthDay(y, m, wd, n) {
+        var f = new Date(y, m - 1, 1).getDay();
+        var offset = (wd - f + 7) % 7;
         return 1 + offset + 7 * (n - 1);
       }
 
-      function getHolidayDate(kind, today) {
-        var year = today.getFullYear();
-        var date;
-        switch (kind) {
-          case 'christmas': date = new Date(year, 11, 25); break;
-          case 'valentines': date = new Date(year, 1, 14); break;
-          case 'mothers_day': {
-            var e = easter(year);
-            date = new Date(year, e.month - 1, e.day);
-            date.setDate(date.getDate() - 21);
-            break;
-          }
-          case 'fathers_day': date = new Date(year, 5, nthWeekdayOfMonth(year, 6, 0, 3)); break;
-          case 'easter': {
-            var e = easter(year);
-            date = new Date(year, e.month - 1, e.day);
-            break;
-          }
-          default: return null;
+      function getHoliday(kind, today) {
+        var y = today.getFullYear();
+        var d;
+        if (kind === 'christmas') d = new Date(y, 11, 25);
+        else if (kind === 'valentines') d = new Date(y, 1, 14);
+        else if (kind === 'mothers_day') {
+          var e = easter(y); d = new Date(y, e.month - 1, e.day);
+          d.setDate(d.getDate() - 21);
         }
-        if (date < today) {
-          // If the holiday has passed this year, get next year's date
-          return getHolidayDate(kind, new Date(year + 1, 0, 1));
+        else if (kind === 'fathers_day') d = new Date(y, 5, nthDay(y, 6, 0, 3));
+        else if (kind === 'easter') {
+          var e = easter(y); d = new Date(y, e.month - 1, e.day);
         }
-        return formatDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+        else return null;
+
+        if (d < today) return getHoliday(kind, new Date(y + 1, 0, 1));
+        return formatDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
       }
 
-      function getOccasionLabel(kind) {
-        switch (kind) {
-          case 'christmas': return 'Christmas';
-          case 'mothers_day': return "Mother's Day";
-          case 'fathers_day': return "Father's Day";
-          case 'valentines': return "Valentine's Day";
-          case 'easter': return 'Easter';
-          case 'anniversary': return 'Anniversary';
-          default: return '';
-        }
+      function getLabel(k) {
+        var m = { christmas:'Christmas', mothers_day:"Mother's Day", fathers_day:"Father's Day", valentines:"Valentine's Day", easter:'Easter', anniversary:'Anniversary' };
+        return m[k] || '';
       }
 
-      function initOccasionForm() {
-        var kind = document.getElementById('add-occasion-kind');
-        var name = document.getElementById('add-occasion-name');
-        var dateHidden = document.getElementById('add-occasion-date');
-        var dateFields = document.getElementById('add-occasion-date-fields');
-        var monthSelect = document.getElementById('add-occasion-month');
-        var daySelect = document.getElementById('add-occasion-day');
-        var datePreview = document.getElementById('add-occasion-date-preview');
-        if (!kind || !name || !dateHidden || !dateFields || !monthSelect || !daySelect || !datePreview) return;
+      function setup() {
+        var k = document.getElementById('add-occasion-kind');
+        var n = document.getElementById('add-occasion-name');
+        var h = document.getElementById('add-occasion-date');
+        var f = document.getElementById('add-occasion-date-fields');
+        var ms = document.getElementById('add-occasion-month');
+        var ds = document.getElementById('add-occasion-day');
+        var p = document.getElementById('add-occasion-date-preview');
+        var form = document.getElementById('add-occasion-form');
+        if (!k || !h || !f || !ms || !ds || !p || !form) return;
 
-        function updateSync() {
-          if (kind.value === 'custom' || kind.value === 'anniversary') {
-            dateHidden.value = formatDate(new Date().getFullYear(), Number(monthSelect.value), Number(daySelect.value));
+        function sync() {
+          if (k.value === 'custom' || k.value === 'anniversary') {
+            h.value = formatDate(new Date().getFullYear(), Number(ms.value), Number(ds.value));
           }
         }
 
         function refresh() {
-          var isCustom = kind.value === 'custom' || kind.value === 'anniversary';
-          dateFields.style.display = isCustom ? 'grid' : 'none';
-          datePreview.style.display = isCustom ? 'none' : 'block';
+          var isC = (k.value === 'custom' || k.value === 'anniversary');
+          f.style.setProperty('display', isC ? 'grid' : 'none', 'important');
+          p.style.setProperty('display', isC ? 'none' : 'block', 'important');
           
-          if (isCustom) {
-            updateSync();
-            if (kind.value === 'anniversary' && !name.value) name.value = 'Anniversary';
+          if (isC) {
+            sync();
+            if (k.value === 'anniversary' && !n.value) n.value = 'Anniversary';
           } else {
-            var holiday = getHolidayDate(kind.value, new Date());
-            dateHidden.value = holiday || '';
-            if (holiday) {
-              var p = holiday.split('-');
-              datePreview.textContent = p[2] + '/' + p[1];
+            var hol = getHoliday(k.value, new Date());
+            h.value = hol || '';
+            if (hol) {
+              var parts = hol.split('-');
+              p.textContent = parts[2] + '/' + parts[1];
             }
-            if (!name.value || getOccasionLabel(name.dataset.lastKind) === name.value) {
-              name.value = getOccasionLabel(kind.value);
-            }
+            if (!n.value || getLabel(n.dataset.lastK) === n.value) n.value = getLabel(k.value);
           }
-          name.dataset.lastKind = kind.value;
+          n.dataset.lastK = k.value;
         }
 
-        kind.addEventListener('change', refresh);
-        monthSelect.addEventListener('change', updateSync);
-        daySelect.addEventListener('change', updateSync);
+        k.addEventListener('change', refresh);
+        ms.addEventListener('change', sync);
+        ds.addEventListener('change', sync);
+        form.addEventListener('submit', sync);
         refresh();
+        
+        // Final fallback to hide dropdowns for holidays
+        setTimeout(refresh, 0);
       }
 
-      function initEditOccasions() {
-        document.querySelectorAll('[id^="edit-occasion-date-"]').forEach(function(hidden) {
-          var id = hidden.id.replace('edit-occasion-date-', '');
-          var month = document.getElementById('edit-occasion-month-' + id);
-          var day = document.getElementById('edit-occasion-day-' + id);
-          if (!month || !day) return;
-          function sync() {
-            var year = hidden.value ? hidden.value.split('-')[0] : new Date().getFullYear();
-            hidden.value = formatDate(Number(year), Number(month.value), Number(day.value));
+      function setupEdits() {
+        document.querySelectorAll('[id^="edit-occasion-date-"]').forEach(function(h) {
+          var id = h.id.replace('edit-occasion-date-', '');
+          var m = document.getElementById('edit-occasion-month-' + id);
+          var d = document.getElementById('edit-occasion-day-' + id);
+          if (!m || !d) return;
+          function s() {
+            var y = h.value ? h.value.split('-')[0] : new Date().getFullYear();
+            h.value = formatDate(Number(y), Number(m.value), Number(d.value));
           }
-          month.addEventListener('change', sync);
-          day.addEventListener('change', sync);
+          m.addEventListener('change', s);
+          d.addEventListener('change', s);
         });
       }
 
-      function initBirthdayToggle() {
-        var checkbox = document.getElementById('edit-birthyear-known');
-        var container = document.getElementById('edit-birthday-year-container');
-        if (!checkbox || !container) return;
-        function update() { container.style.display = checkbox.checked ? 'block' : 'none'; }
-        checkbox.addEventListener('change', update);
-        update();
+      function setupBirthday() {
+        var c = document.getElementById('edit-birthyear-known');
+        var t = document.getElementById('edit-birthday-year-container');
+        if (!c || !t) return;
+        function u() { t.style.display = c.checked ? 'block' : 'none'; }
+        c.addEventListener('change', u);
+        u();
       }
 
-      function initAll() {
-        initBirthdayToggle();
-        initOccasionForm();
-        initEditOccasions();
+      function init() {
+        setupBirthday();
+        setup();
+        setupEdits();
       }
 
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAll);
+        document.addEventListener('DOMContentLoaded', init);
       } else {
-        initAll();
+        init();
       }
+      // Re-run for Next.js navigation
+      window.setTimeout(init, 100);
     })();` }} />
     </main>
   );
