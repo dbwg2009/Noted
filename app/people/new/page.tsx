@@ -69,7 +69,6 @@ export default async function NewPersonPage() {
               id="new-birthyear-known"
               type="checkbox"
               name="birthYearKnown"
-              defaultChecked
               className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700"
             />
             Birth year known

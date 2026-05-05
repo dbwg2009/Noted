@@ -429,7 +429,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                       <input type="hidden" name="occasionId" value={o.id} />
                       <input type="hidden" name="kind" value={o.kind} />
                       <input name="name" defaultValue={o.name ?? ""} className={inputCls} />
-                      {o.kind === "custom" ? (
+                      {o.kind === "custom" || o.kind === "anniversary" ? (
                         <>
                           <input
                             id={`edit-occasion-date-${o.id}`}
@@ -904,7 +904,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
         var datePreview = document.getElementById('add-occasion-date-preview');
         if (!kind || !name || !dateRow || !dateInput || !dateFields || !monthField || !dayField || !datePreview) return;
         function refresh() {
-          if (kind.value === 'custom') {
+          if (kind.value === 'custom' || kind.value === 'anniversary') {
             dateRow.classList.remove('hidden');
             dateInput.required = true;
             dateFields.classList.remove('hidden');

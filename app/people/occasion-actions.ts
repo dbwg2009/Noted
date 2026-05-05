@@ -44,7 +44,7 @@ export async function createOccasion(formData: FormData) {
   if (!date) {
     date = getKnownOccasionDate(kind);
   }
-  if (kind === "custom" && !date) return;
+  if ((kind === "custom" || kind === "anniversary") && !date) return;
 
   if (personId) {
     const [p] = await db.select({ id: people.id }).from(people).where(and(eq(people.id, personId), eq(people.userId, userId))).limit(1);
@@ -80,7 +80,7 @@ export async function updateOccasion(formData: FormData) {
   if (!date) {
     date = getKnownOccasionDate(kind);
   }
-  if (kind === "custom" && !date) return;
+  if ((kind === "custom" || kind === "anniversary") && !date) return;
 
   const [row] = await db.select({ personId: occasions.personId, userId: occasions.userId }).from(occasions).where(eq(occasions.id, id)).limit(1);
   if (!row) return;
