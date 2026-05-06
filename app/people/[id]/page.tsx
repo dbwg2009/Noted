@@ -8,6 +8,7 @@ import { formatBirthday, poundsFromPence } from "@/lib/birthdays";
 import { getOccasionsForPerson } from "@/lib/occasions-queries";
 import { formatOccasionDate } from "@/lib/occasions";
 import { createOccasion, updateOccasion, deleteOccasion } from "../occasion-actions";
+import { AddOccasionForm } from "./add-occasion-form";
 import {
   addGiftHistoryEntry,
   addManualProduct,
@@ -371,46 +372,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
           </span>
         </div>
 
-        <details className="card mt-3">
-          <summary className="cursor-pointer text-sm font-medium">+ Add occasion</summary>
-          <form id="add-occasion-form" action={createOccasion} className="mt-4 grid gap-3 md:grid-cols-2">
-            <input type="hidden" name="personId" value={person.id} />
-            <select id="add-occasion-kind" name="kind" required className={inputCls}>
-              <option value="anniversary">Anniversary</option>
-              <option value="christmas">Christmas</option>
-              <option value="mothers_day">Mother's Day</option>
-              <option value="fathers_day">Father's Day</option>
-              <option value="valentines">Valentine's Day</option>
-              <option value="easter">Easter</option>
-              <option value="custom">Custom</option>
-            </select>
-            <input id="add-occasion-name" name="name" placeholder="Name (optional for holidays)" className={inputCls} />
-            <input id="add-occasion-date" name="date" type="hidden" />
-            <div id="add-occasion-date-row" className="grid gap-1">
-              <div id="add-occasion-date-fields" className="grid gap-2 sm:grid-cols-2">
-                <select id="add-occasion-month" name="occasionMonth" className={inputCls}>
-                  {[...Array(12)].map((_, index) => {
-                    const month = index + 1;
-                    return (
-                      <option key={month} value={month.toString().padStart(2, "0")}>{month}</option>
-                    );
-                  })}
-                </select>
-                <select id="add-occasion-day" name="occasionDay" className={inputCls}>
-                  {[...Array(31)].map((_, index) => {
-                    const day = index + 1;
-                    return (
-                      <option key={day} value={day.toString().padStart(2, "0")}>{day}</option>
-                    );
-                  })}
-                </select>
-              </div>
-              <p id="add-occasion-date-preview" className="hidden text-sm text-neutral-500 dark:text-neutral-400"></p>
-            </div>
-            <textarea name="notes" rows={2} placeholder="Notes" className={`${inputCls} md:col-span-2`} />
-            <button type="submit" className="btn-primary w-fit px-4 py-2 text-sm md:col-span-2">Add occasion</button>
-          </form>
-        </details>
+        <AddOccasionForm personId={person.id} createAction={createOccasion} />
 
         {occasions.length === 0 ? (
           <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">No occasions yet for this person.</p>

@@ -13,6 +13,19 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-06] Rebuild add occasion form as dedicated client component
+**By:** Claude Code
+**What:**
+- Created `app/people/[id]/add-occasion-form.tsx` — a standalone client component with a clean inner `Form` component that remounts fresh on every open (via incrementing key).
+- `Form` is separate from `AddOccasionForm` so it is completely unmounted (not just hidden) when closed; no stale state possible.
+- Name field is uncontrolled with `autoComplete="new-password"`.
+- Month/day selects (`defaultValue` only) appear only when the selected kind needs a date; all other kinds skip the date section entirely.
+- Month names displayed in full (January…December) rather than numbers.
+- Wired into `page.tsx` — the page was previously rendering its own inline `<details>` form which was the actual source of all the previous bugs (the client component that was being edited before was never rendered).
+**Why:** Previous `<details>`-based form in page.tsx was a server component with no React state, making autofill and conditional field logic impossible to control reliably.
+
+---
+
 ## [2026-05-06] Redesign add occasion form from scratch
 **By:** Claude Code
 **What:**
