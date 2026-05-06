@@ -4,8 +4,8 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { auth } from "@/lib/auth";
 import { db } from "@/db";
+import { requireCurrentUserId } from "@/lib/people-queries";
 import {
   aiRequestLog,
   giftHistory,
@@ -70,6 +70,136 @@ function parseBirthday(formData: FormData) {
   if (date.getMonth() + 1 !== month || date.getDate() !== day) return null;
 
   return `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+}
+
+function parseMoneyToPence(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const numeric = Number.parseFloat(value);
+  if (!Number.isFinite(numeric) || numeric < 0) return null;
+  return Math.round(numeric * 100);
+}
+
+function parseTagNames(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") return [];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const raw of value.split(",")) {
+    const trimmed = raw.trim();
+    const key = trimmed.toLowerCase();
+    if (!trimmed || seen.has(key)) continue;
+    seen.add(key);
+    result.push(trimmed);
+  }
+  return result;
+}
+
+function parseSizes(formData: FormData) {
+  const top = String(formData.get("sizeTop") ?? "").trim();
+  const bottom = String(formData.get("sizeBottom") ?? "").trim();
+  const shoe = String(formData.get("sizeShoe") ?? "").trim();
+  const ring = String(formData.get("sizeRing") ?? "").trim();
+  const sizes = {
+    ...(top ? { top } : {}),
+    ...(bottom ? { bottom } : {}),
+    ...(shoe ? { shoe } : {}),
+    ...(ring ? { ring } : {}),
+  };
+  return Object.keys(sizes).length > 0 ? sizes : null;
+}
+
+function parseWishlistStatus(value: FormDataEntryValue | null): (typeof wishlistStatus.enumValues)[number] {
+  const asString = typeof value === "string" ? value : "";
+  if (wishlistStatus.enumValues.includes(asString as (typeof wishlistStatus.enumValues)[number])) {
+    return asString as (typeof wishlistStatus.enumValues)[number];
+  }
+  return "idea";
+}
+
+async function syncTagsForPerson(userId: string, personId: string, tagValue: FormDataEntryValue | null) {
+  const tagNames = parseTagNames(tagValue);
+
+  await db.delete(personTags).where(eq(personTags.personId, personId));
+  if (tagNames.length === 0) return;
+
+  const existing = await db
+    .select({ id: tags.id, name: tags.name })
+    .from(tags)
+    .where(and(eq(tags.userId, userId), inArray(tags.name, tagNames)));
+
+  const existingByName = new Map(existing.map((row) => [row.name.toLowerCase(), row.id]));
+  const missing = tagNames.filter((name) => !existingByName.has(name.toLowerCase()));
+
+  if (missing.length > 0) {
+    const inserted = await db
+      .insert(tags)
+      .values(missing.map((name) => ({ userId, name })))
+      .returning({ id: tags.id, name: tags.name });
+
+    for (const row of inserted) {
+      existingByName.set(row.name.toLowerCase(), row.id);
+    }
+  }
+
+  const tagIds = tagNames
+    .map((name) => existingByName.get(name.toLowerCase()))
+    .filter((id): id is number => typeof id === "number");
+
+  if (tagIds.length > 0) {
+    await db.insert(personTags).values(tagIds.map((tagId) => ({ personId, tagId })));
+  }
+}
+
+async function personBelongsToUser(personId: string, userId: string) {
+  const [row] = await db
+    .select({ id: people.id })
+    .from(people)
+    .where(and(eq(people.id, personId), eq(people.userId, userId)))
+    .limit(1);
+  return row?.id === personId;
+}
+
+async function wishlistBelongsToUser(wishlistItemId: string, userId: string) {
+  const [row] = await db
+    .select({ id: wishlistItems.id })
+    .from(wishlistItems)
+    .innerJoin(people, eq(wishlistItems.personId, people.id))
+    .where(and(eq(wishlistItems.id, wishlistItemId), eq(people.userId, userId)))
+    .limit(1);
+  return row?.id === wishlistItemId;
+}
+
+async function getWishlistContextForSearch(wishlistItemId: string, userId: string) {
+  const [row] = await db
+    .select({
+      wishlistItemId: wishlistItems.id,
+      wishlistDescription: wishlistItems.description,
+      sourceNote: wishlistItems.sourceNote,
+      personId: people.id,
+      personName: people.name,
+      relationship: people.relationship,
+      budgetMin: people.budgetMin,
+      budgetMax: people.budgetMax,
+      sizes: people.sizes,
+      avoid: people.avoid,
+    })
+    .from(wishlistItems)
+    .innerJoin(people, eq(wishlistItems.personId, people.id))
+    .where(and(eq(wishlistItems.id, wishlistItemId), eq(people.userId, userId)))
+    .limit(1);
+
+  if (!row) return null;
+
+  const tagRows = await db
+    .select({ name: tags.name })
+    .from(personTags)
+    .innerJoin(tags, eq(personTags.tagId, tags.id))
+    .where(and(eq(personTags.personId, row.personId), eq(tags.userId, userId)))
+    .orderBy(asc(tags.name));
+
+  return {
+    ...row,
+    tags: tagRows.map((tag) => tag.name),
+  };
 }
 
 export async function createPerson(formData: FormData) {
