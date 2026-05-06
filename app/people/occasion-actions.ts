@@ -22,11 +22,13 @@ async function requireCurrentUserId() {
   return user.id;
 }
 
-function parseDate(value: FormDataEntryValue | null) {
-  if (typeof value !== "string" || !value) return null;
-  const trimmed = value.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
-  return trimmed;
+function buildDateFromParts(formData: FormData): string | null {
+  const month = String(formData.get("occasionMonth") ?? "").trim().padStart(2, "0");
+  const day = String(formData.get("occasionDay") ?? "").trim().padStart(2, "0");
+  if (!month || !day) return null;
+  const year = new Date().getFullYear();
+  const candidate = `${year}-${month}-${day}`;
+  return /^\d{4}-\d{2}-\d{2}$/.test(candidate) ? candidate : null;
 }
 
 export async function createOccasion(formData: FormData) {
@@ -34,14 +36,17 @@ export async function createOccasion(formData: FormData) {
   const personId = String(formData.get("personId") ?? "").trim() || null;
   const kind = String(formData.get("kind") ?? "").trim().toLowerCase();
   let name = String(formData.get("name") ?? "").trim() || null;
-  let date = parseDate(formData.get("date"));
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
   if (!kind) return;
   if (!name && kind !== "custom") {
     name = getKnownOccasionLabel(kind);
   }
-  if (!date) {
+
+  let date: string | null = null;
+  if (kind === "custom" || kind === "anniversary") {
+    date = buildDateFromParts(formData);
+  } else {
     date = getKnownOccasionDate(kind);
   }
   if ((kind === "custom" || kind === "anniversary") && !date) return;
@@ -70,14 +75,17 @@ export async function updateOccasion(formData: FormData) {
   const id = Number(formData.get("occasionId") ?? 0);
   const kind = String(formData.get("kind") ?? "").trim().toLowerCase();
   let name = String(formData.get("name") ?? "").trim() || null;
-  let date = parseDate(formData.get("date"));
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
   if (!id || !kind) return;
   if (!name && kind !== "custom") {
     name = getKnownOccasionLabel(kind);
   }
-  if (!date) {
+
+  let date: string | null = null;
+  if (kind === "custom" || kind === "anniversary") {
+    date = buildDateFromParts(formData);
+  } else {
     date = getKnownOccasionDate(kind);
   }
   if ((kind === "custom" || kind === "anniversary") && !date) return;
