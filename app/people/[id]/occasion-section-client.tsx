@@ -70,9 +70,10 @@ export function OccasionSectionClient({
             <option value="easter">Easter</option>
             <option value="custom">Custom</option>
           </select>
-          <input 
-            name="name" 
-            placeholder="Name (optional for holidays)" 
+          <input
+            name="name"
+            placeholder="Name (optional for holidays)"
+            autoComplete="off"
             className={inputCls}
             value={addName}
             onChange={(e) => setAddName(e.target.value)}
