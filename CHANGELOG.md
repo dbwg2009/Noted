@@ -13,6 +13,17 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-06] Occasion form cleanup and router cache fix
+**By:** Claude Code
+**What:**
+- Simplified `occasion-actions.ts`: import `requireCurrentUserId` from shared `lib/people-queries`, DRY up date-building with `buildOccasionDate` helper, fix dead guard in `buildDateFromParts` (check raw values before padStart), remove redundant `revalidatePath("/people")`.
+- Simplified `occasion-section-client.tsx`: extract `MONTH_OPTIONS`/`DAY_OPTIONS` as module constants shared between add and edit forms, remove redundant `addOpen` state (formKey alone drives reset), name input uncontrolled to prevent autofill persistence.
+- Added `staleTimes: { dynamic: 0 }` to `next.config.mjs` so navigating away and back re-fetches the page, fixing stale occasion date dropdowns showing 1/1 for preset holidays.
+- Removed stale test video from `issue/` directory.
+**Why:** Simplify review found duplicated utilities, a dead guard, and premature state. Router cache was causing server-rendered page state to be served stale on client-side navigation.
+
+---
+
 ## [2026-05-05] DOB refactor, occasion autofill, and Docker standalone fixes
 **By:** Gemini CLI
 **What:**
