@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { formatOccasionDate } from '@/lib/occasions';
 
 type Occasion = {
@@ -22,17 +22,6 @@ type OccasionSectionClientProps = {
 const inputCls =
   "rounded-md border border-neutral-300 bg-white px-3 py-2 text-base dark:border-neutral-700 dark:bg-neutral-900";
 
-function getOccasionLabel(kind: string) {
-  switch (kind) {
-    case 'christmas': return 'Christmas';
-    case 'mothers_day': return "Mother's Day";
-    case 'fathers_day': return "Father's Day";
-    case 'valentines': return "Valentine's Day";
-    case 'easter': return 'Easter';
-    case 'anniversary': return 'Anniversary';
-    default: return '';
-  }
-}
 
 export function OccasionSectionClient({
   personId,
@@ -46,18 +35,6 @@ export function OccasionSectionClient({
   const [addName, setAddName] = useState('');
   const [addMonth, setAddMonth] = useState('01');
   const [addDay, setAddDay] = useState('01');
-  const [lastKind, setLastKind] = useState('');
-
-  useEffect(() => {
-    if (addKind === 'custom') {
-      setLastKind(addKind);
-      return;
-    }
-    if (!addName || getOccasionLabel(lastKind) === addName) {
-      setAddName(getOccasionLabel(addKind));
-    }
-    setLastKind(addKind);
-  }, [addKind]);
 
   const isAddCustom = addKind === 'custom' || addKind === 'anniversary';
 
