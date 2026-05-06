@@ -13,6 +13,15 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-06] Fix missing helpers in people actions + login error handling (issues #44, #34)
+**By:** Claude Code
+**What:**
+- `app/people/actions.ts`: Restored seven helper functions that were accidentally removed in a prior refactor (`parseMoneyToPence`, `parseTagNames`, `parseSizes`, `parseWishlistStatus`, `syncTagsForPerson`, `personBelongsToUser`, `wishlistBelongsToUser`, `getWishlistContextForSearch`). Also replaced the dead `import { auth }` with the correct `import { requireCurrentUserId } from "@/lib/people-queries"`.
+- `app/login/page.tsx`: Wrapped the credentials `signIn()` call in try/catch to catch `AuthError`. On `CredentialsSignin`, redirects to `/login?error=CredentialsSignin` and shows a user-friendly "Incorrect email or password." message instead of a generic server error page.
+**Why:** Issue #44 — runtime `ReferenceError: requireCurrentUserId is not defined` broke all person create/edit actions on the Pi. Issue #34 — Auth.js v5 throws `CredentialsSignin` (not returns null) on bad credentials; without a catch it surfaced as an unhandled 500.
+
+---
+
 ## [2026-05-06] Rebuild add occasion form as dedicated client component
 **By:** Claude Code
 **What:**
