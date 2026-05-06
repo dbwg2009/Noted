@@ -22,6 +22,8 @@ type OccasionSectionClientProps = {
 const inputCls =
   "rounded-md border border-neutral-300 bg-white px-3 py-2 text-base dark:border-neutral-700 dark:bg-neutral-900";
 
+const MONTH_OPTIONS = [...Array(12)].map((_, i) => ({ value: (i + 1).toString().padStart(2, "0"), label: i + 1 }));
+const DAY_OPTIONS = [...Array(31)].map((_, i) => ({ value: (i + 1).toString().padStart(2, "0"), label: i + 1 }));
 
 export function OccasionSectionClient({
   personId,
@@ -30,13 +32,21 @@ export function OccasionSectionClient({
   updateAction,
   deleteAction,
 }: OccasionSectionClientProps) {
-  const [addOpen, setAddOpen] = useState(false);
   const [addFormKey, setAddFormKey] = useState(0);
   const [addKind, setAddKind] = useState('anniversary');
   const [addMonth, setAddMonth] = useState('01');
   const [addDay, setAddDay] = useState('01');
 
   const isAddCustom = addKind === 'custom' || addKind === 'anniversary';
+
+  function handleOpen(e: React.SyntheticEvent<HTMLDetailsElement>) {
+    if ((e.currentTarget as HTMLDetailsElement).open) {
+      setAddFormKey(k => k + 1);
+      setAddKind('anniversary');
+      setAddMonth('01');
+      setAddDay('01');
+    }
+  }
 
   return (
     <section className="mt-10">
@@ -47,20 +57,7 @@ export function OccasionSectionClient({
         </span>
       </div>
 
-      <details
-        className="card mt-3"
-        open={addOpen}
-        onToggle={(e) => {
-          const open = (e.currentTarget as HTMLDetailsElement).open;
-          if (open) {
-            setAddFormKey(k => k + 1);
-            setAddKind('anniversary');
-            setAddMonth('01');
-            setAddDay('01');
-          }
-          setAddOpen(open);
-        }}
-      >
+      <details className="card mt-3" onToggle={handleOpen}>
         <summary className="cursor-pointer text-sm font-medium">+ Add occasion</summary>
         <form key={addFormKey} action={createAction} autoComplete="off" className="mt-4 grid gap-3 md:grid-cols-2">
           <input type="hidden" name="personId" value={personId} />
@@ -79,37 +76,14 @@ export function OccasionSectionClient({
             <option value="easter">Easter</option>
             <option value="custom">Custom</option>
           </select>
-          <input
-            name="name"
-            placeholder="Name (optional for holidays)"
-            autoComplete="off"
-            className={inputCls}
-          />
+          <input name="name" placeholder="Name (optional for holidays)" autoComplete="off" className={inputCls} />
           {isAddCustom && (
             <div className="grid gap-2 sm:grid-cols-2">
-              <select
-                name="occasionMonth"
-                className={inputCls}
-                value={addMonth}
-                onChange={(e) => setAddMonth(e.target.value)}
-              >
-                {[...Array(12)].map((_, index) => {
-                  const month = index + 1;
-                  const val = month.toString().padStart(2, "0");
-                  return <option key={val} value={val}>{month}</option>;
-                })}
+              <select name="occasionMonth" className={inputCls} value={addMonth} onChange={(e) => setAddMonth(e.target.value)}>
+                {MONTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
-              <select
-                name="occasionDay"
-                className={inputCls}
-                value={addDay}
-                onChange={(e) => setAddDay(e.target.value)}
-              >
-                {[...Array(31)].map((_, index) => {
-                  const day = index + 1;
-                  const val = day.toString().padStart(2, "0");
-                  return <option key={val} value={val}>{day}</option>;
-                })}
+              <select name="occasionDay" className={inputCls} value={addDay} onChange={(e) => setAddDay(e.target.value)}>
+                {DAY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
           )}
@@ -123,12 +97,7 @@ export function OccasionSectionClient({
       ) : (
         <ul className="mt-4 grid gap-2 sm:grid-cols-2">
           {initialOccasions.map((o) => (
-            <OccasionItem 
-              key={o.id} 
-              occasion={o} 
-              updateAction={updateAction}
-              deleteAction={deleteAction}
-            />
+            <OccasionItem key={o.id} occasion={o} updateAction={updateAction} deleteAction={deleteAction} />
           ))}
         </ul>
       )}
@@ -136,14 +105,13 @@ export function OccasionSectionClient({
   );
 }
 
-function OccasionItem({ occasion: o, updateAction, deleteAction }: { 
-  occasion: Occasion; 
+function OccasionItem({ occasion: o, updateAction, deleteAction }: {
+  occasion: Occasion;
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
 }) {
   const [editMonth, setEditMonth] = useState(o.date?.slice(5, 7) ?? '01');
   const [editDay, setEditDay] = useState(o.date?.slice(8, 10) ?? '01');
-
   const isCustom = o.kind === 'custom' || o.kind === 'anniversary';
 
   return (
@@ -161,29 +129,11 @@ function OccasionItem({ occasion: o, updateAction, deleteAction }: {
             <input name="name" defaultValue={o.name ?? ""} className={inputCls} />
             {isCustom ? (
               <div className="grid gap-2 sm:grid-cols-2">
-                <select
-                  name="occasionMonth"
-                  value={editMonth}
-                  onChange={(e) => setEditMonth(e.target.value)}
-                  className={inputCls}
-                >
-                  {[...Array(12)].map((_, index) => {
-                    const month = index + 1;
-                    const val = month.toString().padStart(2, "0");
-                    return <option key={val} value={val}>{month}</option>;
-                  })}
+                <select name="occasionMonth" value={editMonth} onChange={(e) => setEditMonth(e.target.value)} className={inputCls}>
+                  {MONTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
-                <select
-                  name="occasionDay"
-                  value={editDay}
-                  onChange={(e) => setEditDay(e.target.value)}
-                  className={inputCls}
-                >
-                  {[...Array(31)].map((_, index) => {
-                    const day = index + 1;
-                    const val = day.toString().padStart(2, "0");
-                    return <option key={val} value={val}>{day}</option>;
-                  })}
+                <select name="occasionDay" value={editDay} onChange={(e) => setEditDay(e.target.value)} className={inputCls}>
+                  {DAY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             ) : (
