@@ -5,9 +5,10 @@ import { auth } from "@/lib/auth";
 import { getPersonDetail, requireCurrentUserId } from "@/lib/people-queries";
 import { Avatar, CountdownBadge, StatusPill, TagChip } from "@/components/badges";
 import { formatBirthday, poundsFromPence } from "@/lib/birthdays";
-import { getOccasionsForPerson } from "@/lib/occasions-queries";
-import { formatOccasionDate } from "@/lib/occasions";
+import { getOccasionsForPerson, getSiteWideOccasionsForPerson } from "@/lib/occasions-queries";
+import { formatOccasionDate, getKnownOccasionLabel } from "@/lib/occasions";
 import { createOccasion, updateOccasion, deleteOccasion } from "../occasion-actions";
+import { excludePersonFromOccasion, includePersonInOccasion } from "@/app/settings/occasion-actions";
 import { AddOccasionForm } from "./add-occasion-form";
 import {
   addGiftHistoryEntry,
@@ -59,7 +60,10 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
   const person = await getPersonDetail(id, userId);
   if (!person) notFound();
 
-  const occasions = await getOccasionsForPerson(id);
+  const [occasions, siteWideOccasions] = await Promise.all([
+    getOccasionsForPerson(id),
+    getSiteWideOccasionsForPerson(userId, id),
+  ]);
 
   const flashRaw = (await cookies()).get("people_flash")?.value;
   let flash: { message: string; tone: "success" | "warning" | "error" } | null = null;
@@ -368,14 +372,55 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
         <div className="flex items-end justify-between">
           <h2 className="text-lg font-semibold">Occasions</h2>
           <span className="text-xs text-neutral-500 dark:text-neutral-400">
-            {occasions.length} {occasions.length === 1 ? "occasion" : "occasions"}
+            {occasions.length + siteWideOccasions.length} {occasions.length + siteWideOccasions.length === 1 ? "occasion" : "occasions"}
           </span>
         </div>
+
+        {/* Site-wide occasions */}
+        {siteWideOccasions.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">Site-wide</p>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {siteWideOccasions.map((o) => (
+                <li key={o.id} className={`card flex items-start justify-between gap-3 ${o.excluded ? "opacity-50" : ""}`}>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold">{o.name ?? getKnownOccasionLabel(o.kind)}</p>
+                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">Site-wide</span>
+                      {o.excluded && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">Excluded</span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">{formatOccasionDate(o.date, false, o.kind)}</p>
+                  </div>
+                  <form action={o.excluded ? includePersonInOccasion : excludePersonFromOccasion} className="shrink-0">
+                    <input type="hidden" name="occasionId" value={o.id} />
+                    <input type="hidden" name="personId" value={person.id} />
+                    <input type="hidden" name="_referrer" value={`/people/${person.id}`} />
+                    <button
+                      type="submit"
+                      className={`rounded px-2 py-1 text-[11px] font-medium border ${
+                        o.excluded
+                          ? "border-brand-blue-300 text-brand-blue-600 hover:bg-brand-blue-50 dark:border-brand-blue-700 dark:text-brand-blue-400"
+                          : "border-neutral-200 text-neutral-500 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-400"
+                      }`}
+                    >
+                      {o.excluded ? "Include" : "Exclude"}
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-neutral-400">
+              Manage site-wide occasions in <a href="/settings" className="underline hover:text-neutral-600">Settings</a>.
+            </p>
+          </div>
+        )}
 
         <AddOccasionForm personId={person.id} createAction={createOccasion} />
 
         {occasions.length === 0 ? (
-          <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">No occasions yet for this person.</p>
+          <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">No personal occasions yet for this person.</p>
         ) : (
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {occasions.map((o) => (
@@ -591,7 +636,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
           <div>
             <h2 className="text-lg font-semibold">Reminders</h2>
             <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-              Email digests sent to <span className="font-medium">{session.user.email}</span> ahead of {person.name}&rsquo;s birthday.
+              Email digests sent to <span className="font-medium">{session.user.email}</span> ahead of {person.name}&rsquo;s birthday and any occasions.
             </p>
           </div>
           <form action={sendTestReminder}>
