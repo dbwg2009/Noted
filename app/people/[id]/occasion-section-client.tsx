@@ -24,6 +24,7 @@ const inputCls =
 
 const MONTH_OPTIONS = [...Array(12)].map((_, i) => ({ value: (i + 1).toString().padStart(2, "0"), label: i + 1 }));
 const DAY_OPTIONS = [...Array(31)].map((_, i) => ({ value: (i + 1).toString().padStart(2, "0"), label: i + 1 }));
+const NEEDS_DATE = new Set(['custom', 'anniversary']);
 
 export function OccasionSectionClient({
   personId,
@@ -32,20 +33,12 @@ export function OccasionSectionClient({
   updateAction,
   deleteAction,
 }: OccasionSectionClientProps) {
-  const [addFormKey, setAddFormKey] = useState(0);
-  const [addKind, setAddKind] = useState('anniversary');
-  const [addMonth, setAddMonth] = useState('01');
-  const [addDay, setAddDay] = useState('01');
+  const [showAdd, setShowAdd] = useState(false);
+  const [addKey, setAddKey] = useState(0);
 
-  const isAddCustom = addKind === 'custom' || addKind === 'anniversary';
-
-  function handleOpen(e: React.SyntheticEvent<HTMLDetailsElement>) {
-    if ((e.currentTarget as HTMLDetailsElement).open) {
-      setAddFormKey(k => k + 1);
-      setAddKind('anniversary');
-      setAddMonth('01');
-      setAddDay('01');
-    }
+  function openAdd() {
+    setAddKey(k => k + 1);
+    setShowAdd(true);
   }
 
   return (
@@ -57,40 +50,22 @@ export function OccasionSectionClient({
         </span>
       </div>
 
-      <details className="card mt-3" onToggle={handleOpen}>
-        <summary className="cursor-pointer text-sm font-medium">+ Add occasion</summary>
-        <form key={addFormKey} action={createAction} autoComplete="off" className="mt-4 grid gap-3 md:grid-cols-2">
-          <input type="hidden" name="personId" value={personId} />
-          <select
-            name="kind"
-            required
-            className={inputCls}
-            value={addKind}
-            onChange={(e) => setAddKind(e.target.value)}
-          >
-            <option value="anniversary">Anniversary</option>
-            <option value="christmas">Christmas</option>
-            <option value="mothers_day">Mother's Day</option>
-            <option value="fathers_day">Father's Day</option>
-            <option value="valentines">Valentine's Day</option>
-            <option value="easter">Easter</option>
-            <option value="custom">Custom</option>
-          </select>
-          <input name="name" placeholder="Name (optional for holidays)" autoComplete="off" className={inputCls} />
-          {isAddCustom && (
-            <div className="grid gap-2 sm:grid-cols-2">
-              <select name="occasionMonth" className={inputCls} value={addMonth} onChange={(e) => setAddMonth(e.target.value)}>
-                {MONTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-              <select name="occasionDay" className={inputCls} value={addDay} onChange={(e) => setAddDay(e.target.value)}>
-                {DAY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-          )}
-          <textarea name="notes" rows={2} placeholder="Notes" className={`${inputCls} md:col-span-2`} />
-          <button type="submit" className="btn-primary w-fit px-4 py-2 text-sm md:col-span-2">Add occasion</button>
-        </form>
-      </details>
+      {showAdd ? (
+        <AddOccasionForm
+          key={addKey}
+          personId={personId}
+          createAction={createAction}
+          onCancel={() => setShowAdd(false)}
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={openAdd}
+          className="card mt-3 w-full cursor-pointer text-left text-sm font-medium text-neutral-700 dark:text-neutral-300"
+        >
+          + Add occasion
+        </button>
+      )}
 
       {initialOccasions.length === 0 ? (
         <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">No occasions yet for this person.</p>
@@ -102,6 +77,78 @@ export function OccasionSectionClient({
         </ul>
       )}
     </section>
+  );
+}
+
+function AddOccasionForm({
+  personId,
+  createAction,
+  onCancel,
+}: {
+  personId: string;
+  createAction: (formData: FormData) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [kind, setKind] = useState('anniversary');
+
+  return (
+    <div className="card mt-3">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-sm font-medium">New occasion</span>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-xs text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+        >
+          Cancel
+        </button>
+      </div>
+      <form action={createAction} className="grid gap-3 md:grid-cols-2">
+        <input type="hidden" name="personId" value={personId} />
+        <select
+          name="kind"
+          required
+          className={inputCls}
+          value={kind}
+          onChange={e => setKind(e.target.value)}
+        >
+          <option value="anniversary">Anniversary</option>
+          <option value="christmas">Christmas</option>
+          <option value="mothers_day">Mother&apos;s Day</option>
+          <option value="fathers_day">Father&apos;s Day</option>
+          <option value="valentines">Valentine&apos;s Day</option>
+          <option value="easter">Easter</option>
+          <option value="custom">Custom</option>
+        </select>
+        <input
+          name="name"
+          placeholder="Name (optional)"
+          autoComplete="new-password"
+          className={inputCls}
+        />
+        {NEEDS_DATE.has(kind) && (
+          <div className="grid gap-2 sm:grid-cols-2">
+            <select name="occasionMonth" defaultValue="01" className={inputCls}>
+              {MONTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <select name="occasionDay" defaultValue="01" className={inputCls}>
+              {DAY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        )}
+        <textarea name="notes" rows={2} placeholder="Notes" autoComplete="off" className={`${inputCls} md:col-span-2`} />
+        <div className="flex gap-2 md:col-span-2">
+          <button type="submit" className="btn-primary px-4 py-2 text-sm">Add occasion</button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-md border border-neutral-300 px-4 py-2 text-sm dark:border-neutral-700"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -126,14 +173,14 @@ function OccasionItem({ occasion: o, updateAction, deleteAction }: {
           <form action={updateAction} className="mt-2 grid gap-2">
             <input type="hidden" name="occasionId" value={o.id} />
             <input type="hidden" name="kind" value={o.kind} />
-            <input name="name" defaultValue={o.name ?? ""} className={inputCls} />
+            <input name="name" defaultValue={o.name ?? ""} autoComplete="new-password" className={inputCls} />
             {isCustom ? (
               <div className="grid gap-2 sm:grid-cols-2">
                 <select name="occasionMonth" value={editMonth} onChange={(e) => setEditMonth(e.target.value)} className={inputCls}>
-                  {MONTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {MONTH_OPTIONS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                 </select>
                 <select name="occasionDay" value={editDay} onChange={(e) => setEditDay(e.target.value)} className={inputCls}>
-                  {DAY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {DAY_OPTIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                 </select>
               </div>
             ) : (
@@ -141,7 +188,7 @@ function OccasionItem({ occasion: o, updateAction, deleteAction }: {
                 {formatOccasionDate(o.date, false, o.kind)}
               </div>
             )}
-            <textarea name="notes" rows={2} defaultValue={o.notes ?? ""} className={inputCls} />
+            <textarea name="notes" rows={2} defaultValue={o.notes ?? ""} autoComplete="off" className={inputCls} />
             <div className="flex gap-2">
               <button type="submit" className="btn-primary px-3 py-1.5 text-sm">Save</button>
             </div>

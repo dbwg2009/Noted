@@ -13,6 +13,19 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-06] Redesign add occasion form from scratch
+**By:** Claude Code
+**What:**
+- Replaced `<details>` toggle with a button + conditional render for the add form.
+- Extracted `AddOccasionForm` as a standalone component — it is fully unmounted when hidden and gets a new `key` each time it opens, guaranteeing a fresh DOM with no leftover state or autofill.
+- Name input uses `autoComplete="new-password"` (the reliable cross-browser autofill bypass) and is uncontrolled.
+- Month/day selects use `defaultValue` rather than controlled `value`, so they reset naturally on remount.
+- Added Cancel buttons at top and bottom of the form.
+- Applied `autoComplete="new-password"` to the edit form name input as well.
+**Why:** Multiple iterations of the previous `<details>`-based approach could not reliably prevent Chrome autofill or stale React state. Ground-up rewrite removes all those failure modes.
+
+---
+
 ## [2026-05-06] Occasion form cleanup and router cache fix
 **By:** Claude Code
 **What:**
