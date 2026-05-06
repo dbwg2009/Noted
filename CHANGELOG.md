@@ -13,6 +13,20 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-06] Site-wide occasions with per-person exclusions
+**By:** Claude Code
+**What:**
+- `db/schema.ts`: Made `reminders.personId` nullable (site-wide occasion reminders have no single person). Added new `occasionPersonExclusions` table (composite PK: occasionId + personId) to track per-person exclusions from site-wide occasions.
+- `lib/occasions-queries.ts`: Added `listSiteWideOccasions`, `getExcludedPeopleForOccasion`, `getSiteWideOccasionsForPerson` query helpers.
+- `app/settings/occasion-actions.ts` (new): Server actions for creating, updating, and deleting site-wide occasions, plus `excludePersonFromOccasion` / `includePersonInOccasion` toggle actions.
+- `lib/reminders.ts`: Added `ensureSiteWideOccasionReminders` (creates 30/14/7/1-day reminders with personId = NULL), `findDueSiteWideReminders` (site-wide equivalent of `findDueReminders`), updated `runDailyReminders` to send one email per due site-wide occasion listing all included people.
+- `lib/notify/email.ts`: Added `sendSiteWideOccasionEmail` — "Christmas is in 30 days. You've got to get gifts for: • Person 1, • Person 2…" format.
+- `app/settings/page.tsx`: Added "Site-wide occasions" section — add/edit/delete occasions; per-person pill buttons to toggle exclusions.
+- `app/people/[id]/page.tsx`: Shows site-wide occasions above personal ones, each with a "Site-wide" badge and an Exclude/Include toggle.
+**Why:** User request — occasions like Christmas and Easter apply to everyone; one reminder email listing all relevant people is more useful than one email per person.
+
+---
+
 ## [2026-05-06] Fix missing helpers in people actions + login error handling (issues #44, #34)
 **By:** Claude Code
 **What:**
