@@ -50,10 +50,19 @@ export function OccasionSectionClient({
       <details
         className="card mt-3"
         open={addOpen}
-        onToggle={(e) => setAddOpen((e.currentTarget as HTMLDetailsElement).open)}
+        onToggle={(e) => {
+          const open = (e.currentTarget as HTMLDetailsElement).open;
+          if (open) {
+            setAddKind('anniversary');
+            setAddName('');
+            setAddMonth('01');
+            setAddDay('01');
+          }
+          setAddOpen(open);
+        }}
       >
         <summary className="cursor-pointer text-sm font-medium">+ Add occasion</summary>
-        <form action={createAction} className="mt-4 grid gap-3 md:grid-cols-2">
+        <form action={createAction} autoComplete="off" className="mt-4 grid gap-3 md:grid-cols-2">
           <input type="hidden" name="personId" value={personId} />
           <select 
             name="kind" 
