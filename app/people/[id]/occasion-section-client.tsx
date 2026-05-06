@@ -31,8 +31,8 @@ export function OccasionSectionClient({
   deleteAction,
 }: OccasionSectionClientProps) {
   const [addOpen, setAddOpen] = useState(false);
+  const [addFormKey, setAddFormKey] = useState(0);
   const [addKind, setAddKind] = useState('anniversary');
-  const [addName, setAddName] = useState('');
   const [addMonth, setAddMonth] = useState('01');
   const [addDay, setAddDay] = useState('01');
 
@@ -53,8 +53,8 @@ export function OccasionSectionClient({
         onToggle={(e) => {
           const open = (e.currentTarget as HTMLDetailsElement).open;
           if (open) {
+            setAddFormKey(k => k + 1);
             setAddKind('anniversary');
-            setAddName('');
             setAddMonth('01');
             setAddDay('01');
           }
@@ -62,11 +62,11 @@ export function OccasionSectionClient({
         }}
       >
         <summary className="cursor-pointer text-sm font-medium">+ Add occasion</summary>
-        <form action={createAction} autoComplete="off" className="mt-4 grid gap-3 md:grid-cols-2">
+        <form key={addFormKey} action={createAction} autoComplete="off" className="mt-4 grid gap-3 md:grid-cols-2">
           <input type="hidden" name="personId" value={personId} />
-          <select 
-            name="kind" 
-            required 
+          <select
+            name="kind"
+            required
             className={inputCls}
             value={addKind}
             onChange={(e) => setAddKind(e.target.value)}
@@ -84,8 +84,6 @@ export function OccasionSectionClient({
             placeholder="Name (optional for holidays)"
             autoComplete="off"
             className={inputCls}
-            value={addName}
-            onChange={(e) => setAddName(e.target.value)}
           />
           {isAddCustom && (
             <div className="grid gap-2 sm:grid-cols-2">
