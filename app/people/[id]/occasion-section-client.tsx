@@ -41,21 +41,20 @@ export function OccasionSectionClient({
   updateAction,
   deleteAction,
 }: OccasionSectionClientProps) {
+  const [addOpen, setAddOpen] = useState(false);
   const [addKind, setAddKind] = useState('anniversary');
   const [addName, setAddName] = useState('');
   const [addMonth, setAddMonth] = useState('01');
   const [addDay, setAddDay] = useState('01');
   const [lastKind, setLastKind] = useState('');
 
-  // When kind changes, auto-populate name and set initial date if needed
   useEffect(() => {
-    const isCustom = addKind === 'custom' || addKind === 'anniversary';
-    if (!isCustom) {
-      if (!addName || getOccasionLabel(lastKind) === addName) {
-        setAddName(getOccasionLabel(addKind));
-      }
-    } else if (addKind === 'anniversary' && !addName) {
-      setAddName('Anniversary');
+    if (addKind === 'custom') {
+      setLastKind(addKind);
+      return;
+    }
+    if (!addName || getOccasionLabel(lastKind) === addName) {
+      setAddName(getOccasionLabel(addKind));
     }
     setLastKind(addKind);
   }, [addKind]);
@@ -71,7 +70,11 @@ export function OccasionSectionClient({
         </span>
       </div>
 
-      <details className="card mt-3">
+      <details
+        className="card mt-3"
+        open={addOpen}
+        onToggle={(e) => setAddOpen((e.currentTarget as HTMLDetailsElement).open)}
+      >
         <summary className="cursor-pointer text-sm font-medium">+ Add occasion</summary>
         <form action={createAction} className="mt-4 grid gap-3 md:grid-cols-2">
           <input type="hidden" name="personId" value={personId} />
