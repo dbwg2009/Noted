@@ -4,7 +4,7 @@
 ## Why
 <!-- Why is this change needed? Link the related issue. -->
 
-Closes #
+Related to #
 
 ## Changes
 <!-- Key files changed and what was done. -->
