@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Remove esbuild binaries from Docker runner image (CVE-2024-24790, CVE-2025-68121)
+**By:** Claude Code
+**What:** Added `rm -rf node_modules/@esbuild` to the runner stage in `Dockerfile`, merged into the existing `mkdir/chown` RUN step.
+**Why:** Next.js standalone file tracing includes `@esbuild/linux-x64` (esbuild v0.19.12, compiled with Go 1.20.12) in the runner image even though esbuild is a build-time tool not needed at runtime. The binary carries two CRITICAL Go stdlib CVEs: CVE-2024-24790 (`net/netip`) and CVE-2025-68121 (`crypto/tls`). Stripping the `@esbuild` namespace from the final image removes the attack surface. Fixes #90.
+
+---
+
 ## [2026-05-07] Add app health check endpoint and Docker healthcheck
 **By:** Claude Code
 **What:** Added `app/api/health/route.ts` (`GET /api/health` → `{ status: "ok" }`). Added `healthcheck` to the `app` service in `docker-compose.yml` (curl `/api/health`, 10s interval, 30s start period, 6 retries). Upgraded `cron` depends_on condition from `service_started` to `service_healthy`. Removed the manual readiness poll loop from the `cron` entrypoint — now redundant.
