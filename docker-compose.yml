@@ -17,7 +17,7 @@ services:
       retries: 10
 
   migrate:
-    image: dbwg2009/noted-migrator:${IMAGE_TAG:-latest}
+    image: ghcr.io/dbwg2009/noted-migrator:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -32,7 +32,7 @@ services:
       DATABASE_URL: "postgres://birthday:birthday@db:5432/birthday"
 
   app:
-    image: dbwg2009/noted:${IMAGE_TAG:-latest}
+    image: ghcr.io/dbwg2009/noted:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
