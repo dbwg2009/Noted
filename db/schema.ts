@@ -34,16 +34,6 @@ export const aiRequestKind = pgEnum("ai_request_kind", [
   "reminder_shortlist",
 ]);
 
-export const occasionKind = pgEnum("occasion_kind", [
-  "anniversary",
-  "christmas",
-  "mothers_day",
-  "fathers_day",
-  "valentines",
-  "easter",
-  "custom",
-]);
-
 // --- Auth.js tables (Drizzle adapter shape) ---
 
 export const users = pgTable("users", {
@@ -275,6 +265,7 @@ export const occasionPersonExclusions = pgTable(
   (t) => [primaryKey({ columns: [t.occasionId, t.personId] })],
 );
 
+
 export const reminders = pgTable(
   "reminders",
   {
@@ -287,6 +278,28 @@ export const reminders = pgTable(
     lastSentForYear: integer("last_sent_for_year"),
   },
   (t) => [index("reminders_person_id_idx").on(t.personId), index("reminders_occasion_id_idx").on(t.occasionId)],
+);
+
+export const wishlistShares = pgTable(
+  "wishlist_shares",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    personId: uuid("person_id")
+      .notNull()
+      .unique()
+      .references(() => people.id, { onDelete: "cascade" }),
+    token: uuid("token").notNull().unique().defaultRandom(),
+    expiresAt: timestamp("expires_at"),
+    showPrices: boolean("show_prices").notNull().default(true),
+    showIdea: boolean("show_idea").notNull().default(true),
+    showResearching: boolean("show_researching").notNull().default(true),
+    showChosen: boolean("show_chosen").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("wishlist_shares_person_id_idx").on(t.personId),
+    index("wishlist_shares_token_idx").on(t.token),
+  ],
 );
 
 export const aiRequestLog = pgTable(
@@ -315,6 +328,7 @@ export const peopleRelations = relations(people, ({ many, one }) => ({
   tags: many(personTags),
   suggestions: many(suggestions),
   user: one(users, { fields: [people.userId], references: [users.id] }),
+  wishlistShare: one(wishlistShares, { fields: [people.id], references: [wishlistShares.personId] }),
 }));
 
 export const wishlistItemsRelations = relations(wishlistItems, ({ many, one }) => ({

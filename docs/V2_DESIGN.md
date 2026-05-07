@@ -9,7 +9,7 @@ V1 shipped all planned phases (0–5). V2 adds five new phases that extend the a
 | Phase | Name | Status | GitHub Milestone |
 |-------|------|--------|-----------------|
 | 6 | Other Occasions | **done** | Phase 6: Other Occasions |
-| 7 | Shareable Wishlists | **pending** | Phase 7: Shareable Wishlists |
+| 7 | Shareable Wishlists | **done** | Phase 7: Shareable Wishlists |
 | 8 | Group Gifts | **pending** | Phase 8: Group Gifts |
 | 9 | Price-Drop Alerts | **pending** | Phase 9: Price-Drop Alerts |
 | 10 | Browser Extension | **pending** | Phase 10: Browser Extension |

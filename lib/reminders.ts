@@ -82,45 +82,7 @@ export async function findDueReminders(today = new Date()): Promise<DueReminder[
       ),
     );
 
-  // Also include reminders that target an occasion (joined via reminders.occasionId).
-  const occasionRows = await db
-    .select({
-      reminderId: reminders.id,
-      leadDays: reminders.leadDays,
-      personId: people.id,
-      personName: people.name,
-      relationship: people.relationship,
-      birthday: occasions.date,
-      birthYearKnown: sql`false`,
-      budgetMin: people.budgetMin,
-      budgetMax: people.budgetMax,
-      userId: users.id,
-      userEmail: users.email,
-    })
-    .from(reminders)
-    .innerJoin(occasions, eq(reminders.occasionId, occasions.id))
-    .innerJoin(people, eq(occasions.personId, people.id))
-    .innerJoin(users, eq(people.userId, users.id))
-    .where(
-      and(
-        or(
-          // recurring yearly occasions: match month/day
-          and(
-            sql`EXTRACT(MONTH FROM ${occasions.date}) = EXTRACT(MONTH FROM ${todayIso}::date + ${reminders.leadDays})`,
-            sql`EXTRACT(DAY FROM ${occasions.date}) = EXTRACT(DAY FROM ${todayIso}::date + ${reminders.leadDays})`,
-            sql`${occasions.yearRecurring} = true`,
-          ),
-          // one-off occasion: exact date match
-          and(sql`${occasions.yearRecurring} = false`, sql`${occasions.date} = ${todayIso}::date + ${reminders.leadDays}`),
-        ),
-        or(
-          isNull(reminders.lastSentForYear),
-          sql`${reminders.lastSentForYear} != EXTRACT(YEAR FROM ${todayIso}::date + ${reminders.leadDays})::int`,
-        ),
-      ),
-    );
-
-  const baseMapped = rows.map((row) => {
+  return rows.map((row) => {
     const target = addDays(todayStart, row.leadDays);
     return {
       reminderId: row.reminderId,
@@ -138,39 +100,6 @@ export async function findDueReminders(today = new Date()): Promise<DueReminder[
       userEmail: row.userEmail,
     };
   });
-
-  // Merge occasionRows as well
-  const occasionMapped = occasionRows
-    .map((row) => {
-      if (!row.birthday) return null;
-      const parsed = new Date(row.birthday);
-      // compute next occurrence year for recurring occasions
-      let candidateYear = todayStart.getFullYear();
-      let target = new Date(candidateYear, parsed.getMonth(), parsed.getDate());
-      if (target < todayStart) {
-        target = new Date(candidateYear + 1, parsed.getMonth(), parsed.getDate());
-      }
-      const lead = row.leadDays;
-      const sendOn = addDays(target, -lead);
-      return {
-        reminderId: row.reminderId,
-        personId: row.personId,
-        personName: row.personName,
-        relationship: row.relationship,
-        birthday: formatIso(parsed),
-        birthYearKnown: false,
-        budgetMin: row.budgetMin,
-        budgetMax: row.budgetMax,
-        leadDays: row.leadDays,
-        targetDate: formatIso(target),
-        targetYear: target.getFullYear(),
-        userId: row.userId,
-        userEmail: row.userEmail,
-      } as DueReminder;
-    })
-    .filter((v): v is DueReminder => v !== null);
-
-  return [...baseMapped, ...occasionMapped];
 }
 
 export type ShortlistEntry = {
@@ -373,41 +302,16 @@ export async function runDailyReminders(today = new Date()) {
 }
 
 export async function ensureDefaultReminders(personId: string) {
-  // Ensure person-level reminders (birthday)
   const existing = await db
     .select({ leadDays: reminders.leadDays })
     .from(reminders)
-    .where(and(eq(reminders.personId, personId), isNull(reminders.occasionId)));
+    .where(eq(reminders.personId, personId));
   const have = new Set(existing.map((r) => r.leadDays));
   const missing = DEFAULT_LEAD_DAYS.filter((d) => !have.has(d));
-  if (missing.length > 0) {
-    await db.insert(reminders).values(
-      missing.map((leadDays) => ({ personId, leadDays, channel: "email" })),
-    );
-  }
-
-  // Ensure occasion-linked reminders for any occasions belonging to the person
-  const personOccasions = await db
-    .select({ id: occasions.id, date: occasions.date })
-    .from(occasions)
-    .where(eq(occasions.personId, personId));
-  if (personOccasions.length === 0) return;
-
-  for (const occ of personOccasions) {
-    // Skip occasions without a configured date — we can't schedule reminders for them yet.
-    if (!occ.date) continue;
-
-    const existingOcc = await db
-      .select({ leadDays: reminders.leadDays })
-      .from(reminders)
-      .where(and(eq(reminders.personId, personId), eq(reminders.occasionId, occ.id)));
-    const haveOcc = new Set(existingOcc.map((r) => r.leadDays));
-    const missingOcc = DEFAULT_LEAD_DAYS.filter((d) => !haveOcc.has(d));
-    if (missingOcc.length === 0) continue;
-    await db.insert(reminders).values(
-      missingOcc.map((leadDays) => ({ personId, occasionId: occ.id, leadDays, channel: "email" })),
-    );
-  }
+  if (missing.length === 0) return;
+  await db.insert(reminders).values(
+    missing.map((leadDays) => ({ personId, leadDays, channel: "email" })),
+  );
 }
 
 export async function ensureSiteWideOccasionReminders(occasionId: number) {
