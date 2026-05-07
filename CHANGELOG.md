@@ -13,6 +13,20 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Phase 7 — Shareable Wishlists
+**By:** Claude Code
+**What:** Implemented Phase 7 (Shareable Wishlists) in full.
+- `db/schema.ts`: new `wishlist_shares` table — one row per person, UUID token, boolean visibility flags (`showIdea`, `showResearching`, `showChosen`, `showPrices`), optional `expiresAt`.
+- `lib/share-queries.ts`: `getShareByToken`, `getWishlistShareForPerson`, `getSharePageData` (fetches share + person + filtered wishlist items + their products for the public page).
+- `app/people/share-actions.ts`: `upsertWishlistShare` (create-or-update), `regenerateWishlistShare` (delete + re-insert with new UUID token), `revokeWishlistShare`.
+- `components/copy-button.tsx`: minimal client component for clipboard copy with "Copied!" feedback.
+- `app/share/[token]/page.tsx`: public branded read-only page. No auth required. `force-dynamic` to prevent caching. Shows person name, wishlist items, product cards with buy links. Respects `showPrices` and per-status visibility.
+- `app/people/[id]/page.tsx`: new "Share wishlist" section between Reminders and Settings. Shows create form when no share exists; shows link, settings checkboxes, expiry presets (1 month / 3 months / 1 year / Never), regenerate, and revoke when a share exists.
+- GitHub issue #48 opened and linked to milestone "Phase 7: Shareable Wishlists".
+**Why:** Phase 7 per V2_DESIGN.md. User decisions: one link per person (regenerate to invalidate), all statuses on by default, preset expiry, no occasion filtering, branded public page.
+
+---
+
 ## [2026-05-07] Bump version to 1.2.0 — Phase 6 release
 **By:** Claude Code
 **What:** `package.json` version 1.1.0 → 1.2.0. Added `v1.1.0` and `v1.2.0` rows to the versioning table in `CLAUDE.md`. GitHub release `v1.2.0` cut.

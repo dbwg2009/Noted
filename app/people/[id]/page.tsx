@@ -3,12 +3,15 @@ import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getPersonDetail, requireCurrentUserId } from "@/lib/people-queries";
+import { getWishlistShareForPerson } from "@/lib/share-queries";
 import { Avatar, CountdownBadge, StatusPill, TagChip } from "@/components/badges";
 import { formatBirthday, poundsFromPence } from "@/lib/birthdays";
 import { getOccasionsForPerson, getSiteWideOccasionsForPerson } from "@/lib/occasions-queries";
 import { formatOccasionDate, getKnownOccasionLabel } from "@/lib/occasions";
 import { createOccasion, updateOccasion, deleteOccasion } from "../occasion-actions";
 import { excludePersonFromOccasion, includePersonInOccasion } from "@/app/settings/occasion-actions";
+import { upsertWishlistShare, regenerateWishlistShare, revokeWishlistShare } from "../share-actions";
+import { CopyButton } from "@/components/copy-button";
 import { AddOccasionForm } from "./add-occasion-form";
 import {
   addGiftHistoryEntry,
@@ -60,10 +63,14 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
   const person = await getPersonDetail(id, userId);
   if (!person) notFound();
 
-  const [occasions, siteWideOccasions] = await Promise.all([
+  const [occasions, siteWideOccasions, wishlistShare] = await Promise.all([
     getOccasionsForPerson(id),
     getSiteWideOccasionsForPerson(userId, id),
+    getWishlistShareForPerson(id),
   ]);
+
+  const baseUrl = (process.env.AUTH_URL ?? "").replace(/\/$/, "");
+  const shareUrl = wishlistShare ? `${baseUrl}/share/${wishlistShare.token}` : "";
 
   const flashRaw = (await cookies()).get("people_flash")?.value;
   let flash: { message: string; tone: "success" | "warning" | "error" } | null = null;
@@ -698,6 +705,184 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      {/* Share wishlist */}
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">Share wishlist</h2>
+        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+          Generate a read-only link for family to coordinate gifts — purchased and given items are always hidden.
+        </p>
+
+        {wishlistShare ? (
+          <div className="card mt-3 space-y-4">
+            {/* Link row */}
+            <div>
+              <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">Share link</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <code className="flex-1 truncate rounded-md bg-neutral-100 px-3 py-2 text-xs dark:bg-neutral-800">
+                  {shareUrl}
+                </code>
+                <CopyButton
+                  text={shareUrl}
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+                />
+              </div>
+              {wishlistShare.expiresAt && (
+                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                  Expires {new Date(wishlistShare.expiresAt).toLocaleDateString("en-GB")}
+                </p>
+              )}
+            </div>
+
+            {/* Settings form */}
+            <form action={upsertWishlistShare} className="space-y-3">
+              <input type="hidden" name="personId" value={person.id} />
+
+              <fieldset>
+                <legend className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">
+                  Visible statuses
+                </legend>
+                <div className="flex flex-wrap gap-4">
+                  {(["showIdea", "showResearching", "showChosen"] as const).map((field) => (
+                    <label key={field} className="flex items-center gap-1.5 text-sm">
+                      <input
+                        type="checkbox"
+                        name={field}
+                        defaultChecked={wishlistShare[field]}
+                        className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700"
+                      />
+                      {field === "showIdea" ? "Idea" : field === "showResearching" ? "Researching" : "Chosen"}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <label className="flex items-center gap-1.5 text-sm">
+                <input
+                  type="checkbox"
+                  name="showPrices"
+                  defaultChecked={wishlistShare.showPrices}
+                  className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700"
+                />
+                Show prices
+              </label>
+
+              <div>
+                <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">Expiry</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: "1m", label: "1 month" },
+                    { value: "3m", label: "3 months" },
+                    { value: "1y", label: "1 year" },
+                    { value: "never", label: "Never" },
+                  ].map(({ value, label }) => (
+                    <label key={value} className="flex items-center gap-1 text-sm">
+                      <input
+                        type="radio"
+                        name="expiresPreset"
+                        value={value}
+                        defaultChecked={
+                          value === "never"
+                            ? !wishlistShare.expiresAt
+                            : false
+                        }
+                        className="h-4 w-4 border-neutral-300 dark:border-neutral-700"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <button type="submit" className="btn-primary px-3 py-1.5 text-sm">
+                Save settings
+              </button>
+            </form>
+
+            {/* Danger actions */}
+            <div className="flex flex-wrap gap-2 border-t border-neutral-100 pt-3 dark:border-neutral-800">
+              <form action={regenerateWishlistShare}>
+                <input type="hidden" name="personId" value={person.id} />
+                <button
+                  type="submit"
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+                >
+                  Regenerate link (invalidates old one)
+                </button>
+              </form>
+              <form action={revokeWishlistShare}>
+                <input type="hidden" name="personId" value={person.id} />
+                <button
+                  type="submit"
+                  className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+                >
+                  Remove share
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : (
+          <form action={upsertWishlistShare} className="card mt-3 space-y-3">
+            <input type="hidden" name="personId" value={person.id} />
+
+            <fieldset>
+              <legend className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">
+                Visible statuses
+              </legend>
+              <div className="flex flex-wrap gap-4">
+                {(["showIdea", "showResearching", "showChosen"] as const).map((field) => (
+                  <label key={field} className="flex items-center gap-1.5 text-sm">
+                    <input
+                      type="checkbox"
+                      name={field}
+                      defaultChecked
+                      className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700"
+                    />
+                    {field === "showIdea" ? "Idea" : field === "showResearching" ? "Researching" : "Chosen"}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <label className="flex items-center gap-1.5 text-sm">
+              <input
+                type="checkbox"
+                name="showPrices"
+                defaultChecked
+                className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700"
+              />
+              Show prices
+            </label>
+
+            <div>
+              <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">Expiry</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: "1m", label: "1 month" },
+                  { value: "3m", label: "3 months" },
+                  { value: "1y", label: "1 year" },
+                  { value: "never", label: "Never" },
+                ].map(({ value, label }) => (
+                  <label key={value} className="flex items-center gap-1 text-sm">
+                    <input
+                      type="radio"
+                      name="expiresPreset"
+                      value={value}
+                      defaultChecked={value === "never"}
+                      className="h-4 w-4 border-neutral-300 dark:border-neutral-700"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <button type="submit" className="btn-primary px-3 py-1.5 text-sm">
+              Create share link
+            </button>
+          </form>
         )}
       </section>
 
