@@ -25,5 +25,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add GEMINI.md
-          git diff --cached --quiet || git commit -m "chore: sync GEMINI.md from CLAUDE.md [skip ci]"
+          git diff --cached --quiet || git commit -m "chore: sync GEMINI.md from CLAUDE.md"
           git push
