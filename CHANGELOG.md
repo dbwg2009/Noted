@@ -13,6 +13,80 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Bump version to 1.2.0 — Phase 6 release
+**By:** Claude Code
+**What:** `package.json` version 1.1.0 → 1.2.0. Added `v1.1.0` and `v1.2.0` rows to the versioning table in `CLAUDE.md`. GitHub release `v1.2.0` cut.
+**Why:** Phase 6 (Other Occasions) is complete and deployable; tagging a stable release point.
+
+---
+
+## [2026-05-07] Phase 6 complete — Other Occasions
+**By:** Claude Code
+**What:** Marked Phase 6 (Other Occasions) as **done** in `CLAUDE.md` and `docs/V2_DESIGN.md`. No code changes — this entry records the phase completion milestone.
+**Why:** All Phase 6 scope shipped: `occasions` table, per-occasion reminders, site-wide occasions with per-person exclusions, dashboard/calendar updates, and person-detail occasion management. Phase 7 (Shareable Wishlists) is now the next pending phase.
+
+---
+
+## [2026-05-06] Site-wide occasions with per-person exclusions
+**By:** Claude Code
+**What:**
+- `db/schema.ts`: Made `reminders.personId` nullable (site-wide occasion reminders have no single person). Added new `occasionPersonExclusions` table (composite PK: occasionId + personId) to track per-person exclusions from site-wide occasions.
+- `lib/occasions-queries.ts`: Added `listSiteWideOccasions`, `getExcludedPeopleForOccasion`, `getSiteWideOccasionsForPerson` query helpers.
+- `app/settings/occasion-actions.ts` (new): Server actions for creating, updating, and deleting site-wide occasions, plus `excludePersonFromOccasion` / `includePersonInOccasion` toggle actions.
+- `lib/reminders.ts`: Added `ensureSiteWideOccasionReminders` (creates 30/14/7/1-day reminders with personId = NULL), `findDueSiteWideReminders` (site-wide equivalent of `findDueReminders`), updated `runDailyReminders` to send one email per due site-wide occasion listing all included people.
+- `lib/notify/email.ts`: Added `sendSiteWideOccasionEmail` — "Christmas is in 30 days. You've got to get gifts for: • Person 1, • Person 2…" format.
+- `app/settings/page.tsx`: Added "Site-wide occasions" section — add/edit/delete occasions; per-person pill buttons to toggle exclusions.
+- `app/people/[id]/page.tsx`: Shows site-wide occasions above personal ones, each with a "Site-wide" badge and an Exclude/Include toggle.
+**Why:** User request — occasions like Christmas and Easter apply to everyone; one reminder email listing all relevant people is more useful than one email per person.
+
+---
+
+## [2026-05-06] Fix missing helpers in people actions + login error handling (issues #44, #34)
+**By:** Claude Code
+**What:**
+- `app/people/actions.ts`: Restored seven helper functions that were accidentally removed in a prior refactor (`parseMoneyToPence`, `parseTagNames`, `parseSizes`, `parseWishlistStatus`, `syncTagsForPerson`, `personBelongsToUser`, `wishlistBelongsToUser`, `getWishlistContextForSearch`). Also replaced the dead `import { auth }` with the correct `import { requireCurrentUserId } from "@/lib/people-queries"`.
+- `app/login/page.tsx`: Wrapped the credentials `signIn()` call in try/catch to catch `AuthError`. On `CredentialsSignin`, redirects to `/login?error=CredentialsSignin` and shows a user-friendly "Incorrect email or password." message instead of a generic server error page.
+**Why:** Issue #44 — runtime `ReferenceError: requireCurrentUserId is not defined` broke all person create/edit actions on the Pi. Issue #34 — Auth.js v5 throws `CredentialsSignin` (not returns null) on bad credentials; without a catch it surfaced as an unhandled 500.
+
+---
+
+## [2026-05-06] Rebuild add occasion form as dedicated client component
+**By:** Claude Code
+**What:**
+- Created `app/people/[id]/add-occasion-form.tsx` — a standalone client component with a clean inner `Form` component that remounts fresh on every open (via incrementing key).
+- `Form` is separate from `AddOccasionForm` so it is completely unmounted (not just hidden) when closed; no stale state possible.
+- Name field is uncontrolled with `autoComplete="new-password"`.
+- Month/day selects (`defaultValue` only) appear only when the selected kind needs a date; all other kinds skip the date section entirely.
+- Month names displayed in full (January…December) rather than numbers.
+- Wired into `page.tsx` — the page was previously rendering its own inline `<details>` form which was the actual source of all the previous bugs (the client component that was being edited before was never rendered).
+**Why:** Previous `<details>`-based form in page.tsx was a server component with no React state, making autofill and conditional field logic impossible to control reliably.
+
+---
+
+## [2026-05-06] Redesign add occasion form from scratch
+**By:** Claude Code
+**What:**
+- Replaced `<details>` toggle with a button + conditional render for the add form.
+- Extracted `AddOccasionForm` as a standalone component — it is fully unmounted when hidden and gets a new `key` each time it opens, guaranteeing a fresh DOM with no leftover state or autofill.
+- Name input uses `autoComplete="new-password"` (the reliable cross-browser autofill bypass) and is uncontrolled.
+- Month/day selects use `defaultValue` rather than controlled `value`, so they reset naturally on remount.
+- Added Cancel buttons at top and bottom of the form.
+- Applied `autoComplete="new-password"` to the edit form name input as well.
+**Why:** Multiple iterations of the previous `<details>`-based approach could not reliably prevent Chrome autofill or stale React state. Ground-up rewrite removes all those failure modes.
+
+---
+
+## [2026-05-06] Occasion form cleanup and router cache fix
+**By:** Claude Code
+**What:**
+- Simplified `occasion-actions.ts`: import `requireCurrentUserId` from shared `lib/people-queries`, DRY up date-building with `buildOccasionDate` helper, fix dead guard in `buildDateFromParts` (check raw values before padStart), remove redundant `revalidatePath("/people")`.
+- Simplified `occasion-section-client.tsx`: extract `MONTH_OPTIONS`/`DAY_OPTIONS` as module constants shared between add and edit forms, remove redundant `addOpen` state (formKey alone drives reset), name input uncontrolled to prevent autofill persistence.
+- Added `staleTimes: { dynamic: 0 }` to `next.config.mjs` so navigating away and back re-fetches the page, fixing stale occasion date dropdowns showing 1/1 for preset holidays.
+- Removed stale test video from `issue/` directory.
+**Why:** Simplify review found duplicated utilities, a dead guard, and premature state. Router cache was causing server-rendered page state to be served stale on client-side navigation.
+
+---
+
 ## [2026-05-05] DOB refactor, occasion autofill, and Docker standalone fixes
 **By:** Gemini CLI
 **What:**

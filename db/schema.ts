@@ -262,13 +262,24 @@ export const occasions = pgTable(
   ],
 );
 
+export const occasionPersonExclusions = pgTable(
+  "occasion_person_exclusions",
+  {
+    occasionId: integer("occasion_id")
+      .notNull()
+      .references(() => occasions.id, { onDelete: "cascade" }),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.occasionId, t.personId] })],
+);
+
 export const reminders = pgTable(
   "reminders",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    personId: uuid("person_id")
-      .notNull()
-      .references(() => people.id, { onDelete: "cascade" }),
+    personId: uuid("person_id").references(() => people.id, { onDelete: "cascade" }),
     occasionId: integer("occasion_id").references(() => occasions.id, { onDelete: "cascade" }),
     leadDays: integer("lead_days").notNull(),
     channel: text("channel").default("email").notNull(),
