@@ -20,6 +20,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Add Trivy container image vulnerability scan
+**By:** Claude Code
+**What:** Updated `docker-publish.yml`: added `security-events: write` permission; added `app_primary` output to the tags step (single ref for Trivy); added `Scan app image for vulnerabilities` step using `aquasecurity/trivy-action@0.31.0` (CRITICAL severity, ignore-unfixed, SARIF output); added `Upload Trivy results to GitHub Security tab` step.
+**Why:** Repo advisory item 6 — Docker image contains Alpine Linux and all npm deps; any could carry known CVEs. Scan runs after push, fails on critical fixable CVEs, uploads results to the GitHub Security tab.
+
+---
+
 ## [2026-05-07] Add Dependabot auto-merge workflow
 **By:** Claude Code
 **What:** Added `.github/workflows/dependabot-auto-merge.yml`. Triggers on Dependabot PRs only; uses `dependabot/fetch-metadata` to read the update type; calls `gh pr merge --auto --squash` for patch and minor bumps. Major version bumps are left open for manual review.
