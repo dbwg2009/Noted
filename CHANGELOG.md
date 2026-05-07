@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Add Dependabot auto-merge workflow
+**By:** Claude Code
+**What:** Added `.github/workflows/dependabot-auto-merge.yml`. Triggers on Dependabot PRs only; uses `dependabot/fetch-metadata` to read the update type; calls `gh pr merge --auto --squash` for patch and minor bumps. Major version bumps are left open for manual review.
+**Why:** Repo advisory item 5 — Dependabot PRs were piling up unmerged. Auto-merge is gated behind CI passing and branch protection rules, so a breaking update can't sneak through.
+
+---
+
 ## [2026-05-07] Add Sentry error tracking
 **By:** Claude Code
 **What:** Installed `@sentry/nextjs`. Added `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` (each guards init behind `SENTRY_DSN` check), `instrumentation.ts` (Next.js 15 hook loading server/edge configs), and updated `next.config.mjs` to wrap with `withSentryConfig` (source map upload disabled when `SENTRY_ORG`/`SENTRY_PROJECT` are absent). `.env.example` updated with three new optional vars.
