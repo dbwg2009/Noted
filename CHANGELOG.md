@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Disable auto-delete branches; add Dependabot branch cleanup workflow
+**By:** Claude Code
+**What:** Disabled GitHub's repo-wide "Automatically delete head branches" setting. Added `.github/workflows/cleanup-dependabot-branches.yml` — triggers on merged PRs whose head branch starts with `dependabot/` and deletes that branch via the GitHub API.
+**Why:** Auto-delete was removing feature branches on merge, conflicting with the project rule that stale branches should be reviewed before deletion. Dependabot branches are safe to auto-clean; feature branches are not.
+
 ## [2026-05-07] Migrate Docker registry to GHCR; skip docs-only builds
 **By:** Claude Code
 **What:** Switched primary Docker registry from Docker Hub to GitHub Container Registry (GHCR). Updated `docker-compose.yml` image refs to `ghcr.io/dbwg2009/noted` and `ghcr.io/dbwg2009/noted-migrator`. Updated `.github/workflows/docker-publish.yml`: auth via `GITHUB_TOKEN` (no extra secrets), `Development` pushes go to GHCR only, `main` pushes go to both GHCR and Docker Hub simultaneously in a single build. Added `paths-ignore` so docs/changelog/memory-file-only pushes skip the workflow entirely.
