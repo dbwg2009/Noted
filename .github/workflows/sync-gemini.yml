@@ -1,0 +1,29 @@
+name: Sync GEMINI.md from CLAUDE.md
+
+on:
+  push:
+    branches: [main, Development]
+    paths:
+      - 'CLAUDE.md'
+
+jobs:
+  sync:
+    name: Mirror CLAUDE.md → GEMINI.md
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Copy CLAUDE.md to GEMINI.md
+        run: cp CLAUDE.md GEMINI.md
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add GEMINI.md
+          git diff --cached --quiet || git commit -m "chore: sync GEMINI.md from CLAUDE.md [skip ci]"
+          git push
