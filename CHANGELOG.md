@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Bump version to 1.3.3
+**By:** Claude Code
+**What:** `package.json` version `1.3.1` → `1.3.3` (skipping `1.3.2` which landed on main via a direct hotfix). Prepares Development → main PR.
+**Why:** Version alignment before opening the Development → main PR. Covers: `actions/checkout` v4 → v6 (CI), drizzle-orm 0.45.2 security fix, ESLint config, Docker action upgrades.
+
+---
+
 ## [2026-05-07] Bump version to 1.3.2 — CI and Docker registry fixes
 **By:** Claude Code
 **What:** `package.json` version 1.3.1 → 1.3.2. Patch covers: GHCR migration (primary Docker registry now `ghcr.io/dbwg2009/noted`, Docker Hub kept as mirror), docs-only push skip, and the `[skip ci]` bug that was blocking all Actions on main.
