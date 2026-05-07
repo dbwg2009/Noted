@@ -13,6 +13,16 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Add ESLint config + fix pre-existing lint errors
+**By:** Claude Code
+**What:** Added `eslint.config.mjs` (Next.js 15 flat config format, extends `next/core-web-vitals`). Fixed pre-existing `react/no-unescaped-entities` error in `app/login/forgot/page.tsx` (unescaped apostrophe in JSX text).
+**Why:** No ESLint config existed, causing `next lint` to enter interactive setup mode in CI and fail. Pre-existing error would have blocked the lint step regardless.
+
+## [2026-05-07] Bump drizzle-orm to 0.45.2 (SQL injection security fix)
+**By:** Claude Code
+**What:** `drizzle-orm` bumped from `0.36.4` → `0.45.2`. `package.json` version `1.3.0` → `1.3.1`.
+**Why:** 0.45.2 patches CWE-89 (SQL injection) in `sql.identifier()` and `sql.as()` — values were not properly escaped. Security fix, no API changes to application code. Build verified clean.
+
 ## [2026-05-07] Bump version to 1.3.0 — Phase 7 release
 **By:** Claude Code
 **What:** `package.json` version 1.2.0 → 1.3.0. Added `v1.3.0` row to the versioning table in `CLAUDE.md`. GitHub release `v1.3.0` cut.

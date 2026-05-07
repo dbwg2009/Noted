@@ -31,7 +31,7 @@ export default function ForgotPage() {
         <Image src="/logo/icon.png" alt="Noted" width={140} height={140} priority />
       </div>
       <h1 className="text-2xl font-semibold tracking-tight">Reset your password</h1>
-      <p className="text-sm text-neutral-600">Enter the email for your account and we'll email a reset link.</p>
+      <p className="text-sm text-neutral-600">Enter the email for your account and we&apos;ll email a reset link.</p>
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <input name="email" type="email" required placeholder="you@example.com" className="input-field" />
         {status && <div className="text-sm text-green-600">{status}</div>}
