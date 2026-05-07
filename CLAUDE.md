@@ -122,6 +122,8 @@ The repo uses **semantic versioning** tied to build phases. All tags and release
 | `v0.3.0` | Phase 3 — Suggestions & History | AI suggestions, gift history |
 | `v0.4.0` | Phase 4 — Reminders | Email digests, cron sidecar |
 | `v1.0.0` | Phase 5 — Polish & Rebrand | All phases complete, Noted brand |
+| `v1.1.0` | Auth overhaul + infra | Credentials provider, JWT sessions, multi-arch Docker, perf fixes |
+| `v1.2.0` | Phase 6 — Other Occasions | Occasions table, per-occasion reminders, site-wide occasions with exclusions |
 
 **Rules for future releases:**
 - Tag format: `vMAJOR.MINOR.PATCH` (e.g. `v1.1.0` for a meaningful new feature, `v1.0.1` for a bug fix).

@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Bump version to 1.2.0 — Phase 6 release
+**By:** Claude Code
+**What:** `package.json` version 1.1.0 → 1.2.0. Added `v1.1.0` and `v1.2.0` rows to the versioning table in `CLAUDE.md`. GitHub release `v1.2.0` cut.
+**Why:** Phase 6 (Other Occasions) is complete and deployable; tagging a stable release point.
+
+---
+
 ## [2026-05-07] Phase 6 complete — Other Occasions
 **By:** Claude Code
 **What:** Marked Phase 6 (Other Occasions) as **done** in `CLAUDE.md` and `docs/V2_DESIGN.md`. No code changes — this entry records the phase completion milestone.
