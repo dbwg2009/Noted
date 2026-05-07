@@ -66,10 +66,6 @@ services:
       - "3000:3000"
     volumes:
       - uploads:/app/public/uploads
-    deploy:
-      resources:
-        limits:
-          memory: 512M
 
   cron:
     image: curlimages/curl:8.10.1
@@ -80,10 +76,6 @@ services:
     environment:
       CRON_SECRET: "${CRON_SECRET:?CRON_SECRET is required}"
       CRON_INTERVAL_SECONDS: "${CRON_INTERVAL_SECONDS:-86400}"
-    deploy:
-      resources:
-        limits:
-          memory: 64M
     entrypoint:
       - /bin/sh
       - -c

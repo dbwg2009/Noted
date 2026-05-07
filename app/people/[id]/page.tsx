@@ -5,9 +5,11 @@ import { auth } from "@/lib/auth";
 import { getPersonDetail, requireCurrentUserId } from "@/lib/people-queries";
 import { Avatar, CountdownBadge, StatusPill, TagChip } from "@/components/badges";
 import { formatBirthday, poundsFromPence } from "@/lib/birthdays";
-import { getOccasionsForPerson } from "@/lib/occasions-queries";
-import { formatOccasionDate } from "@/lib/occasions";
+import { getOccasionsForPerson, getSiteWideOccasionsForPerson } from "@/lib/occasions-queries";
+import { formatOccasionDate, getKnownOccasionLabel } from "@/lib/occasions";
 import { createOccasion, updateOccasion, deleteOccasion } from "../occasion-actions";
+import { excludePersonFromOccasion, includePersonInOccasion } from "@/app/settings/occasion-actions";
+import { AddOccasionForm } from "./add-occasion-form";
 import {
   addGiftHistoryEntry,
   addManualProduct,
@@ -58,7 +60,10 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
   const person = await getPersonDetail(id, userId);
   if (!person) notFound();
 
-  const occasions = await getOccasionsForPerson(id);
+  const [occasions, siteWideOccasions] = await Promise.all([
+    getOccasionsForPerson(id),
+    getSiteWideOccasionsForPerson(userId, id),
+  ]);
 
   const flashRaw = (await cookies()).get("people_flash")?.value;
   let flash: { message: string; tone: "success" | "warning" | "error" } | null = null;
@@ -367,53 +372,55 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
         <div className="flex items-end justify-between">
           <h2 className="text-lg font-semibold">Occasions</h2>
           <span className="text-xs text-neutral-500 dark:text-neutral-400">
-            {occasions.length} {occasions.length === 1 ? "occasion" : "occasions"}
+            {occasions.length + siteWideOccasions.length} {occasions.length + siteWideOccasions.length === 1 ? "occasion" : "occasions"}
           </span>
         </div>
 
-        <details className="card mt-3">
-          <summary className="cursor-pointer text-sm font-medium">+ Add occasion</summary>
-          <form id="add-occasion-form" action={createOccasion} className="mt-4 grid gap-3 md:grid-cols-2">
-            <input type="hidden" name="personId" value={person.id} />
-            <select id="add-occasion-kind" name="kind" required className={inputCls}>
-              <option value="anniversary">Anniversary</option>
-              <option value="christmas">Christmas</option>
-              <option value="mothers_day">Mother's Day</option>
-              <option value="fathers_day">Father's Day</option>
-              <option value="valentines">Valentine's Day</option>
-              <option value="easter">Easter</option>
-              <option value="custom">Custom</option>
-            </select>
-            <input id="add-occasion-name" name="name" placeholder="Name (optional for holidays)" className={inputCls} />
-            <input id="add-occasion-date" name="date" type="hidden" />
-            <div id="add-occasion-date-row" className="grid gap-1">
-              <div id="add-occasion-date-fields" className="grid gap-2 sm:grid-cols-2">
-                <select id="add-occasion-month" name="occasionMonth" className={inputCls}>
-                  {[...Array(12)].map((_, index) => {
-                    const month = index + 1;
-                    return (
-                      <option key={month} value={month.toString().padStart(2, "0")}>{month}</option>
-                    );
-                  })}
-                </select>
-                <select id="add-occasion-day" name="occasionDay" className={inputCls}>
-                  {[...Array(31)].map((_, index) => {
-                    const day = index + 1;
-                    return (
-                      <option key={day} value={day.toString().padStart(2, "0")}>{day}</option>
-                    );
-                  })}
-                </select>
-              </div>
-              <p id="add-occasion-date-preview" className="hidden text-sm text-neutral-500 dark:text-neutral-400"></p>
-            </div>
-            <textarea name="notes" rows={2} placeholder="Notes" className={`${inputCls} md:col-span-2`} />
-            <button type="submit" className="btn-primary w-fit px-4 py-2 text-sm md:col-span-2">Add occasion</button>
-          </form>
-        </details>
+        {/* Site-wide occasions */}
+        {siteWideOccasions.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">Site-wide</p>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {siteWideOccasions.map((o) => (
+                <li key={o.id} className={`card flex items-start justify-between gap-3 ${o.excluded ? "opacity-50" : ""}`}>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold">{o.name ?? getKnownOccasionLabel(o.kind)}</p>
+                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">Site-wide</span>
+                      {o.excluded && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">Excluded</span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">{formatOccasionDate(o.date, false, o.kind)}</p>
+                  </div>
+                  <form action={o.excluded ? includePersonInOccasion : excludePersonFromOccasion} className="shrink-0">
+                    <input type="hidden" name="occasionId" value={o.id} />
+                    <input type="hidden" name="personId" value={person.id} />
+                    <input type="hidden" name="_referrer" value={`/people/${person.id}`} />
+                    <button
+                      type="submit"
+                      className={`rounded px-2 py-1 text-[11px] font-medium border ${
+                        o.excluded
+                          ? "border-brand-blue-300 text-brand-blue-600 hover:bg-brand-blue-50 dark:border-brand-blue-700 dark:text-brand-blue-400"
+                          : "border-neutral-200 text-neutral-500 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-400"
+                      }`}
+                    >
+                      {o.excluded ? "Include" : "Exclude"}
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-neutral-400">
+              Manage site-wide occasions in <a href="/settings" className="underline hover:text-neutral-600">Settings</a>.
+            </p>
+          </div>
+        )}
+
+        <AddOccasionForm personId={person.id} createAction={createOccasion} />
 
         {occasions.length === 0 ? (
-          <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">No occasions yet for this person.</p>
+          <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">No personal occasions yet for this person.</p>
         ) : (
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {occasions.map((o) => (
@@ -629,7 +636,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
           <div>
             <h2 className="text-lg font-semibold">Reminders</h2>
             <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-              Email digests sent to <span className="font-medium">{session.user.email}</span> ahead of {person.name}&rsquo;s birthday.
+              Email digests sent to <span className="font-medium">{session.user.email}</span> ahead of {person.name}&rsquo;s birthday and any occasions.
             </p>
           </div>
           <form action={sendTestReminder}>
@@ -804,163 +811,132 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
         </form>
       </section>
     <script dangerouslySetInnerHTML={{ __html: `(function(){
-      function toggleBirthday(checkboxId, yearContainerId) {
-        var checkbox = document.getElementById(checkboxId);
-        var yearContainer = document.getElementById(yearContainerId);
-        if (!checkbox || !yearContainer) return;
-        function update() {
-          if (checkbox.checked) {
-            yearContainer.classList.remove('hidden');
-          } else {
-            yearContainer.classList.add('hidden');
-          }
-        }
-        checkbox.addEventListener('change', update);
-        update();
-      }
-
       function pad(n) { return n.toString().padStart(2, '0'); }
-      function formatDate(year, month, day) { return year + '-' + pad(month) + '-' + pad(day); }
-      function easter(year) {
-        var a = year % 19;
-        var b = Math.floor(year / 100);
-        var c = year % 100;
-        var d = Math.floor(b / 4);
-        var e = b % 4;
-        var f = Math.floor((b + 8) / 25);
-        var g = Math.floor((b - f + 1) / 3);
-        var h = (19 * a + b - d - g + 15) % 30;
-        var i = Math.floor(c / 4);
-        var k = c % 4;
-        var l = (32 + 2 * e + 2 * i - h - k) % 7;
-        var m = Math.floor((a + 11 * h + 22 * l) / 451);
-        var month = Math.floor((h + l - 7 * m + 114) / 31);
-        var day = ((h + l - 7 * m + 114) % 31) + 1;
+      function formatDate(y, m, d) { return y + '-' + pad(m) + '-' + pad(d); }
+      
+      function easter(y) {
+        var a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4;
+        var f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+        var h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
+        var l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+        var month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
         return { month: month, day: day };
       }
-      function nthWeekdayOfMonth(year, month, weekday, n) {
-        var firstDay = new Date(year, month - 1, 1).getDay();
-        var offset = (weekday - firstDay + 7) % 7;
+
+      function nthDay(y, m, wd, n) {
+        var f = new Date(y, m - 1, 1).getDay();
+        var offset = (wd - f + 7) % 7;
         return 1 + offset + 7 * (n - 1);
       }
-      function holidayDate(kind, today) {
-        var year = today.getFullYear();
-        switch (kind) {
-          case 'christmas': return formatDate(year, 12, 25);
-          case 'valentines': return formatDate(year, 2, 14);
-          case 'mothers_day': {
-            var e = easter(year);
-            var date = new Date(year, e.month - 1, e.day);
-            date.setDate(date.getDate() - 21);
-            if (date < today) {
-              date = new Date(year + 1, e.month - 1, e.day);
-              date.setDate(date.getDate() - 21);
-            }
-            return formatDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
-          }
-          case 'fathers_day': {
-            var day = nthWeekdayOfMonth(year, 6, 0, 3);
-            var date = new Date(year, 5, day);
-            if (date < today) {
-              date = new Date(year + 1, 5, nthWeekdayOfMonth(year + 1, 6, 0, 3));
-            }
-            return formatDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
-          }
-          case 'easter': {
-            var e = easter(year);
-            var date = new Date(year, e.month - 1, e.day);
-            if (date < today) {
-              e = easter(year + 1);
-              date = new Date(year + 1, e.month - 1, e.day);
-            }
-            return formatDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
-          }
-          default: return null;
+
+      function getHoliday(kind, today) {
+        var y = today.getFullYear();
+        var d;
+        if (kind === 'christmas') d = new Date(y, 11, 25);
+        else if (kind === 'valentines') d = new Date(y, 1, 14);
+        else if (kind === 'mothers_day') {
+          var e = easter(y); d = new Date(y, e.month - 1, e.day);
+          d.setDate(d.getDate() - 21);
         }
-      }
-      function buildIsoDate(year, month, day) {
-        return year + '-' + pad(month) + '-' + pad(day);
-      }
-      function setupSync(hiddenId, monthId, dayId, year) {
-        var hidden = document.getElementById(hiddenId);
-        var month = document.getElementById(monthId);
-        var day = document.getElementById(dayId);
-        if (!hidden || !month || !day) return;
-        function update() {
-          hidden.value = buildIsoDate(year, Number(month.value), Number(day.value));
+        else if (kind === 'fathers_day') d = new Date(y, 5, nthDay(y, 6, 0, 3));
+        else if (kind === 'easter') {
+          var e = easter(y); d = new Date(y, e.month - 1, e.day);
         }
-        month.addEventListener('change', update);
-        day.addEventListener('change', update);
-        update();
+        else return null;
+
+        if (d < today) return getHoliday(kind, new Date(y + 1, 0, 1));
+        return formatDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
       }
-      function getOccasionLabel(kind) {
-        switch (kind) {
-          case 'christmas': return 'Christmas';
-          case 'mothers_day': return "Mother's Day";
-          case 'fathers_day': return "Father's Day";
-          case 'valentines': return "Valentine's Day";
-          case 'easter': return 'Easter';
-          case 'anniversary': return 'Anniversary';
-          default: return '';
+
+      function getLabel(k) {
+        var m = { christmas:'Christmas', mothers_day:"Mother's Day", fathers_day:"Father's Day", valentines:"Valentine's Day", easter:'Easter', anniversary:'Anniversary' };
+        return m[k] || '';
+      }
+
+      function setup() {
+        var k = document.getElementById('add-occasion-kind');
+        var n = document.getElementById('add-occasion-name');
+        var h = document.getElementById('add-occasion-date');
+        var f = document.getElementById('add-occasion-date-fields');
+        var ms = document.getElementById('add-occasion-month');
+        var ds = document.getElementById('add-occasion-day');
+        var p = document.getElementById('add-occasion-date-preview');
+        var form = document.getElementById('add-occasion-form');
+        if (!k || !h || !f || !ms || !ds || !p || !form) return;
+
+        function sync() {
+          if (k.value === 'custom' || k.value === 'anniversary') {
+            h.value = formatDate(new Date().getFullYear(), Number(ms.value), Number(ds.value));
+          }
         }
-      }
-      function updateOccasionForm() {
-        var kind = document.getElementById('add-occasion-kind');
-        var name = document.getElementById('add-occasion-name');
-        var dateRow = document.getElementById('add-occasion-date-row');
-        var dateInput = document.getElementById('add-occasion-date');
-        var dateFields = document.getElementById('add-occasion-date-fields');
-        var monthField = document.getElementById('add-occasion-month');
-        var dayField = document.getElementById('add-occasion-day');
-        var datePreview = document.getElementById('add-occasion-date-preview');
-        if (!kind || !name || !dateRow || !dateInput || !dateFields || !monthField || !dayField || !datePreview) return;
-        
-        setupSync('add-occasion-date', 'add-occasion-month', 'add-occasion-day', new Date().getFullYear());
 
         function refresh() {
-          if (kind.value === 'custom' || kind.value === 'anniversary') {
-            dateRow.classList.remove('hidden');
-            dateInput.required = true;
-            dateFields.classList.remove('hidden');
-            datePreview.classList.add('hidden');
-            // Force update of hidden input from current dropdown values
-            dateInput.value = buildIsoDate(new Date().getFullYear(), Number(monthField.value), Number(dayField.value));
-            if (kind.value === 'anniversary' && !name.value) {
-              name.value = 'Anniversary';
-            }
+          var isC = (k.value === 'custom' || k.value === 'anniversary');
+          f.style.setProperty('display', isC ? 'grid' : 'none', 'important');
+          p.style.setProperty('display', isC ? 'none' : 'block', 'important');
+          
+          if (isC) {
+            sync();
+            if (k.value === 'anniversary' && !n.value) n.value = 'Anniversary';
           } else {
-            var dateValue = holidayDate(kind.value, new Date());
-            dateInput.value = dateValue || '';
-            dateInput.required = false;
-            dateFields.classList.add('hidden');
-            dateRow.classList.remove('hidden');
-            datePreview.textContent = dateValue ? dateValue.split('-').slice(1).join('/') : '';
-            datePreview.classList.remove('hidden');
-            if (!name.value || getOccasionLabel(name.dataset.lastKind) === name.value) {
-              name.value = getOccasionLabel(kind.value);
+            var hol = getHoliday(k.value, new Date());
+            h.value = hol || '';
+            if (hol) {
+              var parts = hol.split('-');
+              p.textContent = parts[2] + '/' + parts[1];
             }
+            if (!n.value || getLabel(n.dataset.lastK) === n.value) n.value = getLabel(k.value);
           }
-          name.dataset.lastKind = kind.value;
+          n.dataset.lastK = k.value;
         }
-        kind.addEventListener('change', refresh);
+
+        k.addEventListener('change', refresh);
+        ms.addEventListener('change', sync);
+        ds.addEventListener('change', sync);
+        form.addEventListener('submit', sync);
         refresh();
+        
+        // Final fallback to hide dropdowns for holidays
+        setTimeout(refresh, 0);
       }
-      function setupEditOccasions() {
-        var allHidden = document.querySelectorAll('[id^="edit-occasion-date-"]');
-        allHidden.forEach(function(hidden) {
-          var id = hidden.id.split('-').slice(-1)[0];
-          var month = document.getElementById('edit-occasion-month-' + id);
-          var day = document.getElementById('edit-occasion-day-' + id);
-          if (!month || !day) return;
-          var year = hidden.value ? hidden.value.slice(0, 4) : String(new Date().getFullYear());
-          setupSync(hidden.id, month.id, day.id, Number(year));
+
+      function setupEdits() {
+        document.querySelectorAll('[id^="edit-occasion-date-"]').forEach(function(h) {
+          var id = h.id.replace('edit-occasion-date-', '');
+          var m = document.getElementById('edit-occasion-month-' + id);
+          var d = document.getElementById('edit-occasion-day-' + id);
+          if (!m || !d) return;
+          function s() {
+            var y = h.value ? h.value.split('-')[0] : new Date().getFullYear();
+            h.value = formatDate(Number(y), Number(m.value), Number(d.value));
+          }
+          m.addEventListener('change', s);
+          d.addEventListener('change', s);
         });
       }
-      document.addEventListener('DOMContentLoaded', function(){
-        toggleBirthday('edit-birthyear-known','edit-birthday-year-container');
-        updateOccasionForm();
-        setupEditOccasions();
-      });
+
+      function setupBirthday() {
+        var c = document.getElementById('edit-birthyear-known');
+        var t = document.getElementById('edit-birthday-year-container');
+        if (!c || !t) return;
+        function u() { t.style.display = c.checked ? 'block' : 'none'; }
+        c.addEventListener('change', u);
+        u();
+      }
+
+      function init() {
+        setupBirthday();
+        setup();
+        setupEdits();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+      // Re-run for Next.js navigation
+      window.setTimeout(init, 100);
     })();` }} />
     </main>
   );

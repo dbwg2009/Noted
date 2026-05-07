@@ -1,6 +1,8 @@
-import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  occasionPersonExclusions,
+  occasions,
   people,
   products,
   reminders,
@@ -8,9 +10,8 @@ import {
   users,
   wishlistItems,
 } from "@/db/schema";
-import { occasions } from "@/db/schema";
 import { parseBirthday } from "@/lib/birthdays";
-import { sendReminderDigest } from "@/lib/notify/email";
+import { sendReminderDigest, sendSiteWideOccasionEmail } from "@/lib/notify/email";
 
 export const DEFAULT_LEAD_DAYS = [30, 14, 7, 1];
 
@@ -286,48 +287,89 @@ export async function buildDigestForUser(
 
 export async function runDailyReminders(today = new Date()) {
   const due = await findDueReminders(today);
-  if (due.length === 0) {
-    return { dueCount: 0, sent: 0, errors: [] as string[] };
-  }
+  const dueSiteWide = await findDueSiteWideReminders(today);
 
-  const byUser = new Map<string, DueReminder[]>();
-  for (const reminder of due) {
-    const list = byUser.get(reminder.userId) ?? [];
-    list.push(reminder);
-    byUser.set(reminder.userId, list);
+  if (due.length === 0 && dueSiteWide.length === 0) {
+    return { dueCount: 0, sent: 0, errors: [] as string[] };
   }
 
   const errors: string[] = [];
   let sent = 0;
+  const sentAt = new Date();
 
-  for (const [userId, userDue] of byUser) {
-    const digest = await buildDigestForUser(userId, userDue[0].userEmail, userDue);
-    try {
-      await sendReminderDigest(digest);
-      sent += 1;
-      // Batch-update reminders grouped by targetYear (almost always one year, but
-      // could differ near year-end when lead windows straddle January).
-      const sentAt = new Date();
-      const byYear = new Map<number, string[]>();
-      for (const r of userDue) {
-        const ids = byYear.get(r.targetYear) ?? [];
-        ids.push(r.reminderId);
-        byYear.set(r.targetYear, ids);
+  // Birthday / person-occasion reminders — grouped digest per user
+  if (due.length > 0) {
+    const byUser = new Map<string, DueReminder[]>();
+    for (const reminder of due) {
+      const list = byUser.get(reminder.userId) ?? [];
+      list.push(reminder);
+      byUser.set(reminder.userId, list);
+    }
+
+    for (const [userId, userDue] of byUser) {
+      const digest = await buildDigestForUser(userId, userDue[0].userEmail, userDue);
+      try {
+        await sendReminderDigest(digest);
+        sent += 1;
+        const byYear = new Map<number, string[]>();
+        for (const r of userDue) {
+          const ids = byYear.get(r.targetYear) ?? [];
+          ids.push(r.reminderId);
+          byYear.set(r.targetYear, ids);
+        }
+        for (const [year, ids] of byYear) {
+          await db
+            .update(reminders)
+            .set({ lastSentAt: sentAt, lastSentForYear: year })
+            .where(inArray(reminders.id, ids));
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("Reminder digest send failed:", error);
+        errors.push(`${digest.userEmail}: ${message}`);
       }
-      for (const [year, ids] of byYear) {
-        await db
-          .update(reminders)
-          .set({ lastSentAt: sentAt, lastSentForYear: year })
-          .where(inArray(reminders.id, ids));
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error("Reminder digest send failed:", error);
-      errors.push(`${digest.userEmail}: ${message}`);
     }
   }
 
-  return { dueCount: due.length, sent, errors };
+  // Site-wide occasion reminders — one email per (user, reminder) with all non-excluded people listed
+  for (const sw of dueSiteWide) {
+    try {
+      // Fetch all people for this user
+      const allPeople = await db
+        .select({ id: people.id, name: people.name, relationship: people.relationship })
+        .from(people)
+        .where(eq(people.userId, sw.userId));
+
+      // Filter out excluded people
+      const exclusionRows = await db
+        .select({ personId: occasionPersonExclusions.personId })
+        .from(occasionPersonExclusions)
+        .where(eq(occasionPersonExclusions.occasionId, sw.occasionId));
+      const excludedIds = new Set(exclusionRows.map((e) => e.personId));
+      const includedPeople = allPeople.filter((p) => !excludedIds.has(p.id));
+
+      const occasionLabel = sw.occasionName ?? sw.occasionKind;
+      const result = await sendSiteWideOccasionEmail(
+        sw.userEmail,
+        occasionLabel,
+        sw.leadDays,
+        includedPeople,
+      );
+      if (!result.skipped) {
+        sent += 1;
+        await db
+          .update(reminders)
+          .set({ lastSentAt: sentAt, lastSentForYear: sw.targetYear })
+          .where(eq(reminders.id, sw.reminderId));
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("Site-wide occasion reminder send failed:", error);
+      errors.push(`${sw.userEmail} (${sw.occasionName ?? sw.occasionKind}): ${message}`);
+    }
+  }
+
+  return { dueCount: due.length + dueSiteWide.length, sent, errors };
 }
 
 export async function ensureDefaultReminders(personId: string) {
@@ -366,6 +408,102 @@ export async function ensureDefaultReminders(personId: string) {
       missingOcc.map((leadDays) => ({ personId, occasionId: occ.id, leadDays, channel: "email" })),
     );
   }
+}
+
+export async function ensureSiteWideOccasionReminders(occasionId: number) {
+  const existing = await db
+    .select({ leadDays: reminders.leadDays })
+    .from(reminders)
+    .where(and(isNull(reminders.personId), eq(reminders.occasionId, occasionId)));
+  const have = new Set(existing.map((r) => r.leadDays));
+  const missing = DEFAULT_LEAD_DAYS.filter((d) => !have.has(d));
+  if (missing.length > 0) {
+    await db.insert(reminders).values(
+      missing.map((leadDays) => ({ occasionId, leadDays, channel: "email" })),
+    );
+  }
+}
+
+type DueSiteWideReminder = {
+  reminderId: string;
+  occasionId: number;
+  occasionName: string | null;
+  occasionKind: string;
+  occasionDate: string;
+  leadDays: number;
+  targetDate: string;
+  targetYear: number;
+  userId: string;
+  userEmail: string;
+};
+
+export async function findDueSiteWideReminders(today = new Date()): Promise<DueSiteWideReminder[]> {
+  const todayStart = startOfDay(today);
+  const todayIso = formatIso(todayStart);
+
+  const rows = await db
+    .select({
+      reminderId: reminders.id,
+      leadDays: reminders.leadDays,
+      lastSentForYear: reminders.lastSentForYear,
+      occasionId: occasions.id,
+      occasionName: occasions.name,
+      occasionKind: occasions.kind,
+      occasionDate: occasions.date,
+      yearRecurring: occasions.yearRecurring,
+      userId: users.id,
+      userEmail: users.email,
+    })
+    .from(reminders)
+    .innerJoin(occasions, eq(reminders.occasionId, occasions.id))
+    .innerJoin(users, eq(occasions.userId, users.id))
+    .where(
+      and(
+        isNull(reminders.personId),
+        isNotNull(reminders.occasionId),
+        isNotNull(occasions.date),
+        isNull(occasions.personId),
+        or(
+          and(
+            sql`EXTRACT(MONTH FROM ${occasions.date}) = EXTRACT(MONTH FROM ${todayIso}::date + ${reminders.leadDays})`,
+            sql`EXTRACT(DAY FROM ${occasions.date}) = EXTRACT(DAY FROM ${todayIso}::date + ${reminders.leadDays})`,
+            sql`${occasions.yearRecurring} = true`,
+          ),
+          and(
+            sql`${occasions.yearRecurring} = false`,
+            sql`${occasions.date} = ${todayIso}::date + ${reminders.leadDays}`,
+          ),
+        ),
+        or(
+          isNull(reminders.lastSentForYear),
+          sql`${reminders.lastSentForYear} != EXTRACT(YEAR FROM ${todayIso}::date + ${reminders.leadDays})::int`,
+        ),
+      ),
+    );
+
+  return rows
+    .map((row) => {
+      if (!row.occasionDate) return null;
+      const parsed = new Date(row.occasionDate);
+      const candidateYear = todayStart.getFullYear();
+      let target = new Date(candidateYear, parsed.getMonth(), parsed.getDate());
+      if (target < todayStart) {
+        target = new Date(candidateYear + 1, parsed.getMonth(), parsed.getDate());
+      }
+      return {
+        reminderId: row.reminderId,
+        occasionId: row.occasionId,
+        occasionName: row.occasionName,
+        occasionKind: row.occasionKind,
+        occasionDate: row.occasionDate,
+        leadDays: row.leadDays,
+        targetDate: formatIso(target),
+        targetYear: target.getFullYear(),
+        userId: row.userId,
+        userEmail: row.userEmail,
+      } as DueSiteWideReminder;
+    })
+    .filter((v): v is DueSiteWideReminder => v !== null);
 }
 
 export async function sendReminderForPersonNow(personId: string) {
