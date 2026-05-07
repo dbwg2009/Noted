@@ -6,13 +6,13 @@ V1 shipped all planned phases (0–5). V2 adds five new phases that extend the a
 
 ## V2 Phases at a glance
 
-| Phase | Name | Status | GitHub Milestone |
-|-------|------|--------|-----------------|
-| 6 | Other Occasions | **done** | Phase 6: Other Occasions |
-| 7 | Shareable Wishlists | **done** | Phase 7: Shareable Wishlists |
-| 8 | Group Gifts | **pending** | Phase 8: Group Gifts |
-| 9 | Price-Drop Alerts | **pending** | Phase 9: Price-Drop Alerts |
-| 10 | Browser Extension | **pending** | Phase 10: Browser Extension |
+| Phase | Name | Version | Status | GitHub Milestone |
+|-------|------|---------|--------|-----------------|
+| 6 | Other Occasions | `v1.2.0` | **done** | Phase 6: Other Occasions |
+| 7 | Shareable Wishlists | `v1.3.0` | **done** | Phase 7: Shareable Wishlists |
+| 8 | Group Gifts | `v1.4.0` | **pending** | Phase 8: Group Gifts |
+| 9 | Price-Drop Alerts | `v1.5.0` | **pending** | Phase 9: Price-Drop Alerts |
+| 10 | Browser Extension | `v1.6.0` | **pending** | Phase 10: Browser Extension |
 
 Implement phases in order. Each builds on the data layer of the previous. Do not skip phases without explicit user approval.
 
