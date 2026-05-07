@@ -1,0 +1,27 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [Development, main]
+
+jobs:
+  checks:
+    name: TypeScript & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: ESLint
+        run: npm run lint

@@ -1,6 +1,14 @@
 # Onboarding for AI agents
 
-Read this first. It exists so any AI session (Claude Code, Cursor, etc.) can pick up where the previous one left off without re-deriving the project.
+Read this first. It exists so any AI session (Claude Code, Cursor, Gemini, etc.) can pick up where the previous one left off without re-deriving the project.
+
+---
+
+## MANDATORY: Read memory files before doing anything
+
+**Every AI agent must read all files in `.claude/memory/` before taking any action — not just before touching GitHub, but before writing code, making decisions, or answering questions about process.**
+
+The index is at `.claude/memory/MEMORY.md`. Each file there contains locked rules about how this project is run. Violating them will cause rework.
 
 ---
 
@@ -15,10 +23,10 @@ Owner / initial admin: **dbwg2009**.
 - **`docs/DESIGN.md`** — full design: goals, features, data model, architecture, build phases, repo layout. **Read this before changing anything non-trivial.**
 - **`docs/V2_DESIGN.md`** — **V2 roadmap**: five new phases (6–10) with schema deltas, new routes, and step-by-step implementation notes. **Read this before starting any V2 phase.** Each phase has a corresponding GitHub milestone.
 - **`docs/DECISIONS.md`** — locked decisions and a change log (single-user, email reminders, UK/GBP, OpenRouter LLM, Docker primary). Update this when a decision changes; do not silently override.
-- **`CHANGELOG.md`** — running log of every significant change: what changed, why, and when. **All AI agents must update this on every commit.** See the file for the entry format.
+- **`CHANGELOG.md`** — running log of every significant change: what changed, why, and when. **All AI agents must update this on every commit without exception.** See the file for the entry format.
 - **`README.md`** — quick-start (Docker + native Node).
 - **`db/schema.ts`** — the source of truth for the DB shape.
--- **`lib/auth.ts`** — Auth.js v5 config (Credentials provider for email/password, Drizzle adapter). Previously used Resend magic-link + `ALLOWED_EMAIL`.
+- **`lib/auth.ts`** — Auth.js v5 config (Credentials provider for email/password, Drizzle adapter). Previously used Resend magic-link + `ALLOWED_EMAIL`.
 - **`Dockerfile`** + **`docker-compose.yml`** — primary deployment target is Docker on a Pi.
 
 ## Locked decisions (do not silently change)
@@ -55,8 +63,8 @@ If a decision genuinely needs to change, update `docs/DECISIONS.md` in the same 
 
 | Phase | Status | Scope |
 |-------|--------|-------|
-| 6 — Other Occasions | **pending** | Anniversary, Christmas, Mother's/Father's Day, custom occasions. New `occasions` table + per-occasion reminders. Dashboard + calendar updated. |
-| 7 — Shareable Wishlists | **pending** | Read-only token-based public link to a person's wishlist. New `wishlist_shares` table. `/share/[token]` public route. |
+| 6 — Other Occasions | **done** | Anniversary, Christmas, Mother's/Father's Day, custom occasions. New `occasions` table + per-occasion reminders. Dashboard + calendar updated. |
+| 7 — Shareable Wishlists | **done** | Read-only token-based public link to a person's wishlist. New `wishlist_shares` table. `/share/[token]` public route. |
 | 8 — Group Gifts | **pending** | Coordinate split purchases. `gift_groups` + `gift_group_contributors` tables. `/gift-groups` UI. |
 | 9 — Price-Drop Alerts | **pending** | Watch a saved product; email when price drops below target. `price_alerts` table + cron extension + eBay price check. |
 | 10 — Browser Extension | **pending** | Chrome/Firefox MV3 extension: right-click → save product to wishlist. New `/api/v1/wishlist-items` REST endpoint + `api_keys` table. |
@@ -68,7 +76,7 @@ When starting work, find the first **pending** phase above. **Don't skip phases*
 - Next.js 15, App Router, server actions, **standalone output**.
 - TypeScript strict.
 - Drizzle ORM. Schema in `db/schema.ts`. Run migrations with `npm run db:push` (or via the `migrate` service in compose).
-- Auth.js v5 (`next-auth@5.0.0-beta.x`) with Resend provider + Drizzle adapter. DB sessions, not JWT.
+- Auth.js v5 (`next-auth@5.0.0-beta.x`) with Credentials provider + Drizzle adapter. JWT sessions (required by Credentials — DB sessions unsupported).
 - Tailwind v3 (no UI library yet — bespoke components in `components/`).
 - **OpenRouter** via plain `fetch` to `/api/v1/chat/completions` (no SDK dependency). Default model `meta-llama/llama-3.3-70b-instruct:free`.
 - `resend` for outbound mail.
@@ -122,32 +130,79 @@ The repo uses **semantic versioning** tied to build phases. All tags and release
 | `v0.3.0` | Phase 3 — Suggestions & History | AI suggestions, gift history |
 | `v0.4.0` | Phase 4 — Reminders | Email digests, cron sidecar |
 | `v1.0.0` | Phase 5 — Polish & Rebrand | All phases complete, Noted brand |
+| `v1.1.0` | Auth overhaul + infra | Credentials provider, JWT sessions, multi-arch Docker, perf fixes |
+| `v1.2.0` | Phase 6 — Other Occasions | Occasions table, per-occasion reminders, site-wide occasions with exclusions |
+| `v1.3.0` | Phase 7 — Shareable Wishlists | Token-based public wishlist links, configurable visibility, expiry presets |
 
-**Rules for future releases:**
-- Tag format: `vMAJOR.MINOR.PATCH` (e.g. `v1.1.0` for a meaningful new feature, `v1.0.1` for a bug fix).
-- Cut a new GitHub release whenever a meaningful feature or fix ships to `main`. Use `gh release create <tag> --title "..." --notes "..."`.
-- Mark it `--latest` when it supersedes the previous release. Keep release notes concise: what changed and why, not a commit dump.
-- Do **not** tag mid-phase work-in-progress commits — only tag stable, deployable states on `main`.
+**Release rules (enforced — read carefully):**
+- A release **must** be cut for every push or PR that lands on `main` that changes code. Docs-only changes (CLAUDE.md, GEMINI.md, memory files, design docs, README) do not need a release.
+- `MAJOR` — **only** when the user explicitly asks. Never bump major on your own initiative.
+- `MINOR` — every completed phase (e.g. `v1.4.0` for Phase 8).
+- `PATCH` — every bug fix or non-phase change that lands on `main`.
+- Release notes format: a short plain-English summary paragraph, then a detailed bullet list. Mention bug fix issue numbers (e.g. `fixes #42`). Do not link closed phase issues.
+- Use `gh release create <tag> --title "vX.Y.Z — <short title>" --notes "..." --latest`.
 
-**GitHub milestones** (https://github.com/dbwg2009/Noted/milestones) map 1-to-1 to build phases (all currently closed). If new phases are added, create a matching milestone via `gh api repos/dbwg2009/Noted/milestones -X POST -f title="Phase N: ..." -f state=open`.
+**Version bump (`package.json`):** Bump just before opening the PR to Development — as the final commit on the feature branch. The version reflects what is about to ship.
+
+**GitHub milestones** map 1-to-1 to build phases. Create a new milestone only when a phase starts. Close the milestone as part of the post-release checklist. Milestones 8–10 already exist with due dates.
+
+## Process rules (enforced — read memory files for full detail)
+
+All process rules are stored as individual files in `.claude/memory/`. The index (`MEMORY.md`) lists every file. **Read all of them before doing anything.** Below is a summary — the memory files are authoritative.
+
+### Planning
+- For new phases: summarise scope from design doc → ask if scope should change → ask all clarifying questions upfront in a numbered list → wait for explicit "go ahead" before writing any code.
+- For small changes (bug fixes, minor tweaks): skip planning, just build.
+
+### Branches
+- Every branch is tied to an issue. Open the issue first.
+- Always branch from `Development` unless told otherwise. Never from `main`.
+- Naming: `phase-N-short-description` for phases, descriptive name for fixes.
+- All branches PR into `Development`. Only `Development` PRs into `main`.
+- Flag stale branches to the user — never delete unilaterally.
+
+### Commits
+- Use conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`.
+- Update `CHANGELOG.md` on every commit without exception.
+- Bump `package.json` version as the final commit before opening a PR to Development.
+- Compact `CHANGELOG.md` into `CHANGELOG-legacy.md` when it exceeds ~300 lines (flag to user first).
+
+### Pull requests
+- **Do not open a PR unless the user explicitly says to.** When in doubt, ask.
+- Feature → Development: I open (when told), I can merge.
+- Development → main: I open (when user says they're happy), user merges.
+- All PRs: use the PR template, assign `dbwg2009`, add labels + milestone, reference the issue.
+- Post a progress comment on the issue when a PR is opened.
+
+### Issues
+- Every piece of work gets an issue (either of us can open it).
+- Use the GitHub issue templates. Assign `dbwg2009`, add labels + milestone.
+- Post progress comments to keep the issue up to date throughout.
+- Never close an issue without the user's explicit sign-off.
+
+### Post-release checklist (after user confirms merge to main)
+1. Cut GitHub release (`gh release create`)
+2. Close the related issue
+3. Close the corresponding milestone
+4. Delete stray feature branches (keep `Development` and `main`)
 
 ## Picking up the work
 
-1. Read `docs/DESIGN.md` and `docs/DECISIONS.md`.
-2. Check the build phase table above; the first **pending** phase is your next job.
-3. Small, focused commits with descriptive messages. Match existing commit style (imperative subject + short body explaining the why).
-4. **Before committing:** add an entry to `CHANGELOG.md` describing what you changed and why. Use the format in that file.
-5. After work, push the branch and confirm with the user before opening a PR / merging to main.
-6. Update this file or `docs/DECISIONS.md` if the decisions change.
-7. When merging to `main` and the change is release-worthy, cut a GitHub release (see versioning section above).
+1. **Read `.claude/memory/MEMORY.md` and all linked files first.**
+2. Read `docs/DESIGN.md` and `docs/DECISIONS.md`.
+3. Check the build phase table above; the first **pending** phase is your next job.
+4. Open an issue for the work before creating a branch.
+5. Branch from `Development`, commit with conventional commit format, update `CHANGELOG.md` on every commit.
+6. Bump `package.json` version as the last commit before opening the PR to Development.
+7. Do not open a PR without being asked.
+8. After user confirms merge to main: cut release, close issue, close milestone, delete stray branches.
 
 ## Known gotchas
 
 - The runner Docker stage is a Next.js **standalone** image — it does NOT have `drizzle-kit` or devDeps. Migrations run via the separate `migrate` service in compose, which uses the `migrator` target from the same Dockerfile.
 - The `postgres-js` driver pool defaults are tuned for the Docker Postgres; if Neon is used, may need `ssl: "require"` query param in `DATABASE_URL`.
 - Auth.js v5 is in beta; the API may shift between minor versions. Pin the version in `package.json`.
-- Resend's magic-link emails work fine pointing at `localhost:3000` for dev — the link is just a URL the user clicks.
-- OpenRouter free models are aggressively rate-limited (a few requests per minute). Two distinct sources of 429: (1) per-account daily/minute caps, and (2) **upstream provider rate limits** that affect all OpenRouter users at once (e.g. Google AI Studio for Gemma free models). Upstream limits show up as `Provider returned error` in the body. Fix: switch model via `OPENROUTER_MODEL`, or BYOK at https://openrouter.ai/settings/integrations. The `searchProducts()` orchestrator detects rate-limit-shaped errors and falls through to eBay automatically.
+- OpenRouter free models are aggressively rate-limited (a few requests per minute). Two distinct sources of 429: (1) per-account daily/minute caps, and (2) **upstream provider rate limits** that affect all OpenRouter users at once. Upstream limits show up as `Provider returned error` in the body. Fix: switch model via `OPENROUTER_MODEL`, or BYOK at https://openrouter.ai/settings/integrations. The `searchProducts()` orchestrator detects rate-limit-shaped errors and falls through to eBay automatically.
 - Reminder cron: `cron` sidecar runs `curl http://app:3000/api/cron/reminders` every `CRON_INTERVAL_SECONDS` (default 86400). The route requires `Authorization: Bearer $CRON_SECRET`. `runDailyReminders()` is idempotent — `last_sent_for_year` ensures the same reminder won't fire twice per cycle, so manual triggering during dev is safe.
 - LLM-generated product URLs are NOT verified — the model can hallucinate. The eBay fallback is the only path for guaranteed-real URLs. UI labels saved products with their `source` (`AI` vs `Manual`) so the user knows.
 - `app/people/page.tsx` is the **list page only**; person detail is `app/people/[id]/page.tsx`. Wishlist + product UI lives in the detail page. Server actions are still in `app/people/actions.ts` and shared between both.
