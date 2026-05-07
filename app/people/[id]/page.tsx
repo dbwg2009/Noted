@@ -69,6 +69,9 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
     getWishlistShareForPerson(id),
   ]);
 
+  const baseUrl = (process.env.AUTH_URL ?? "").replace(/\/$/, "");
+  const shareUrl = wishlistShare ? `${baseUrl}/share/${wishlistShare.token}` : "";
+
   const flashRaw = (await cookies()).get("people_flash")?.value;
   let flash: { message: string; tone: "success" | "warning" | "error" } | null = null;
   if (flashRaw) {
@@ -719,10 +722,10 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
               <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">Share link</p>
               <div className="flex flex-wrap items-center gap-2">
                 <code className="flex-1 truncate rounded-md bg-neutral-100 px-3 py-2 text-xs dark:bg-neutral-800">
-                  /share/{wishlistShare.token}
+                  {shareUrl}
                 </code>
                 <CopyButton
-                  text={`${typeof window !== "undefined" ? window.location.origin : ""}/share/${wishlistShare.token}`}
+                  text={shareUrl}
                   className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
                 />
               </div>
