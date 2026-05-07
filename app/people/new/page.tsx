@@ -29,7 +29,34 @@ export default async function NewPersonPage() {
             <input name="name" required className={inputCls} />
           </Field>
           <Field label="Birthday *">
-            <input name="birthday" type="date" required className={inputCls} />
+            <div className="grid gap-2 sm:grid-cols-3">
+              <select name="birthdayMonth" required className={inputCls}>
+                <option value="">Month</option>
+                {[...Array(12)].map((_, index) => {
+                  const month = index + 1;
+                  return (
+                    <option key={month} value={month.toString().padStart(2, "0")}>{month}</option>
+                  );
+                })}
+              </select>
+              <select name="birthdayDay" required className={inputCls}>
+                <option value="">Day</option>
+                {[...Array(31)].map((_, index) => {
+                  const day = index + 1;
+                  return (
+                    <option key={day} value={day.toString().padStart(2, "0")}>{day}</option>
+                  );
+                })}
+              </select>
+              <div id="new-birthday-year-container">
+                <input
+                  name="birthdayYear"
+                  type="number"
+                  placeholder="Year"
+                  className={inputCls}
+                />
+              </div>
+            </div>
           </Field>
           <Field label="Relationship">
             <input
@@ -46,9 +73,9 @@ export default async function NewPersonPage() {
           </Field>
           <label className="flex items-center gap-2 text-sm">
             <input
+              id="new-birthyear-known"
               type="checkbox"
               name="birthYearKnown"
-              defaultChecked
               className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700"
             />
             Birth year known
@@ -115,6 +142,20 @@ export default async function NewPersonPage() {
           </Link>
         </div>
       </form>
+      <script dangerouslySetInnerHTML={{ __html: `(function(){
+        var checkbox = document.getElementById('new-birthyear-known');
+        var yearContainer = document.getElementById('new-birthday-year-container');
+        function toggle() {
+          if (!checkbox || !yearContainer) return;
+          if (checkbox.checked) {
+            yearContainer.classList.remove('hidden');
+          } else {
+            yearContainer.classList.add('hidden');
+          }
+        }
+        checkbox?.addEventListener('change', toggle);
+        toggle();
+      })();` }} />
     </main>
   );
 }

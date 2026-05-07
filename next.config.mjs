@@ -3,6 +3,7 @@ const nextConfig = {
   output: "standalone",
   experimental: {
     serverActions: { bodySizeLimit: "2mb" },
+    staleTimes: { dynamic: 0 },
   },
   // Skip type-checking and linting at build time — the Pi can't finish tsc
   // in a reasonable time. Run `tsc --noEmit` and `next lint` in dev/CI instead.
