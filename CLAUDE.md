@@ -158,6 +158,13 @@ The repo uses **semantic versioning** tied to build phases. All tags and release
 - Photo uploads use `lib/storage.ts`. Default strategy is `local` (writes to `public/uploads/`, needs a Docker volume for persistence). Set `STORAGE_STRATEGY=base64` for serverless/Vercel deployments (stores the file as a `data:` URI in `photo_url`).
 - The iCal feed is at `/api/ical/[token]`. The token is `users.ical_token` (a UUID). Resetting it invalidates old calendar subscriptions. Token must be non-null for the feed route to work — it is auto-generated on account creation via `defaultRandom()`.
 
+## Workflow preferences (read before touching GitHub)
+
+Stored in `.claude/memory/` — read these before opening any issue or PR:
+
+- **`.claude/memory/feedback_pr_target.md`** — PR rules (always target `Development`, never `main`)
+- **`.claude/memory/feedback_github_issues.md`** — issue/PR hygiene (labels, assignee, milestone, progress comments, never close without user sign-off)
+
 ## When something is unclear
 
 Ask the user. Don't guess on locked decisions, schema changes, or anything affecting cost (AI calls, paid APIs).
