@@ -13,6 +13,10 @@ on:
       - 'CONTRIBUTING.md'
       - 'LICENSE'
 
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   push_to_registry:
     name: Build and push Docker image
