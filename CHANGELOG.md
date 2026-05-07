@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Remove esbuild binaries from Docker runner image (CVE-2024-24790, CVE-2025-68121)
+**By:** Claude Code
+**What:** Added `rm -rf node_modules/@esbuild` to the runner stage in `Dockerfile`, merged into the existing `mkdir/chown` RUN step.
+**Why:** Next.js standalone file tracing includes `@esbuild/linux-x64` (esbuild v0.19.12, compiled with Go 1.20.12) in the runner image even though esbuild is a build-time tool not needed at runtime. The binary carries two CRITICAL Go stdlib CVEs: CVE-2024-24790 (`net/netip`) and CVE-2025-68121 (`crypto/tls`). Stripping the `@esbuild` namespace from the final image removes the attack surface. Fixes #90.
+
 ## [2026-05-07] Fix trivy-action version in docker-publish workflow
 **By:** Claude Code
 **What:** Bumped `aquasecurity/trivy-action` from `0.31.0` to `v0.36.0` in `.github/workflows/docker-publish.yml`.
