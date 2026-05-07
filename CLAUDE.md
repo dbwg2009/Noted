@@ -55,7 +55,7 @@ If a decision genuinely needs to change, update `docs/DECISIONS.md` in the same 
 
 | Phase | Status | Scope |
 |-------|--------|-------|
-| 6 — Other Occasions | **pending** | Anniversary, Christmas, Mother's/Father's Day, custom occasions. New `occasions` table + per-occasion reminders. Dashboard + calendar updated. |
+| 6 — Other Occasions | **done** | Anniversary, Christmas, Mother's/Father's Day, custom occasions. New `occasions` table + per-occasion reminders. Dashboard + calendar updated. |
 | 7 — Shareable Wishlists | **pending** | Read-only token-based public link to a person's wishlist. New `wishlist_shares` table. `/share/[token]` public route. |
 | 8 — Group Gifts | **pending** | Coordinate split purchases. `gift_groups` + `gift_group_contributors` tables. `/gift-groups` UI. |
 | 9 — Price-Drop Alerts | **pending** | Watch a saved product; email when price drops below target. `price_alerts` table + cron extension + eBay price check. |

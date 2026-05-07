@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Phase 6 complete — Other Occasions
+**By:** Claude Code
+**What:** Marked Phase 6 (Other Occasions) as **done** in `CLAUDE.md` and `docs/V2_DESIGN.md`. No code changes — this entry records the phase completion milestone.
+**Why:** All Phase 6 scope shipped: `occasions` table, per-occasion reminders, site-wide occasions with per-person exclusions, dashboard/calendar updates, and person-detail occasion management. Phase 7 (Shareable Wishlists) is now the next pending phase.
+
+---
+
 ## [2026-05-06] Site-wide occasions with per-person exclusions
 **By:** Claude Code
 **What:**
