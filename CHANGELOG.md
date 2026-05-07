@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Bump version to 1.3.0 — Phase 7 release
+**By:** Claude Code
+**What:** `package.json` version 1.2.0 → 1.3.0. Added `v1.3.0` row to the versioning table in `CLAUDE.md`. GitHub release `v1.3.0` cut.
+**Why:** Phase 7 (Shareable Wishlists) is complete and merged to main; tagging a stable release point.
+
+---
+
 ## [2026-05-07] Phase 7 — Shareable Wishlists
 **By:** Claude Code
 **What:** Implemented Phase 7 (Shareable Wishlists) in full.
