@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Refresh README for public launch
+**By:** Claude Code
+**What:** Complete rewrite of README.md. Added dynamic badges (version, license, Next.js, Docker), three-column screenshots section (dashboard, calendar, person detail — sensitive data redacted), updated features list (now includes Phase 6 Occasions and Phase 7 Shareable Wishlists), rewritten env var table with required/optional column, self-hosting tips (Pi/ARM, uploads, reverse proxy, OpenRouter rate limits), tech stack table, roadmap (phases 8–10), and Contributing/License footer. Added `docs/screenshots/` with three redacted screenshots.
+**Why:** Repo is going public. Old README was stale (referenced phases 0–5 as complete), missing two full feature phases, had no badges or screenshots, and read as a personal quick-start rather than a public project introduction.
+
+---
+
 ## [2026-05-07] Disable auto-delete branches; add Dependabot branch cleanup workflow
 **By:** Claude Code
 **What:** Disabled GitHub's repo-wide "Automatically delete head branches" setting. Added `.github/workflows/cleanup-dependabot-branches.yml` — triggers on merged PRs whose head branch starts with `dependabot/` and deletes that branch via the GitHub API.
