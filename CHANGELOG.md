@@ -20,6 +20,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Upgrade Next.js, next-auth, drizzle-kit to fix npm vulnerabilities
+**By:** Claude Code
+**What:** `next` 15.2.9 → 15.5.18 (+ `eslint-config-next` to match), `next-auth` 5.0.0-beta.25 → 5.0.0-beta.31, `drizzle-kit` 0.30.x → 0.31.10. TypeScript and tests verified clean. 6 moderate vulnerabilities remain in upstream transitive deps (esbuild in drizzle-kit internals, postcss in Next.js internals) with no fix available without downgrading.
+**Why:** High severity Next.js CVEs (SSRF, cache poisoning, HTTP request smuggling, DoS, content injection), moderate next-auth email misdelivery CVE. The high severity issues are the priority given the app is publicly reachable.
+
+---
+
 ## [2026-05-07] Remove esbuild binaries from Docker runner image (CVE-2024-24790, CVE-2025-68121)
 **By:** Claude Code
 **What:** Added `rm -rf node_modules/@esbuild` to the runner stage in `Dockerfile`, merged into the existing `mkdir/chown` RUN step.
