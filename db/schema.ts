@@ -34,6 +34,16 @@ export const aiRequestKind = pgEnum("ai_request_kind", [
   "reminder_shortlist",
 ]);
 
+export const occasionKind = pgEnum("occasion_kind", [
+  "anniversary",
+  "christmas",
+  "mothers_day",
+  "fathers_day",
+  "valentines",
+  "easter",
+  "custom",
+]);
+
 // --- Auth.js tables (Drizzle adapter shape) ---
 
 export const users = pgTable("users", {
