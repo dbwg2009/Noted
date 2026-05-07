@@ -1,0 +1,55 @@
+name: Feature / Phase work
+description: New feature, build phase, or enhancement
+labels: ["enhancement"]
+assignees: ["dbwg2009"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for new features, V2 phases, and enhancements.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: What is being built or changed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: Why is this needed? Link any design docs or user feedback.
+    validations:
+      required: true
+
+  - type: input
+    id: milestone
+    attributes:
+      label: Milestone / Phase
+      description: Which build phase or milestone does this belong to? (e.g. Phase 8 — Group Gifts)
+    validations:
+      required: false
+
+  - type: input
+    id: branch
+    attributes:
+      label: Branch
+      description: Working branch name, if already created (e.g. phase-8-group-gifts)
+    validations:
+      required: false
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Tasks
+      description: Checklist of work items — update as work progresses.
+      placeholder: |
+        - [ ] Schema changes
+        - [ ] Server actions
+        - [ ] UI
+        - [ ] CHANGELOG updated
+        - [ ] PR opened
+    validations:
+      required: false
