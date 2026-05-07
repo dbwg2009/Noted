@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Add release helper workflow
+**By:** Claude Code
+**What:** Added `.github/workflows/release.yml` — a `workflow_dispatch` workflow with three inputs (`tag`, `title`, `notes`) that runs `gh release create --latest`. Accessible via Actions → Release in the GitHub UI.
+**Why:** Removes friction from the release process. No automation — still fully manual and phase-gated — just surfaces the `gh release create` command in the GitHub UI so releases can be cut without the CLI.
+
+---
+
 ## [2026-05-07] Fix Trivy SARIF severity alignment (limit-severities-for-sarif)
 **By:** Claude Code
 **What:** Added `limit-severities-for-sarif: true` to the Trivy scan step in `.github/workflows/docker-publish.yml`.

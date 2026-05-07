@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag (e.g. v1.4.0)'
+        required: true
+      title:
+        description: 'Release title (e.g. v1.4.0 — Phase 8: Group Gifts)'
+        required: true
+      notes:
+        description: 'Release notes (plain English summary + bullet list)'
+        required: true
+
+jobs:
+  release:
+    name: Cut GitHub release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v6
+
+      - name: Create GitHub release
+        run: |
+          gh release create "${{ github.event.inputs.tag }}" \
+            --title "${{ github.event.inputs.title }}" \
+            --notes "${{ github.event.inputs.notes }}" \
+            --latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
