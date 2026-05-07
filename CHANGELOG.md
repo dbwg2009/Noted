@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Add Vitest unit tests for lib/birthdays and lib/occasions
+**By:** Claude Code
+**What:** Added Vitest test framework (`vitest`, `@vitest/coverage-v8`). 57 tests across `lib/__tests__/birthdays.test.ts` and `lib/__tests__/occasions.test.ts` covering date parsing, next-occurrence rollover, age calculation, money formatting, Easter algorithm, known occasion labels, and occurrence countdown logic. `vitest.config.ts` scopes coverage to the two tested files with 85% line/function and 80% branch thresholds. `pr-checks.yml` extended with a `Tests with coverage` step. Test scripts added to `package.json` (`test`, `test:watch`, `test:coverage`).
+**Why:** Repo advisory (item 1): zero test coverage was the highest-priority gap. Pure date/money logic in these two files is the safest starting point; DB/email/API files require integration tests and are excluded from the coverage scope for now.
+
+---
+
 ## [2026-05-07] Bump version to 1.3.3
 **By:** Claude Code
 **What:** `package.json` version `1.3.1` → `1.3.3` (skipping `1.3.2` which landed on main via a direct hotfix). Prepares Development → main PR.
