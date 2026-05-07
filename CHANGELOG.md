@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Fix trivy-action version in docker-publish workflow
+**By:** Claude Code
+**What:** Bumped `aquasecurity/trivy-action` from `0.31.0` to `v0.36.0` in `.github/workflows/docker-publish.yml`.
+**Why:** Version `0.31.0` does not exist as a release tag — GitHub Actions failed to resolve it, breaking every push to Development. `v0.36.0` is the current latest release. Fixes #86.
+
 ## [2026-05-07] Add Docker memory limits and wire Sentry env vars
 **By:** Claude Code
 **What:** Added `deploy.resources.limits.memory` to all four services in `docker-compose.yml`: `db` (512m), `migrate` (256m), `app` (512m), `cron` (64m). Also added `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT` to the app service environment (all optional, default empty).
