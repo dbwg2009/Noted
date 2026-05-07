@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Add Trivy container image vulnerability scan
+**By:** Claude Code
+**What:** Updated `docker-publish.yml`: added `security-events: write` permission; added `app_primary` output to the tags step (single ref for Trivy); added `Scan app image for vulnerabilities` step using `aquasecurity/trivy-action@0.31.0` (CRITICAL severity, ignore-unfixed, SARIF output); added `Upload Trivy results to GitHub Security tab` step.
+**Why:** Repo advisory item 6 — Docker image contains Alpine Linux and all npm deps; any could carry known CVEs. Scan runs after push, fails on critical fixable CVEs, uploads results to the GitHub Security tab.
+
+---
+
 ## [2026-05-07] Add Sentry error tracking
 **By:** Claude Code
 **What:** Installed `@sentry/nextjs`. Added `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` (each guards init behind `SENTRY_DSN` check), `instrumentation.ts` (Next.js 15 hook loading server/edge configs), and updated `next.config.mjs` to wrap with `withSentryConfig` (source map upload disabled when `SENTRY_ORG`/`SENTRY_PROJECT` are absent). `.env.example` updated with three new optional vars.
