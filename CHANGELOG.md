@@ -25,6 +25,15 @@ Every significant change to this project is recorded here. **AI agents must add 
 **What:** Added `limit-severities-for-sarif: true` to the Trivy scan step in `.github/workflows/docker-publish.yml`.
 **Why:** With `format: sarif`, trivy-action builds the SARIF report with all severities and the exit code reflects those broader findings — causing exit 1 even after CRITICAL CVEs were resolved. Setting `limit-severities-for-sarif: true` constrains both the SARIF report and the exit-code check to the specified severity (CRITICAL), so the build only fails when CRITICAL unfixed CVEs are actually present.
 
+---
+
+## [2026-05-07] Add concurrency groups to CI workflows
+**By:** Claude Code
+**What:** Added `concurrency: group: ..., cancel-in-progress: true` to `pr-checks.yml` (group key: `pr-checks-${{ github.ref }}`) and `docker-publish.yml` (group key: `docker-publish-${{ github.ref }}`).
+**Why:** Rapid successive pushes to the same branch were queuing duplicate runs. For the Docker multi-arch build (~10 min) this wasted a full build slot on a result that would be immediately superseded. Cancelling the stale run gives faster feedback on the latest commit.
+
+---
+
 ## [2026-05-07] Upgrade Next.js, next-auth, drizzle-kit to fix npm vulnerabilities
 **By:** Claude Code
 **What:** `next` 15.2.9 → 15.5.18 (+ `eslint-config-next` to match), `next-auth` 5.0.0-beta.25 → 5.0.0-beta.31, `drizzle-kit` 0.30.x → 0.31.10. TypeScript and tests verified clean. 6 moderate vulnerabilities remain in upstream transitive deps (esbuild in drizzle-kit internals, postcss in Next.js internals) with no fix available without downgrading.
