@@ -1,0 +1,2 @@
+export PATH="/c/Program Files/nodejs:$PATH"
+node_modules/.bin/lint-staged

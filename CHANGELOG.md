@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Add husky + lint-staged + commitlint pre-commit enforcement
+**By:** Claude Code
+**What:** Installed `husky`, `lint-staged`, `@commitlint/cli`, `@commitlint/config-conventional`. Added `.husky/pre-commit` (runs lint-staged on staged `.ts`/`.tsx` files) and `.husky/commit-msg` (validates Conventional Commits format). `commitlint.config.ts` extends `@commitlint/config-conventional`. `prepare` script added to `package.json` so hooks install on `npm install`. `lint-staged` config in `package.json` runs ESLint with `--max-warnings=0`.
+**Why:** Repo advisory item 2 — CLAUDE.md requires conventional commits and ESLint-clean code on every commit but nothing enforced it. Now a badly formatted commit message or an ESLint error blocks the commit before it reaches GitHub.
+
+---
+
 ## [2026-05-07] Add Vitest unit tests for lib/birthdays and lib/occasions
 **By:** Claude Code
 **What:** Added Vitest test framework (`vitest`, `@vitest/coverage-v8`). 57 tests across `lib/__tests__/birthdays.test.ts` and `lib/__tests__/occasions.test.ts` covering date parsing, next-occurrence rollover, age calculation, money formatting, Easter algorithm, known occasion labels, and occurrence countdown logic. `vitest.config.ts` scopes coverage to the two tested files with 85% line/function and 80% branch thresholds. `pr-checks.yml` extended with a `Tests with coverage` step. Test scripts added to `package.json` (`test`, `test:watch`, `test:coverage`).
