@@ -135,7 +135,7 @@ The repo uses **semantic versioning** tied to build phases. All tags and release
 | `v1.3.0` | Phase 7 — Shareable Wishlists | Token-based public wishlist links, configurable visibility, expiry presets |
 
 **Release rules (enforced — read carefully):**
-- A release **must** be cut for every push or PR that lands on `main` — no exceptions.
+- A release **must** be cut for every push or PR that lands on `main` that changes code. Docs-only changes (CLAUDE.md, GEMINI.md, memory files, design docs, README) do not need a release.
 - `MAJOR` — **only** when the user explicitly asks. Never bump major on your own initiative.
 - `MINOR` — every completed phase (e.g. `v1.4.0` for Phase 8).
 - `PATCH` — every bug fix or non-phase change that lands on `main`.
