@@ -1,0 +1,75 @@
+name: Label PR
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  label-area:
+    name: Label area (file paths)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
+
+  label-type:
+    name: Label type (PR title prefix)
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.pull_request.title.toLowerCase();
+            const number = context.payload.pull_request.number;
+
+            const typeMap = [
+              { prefix: /^feat(\(.+\))?:/,     label: 'enhancement' },
+              { prefix: /^fix(\(.+\))?:/,      label: 'bug'         },
+              { prefix: /^chore(\(.+\))?:/,    label: 'chore'       },
+              { prefix: /^docs(\(.+\))?:/,     label: 'documentation' },
+              { prefix: /^refactor(\(.+\))?:/, label: 'enhancement' },
+              { prefix: /^perf(\(.+\))?:/,     label: 'performance' },
+              { prefix: /^infra(\(.+\))?:/,    label: 'infra'       },
+            ];
+
+            const typeLabels = ['enhancement', 'bug', 'chore', 'documentation', 'performance', 'infra'];
+
+            const match = typeMap.find(({ prefix }) => prefix.test(title));
+            if (!match) {
+              console.log('No conventional commit prefix found in title — skipping type label.');
+              return;
+            }
+
+            // Remove any existing type labels to avoid stale labels after a title edit
+            const { data: current } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: number,
+            });
+
+            for (const label of current) {
+              if (typeLabels.includes(label.name)) {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: number,
+                  name: label.name,
+                });
+              }
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: number,
+              labels: [match.label],
+            });
+
+            console.log(`Applied type label: ${match.label}`);

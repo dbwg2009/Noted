@@ -1,0 +1,47 @@
+# Area labels — applied based on which files changed in the PR.
+# Type labels (bug, enhancement, etc.) are applied separately from the PR title prefix.
+
+"area: frontend":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "app/**"
+      - "components/**"
+      - "public/**"
+      - "styles/**"
+
+"area: database":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "db/**"
+      - "lib/*queries*"
+      - "lib/*schema*"
+      - "drizzle.config.*"
+
+"area: auth":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "lib/auth*"
+      - "app/login/**"
+      - "app/api/auth/**"
+      - "middleware.ts"
+
+"area: api":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "app/api/**"
+
+"area: infra":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "Dockerfile"
+      - "docker-compose*.yml"
+      - ".github/**"
+      - "*.config.*"
+      - ".env.example"
+
+"area: docs":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "*.md"
+      - "docs/**"
+      - ".claude/**"
