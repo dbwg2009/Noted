@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Add Docker memory limits and wire Sentry env vars
+**By:** Claude Code
+**What:** Added `deploy.resources.limits.memory` to all four services in `docker-compose.yml`: `db` (512m), `migrate` (256m), `app` (512m), `cron` (64m). Also added `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT` to the app service environment (all optional, default empty).
+**Why:** Repo advisory item 7 — without limits, a memory leak or traffic spike could exhaust Pi RAM and trigger the OOM killer, potentially killing the Postgres process. Limits ensure Docker restarts the affected container cleanly. Sentry vars needed as a follow-up to item 3 — the code was wired up but the vars weren't passed through in Docker.
+
+---
+
 ## [2026-05-07] Add Dependabot auto-merge workflow
 **By:** Claude Code
 **What:** Added `.github/workflows/dependabot-auto-merge.yml`. Triggers on Dependabot PRs only; uses `dependabot/fetch-metadata` to read the update type; calls `gh pr merge --auto --squash` for patch and minor bumps. Major version bumps are left open for manual review.
