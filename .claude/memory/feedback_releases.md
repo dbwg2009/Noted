@@ -4,7 +4,7 @@ description: When to cut releases, version bump rules, and release note format
 type: feedback
 originSessionId: 8cf213dd-502d-49ba-b859-563e9a338dea
 ---
-A release MUST be cut for every push or PR that lands on main — no exceptions.
+A release MUST be cut for every push or PR that lands on main that changes code. Docs-only changes (CLAUDE.md, GEMINI.md, memory files, design docs, README) do not need a release.
 
 **Version bump rules:**
 - `MAJOR` — ONLY when the user explicitly asks. Never bump major on your own initiative under any circumstances.
