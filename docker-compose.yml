@@ -22,10 +22,6 @@ services:
       context: .
       dockerfile: Dockerfile
       target: migrator
-      # If you're building on a Raspberry Pi, you may need to set the platform
-      # to match your architecture (e.g. linux/arm/v7 or linux/arm64). You can
-      # export PLATFORM=linux/arm/v7 and uncomment the line below to force it.
-      # platform: ${PLATFORM:-}
       provenance: false
       sbom: false
     restart: "no"
@@ -41,8 +37,6 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runner
-      # See note above about `PLATFORM` if building on Pi.
-      # platform: ${PLATFORM:-}
       provenance: false
       sbom: false
     restart: unless-stopped
