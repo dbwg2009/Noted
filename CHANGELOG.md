@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Add Sentry error tracking
+**By:** Claude Code
+**What:** Installed `@sentry/nextjs`. Added `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` (each guards init behind `SENTRY_DSN` check), `instrumentation.ts` (Next.js 15 hook loading server/edge configs), and updated `next.config.mjs` to wrap with `withSentryConfig` (source map upload disabled when `SENTRY_ORG`/`SENTRY_PROJECT` are absent). `.env.example` updated with three new optional vars.
+**Why:** Repo advisory item 3 — app runs unattended on a Pi; all errors were silent `console.error` calls. Sentry captures unhandled exceptions with stack traces and sends email alerts on first occurrence. All three env vars are optional so self-hosters who don't want Sentry can leave them blank.
+
+---
+
 ## [2026-05-07] Add husky + lint-staged + commitlint pre-commit enforcement
 **By:** Claude Code
 **What:** Installed `husky`, `lint-staged`, `@commitlint/cli`, `@commitlint/config-conventional`. Added `.husky/pre-commit` (runs lint-staged on staged `.ts`/`.tsx` files) and `.husky/commit-msg` (validates Conventional Commits format). `commitlint.config.ts` extends `@commitlint/config-conventional`. `prepare` script added to `package.json` so hooks install on `npm install`. `lint-staged` config in `package.json` runs ESLint with `--max-warnings=0`.
