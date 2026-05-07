@@ -1,0 +1,44 @@
+name: Bug
+description: Something isn't working correctly
+labels: ["bug"]
+assignees: ["dbwg2009"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for anything broken or behaving unexpectedly.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What's wrong
+      description: Describe the broken behaviour.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What should happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See error
+    validations:
+      required: false
+
+  - type: input
+    id: branch
+    attributes:
+      label: Branch
+      description: Branch where the fix will land (e.g. fix/share-url)
+    validations:
+      required: false
