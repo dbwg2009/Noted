@@ -20,6 +20,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      security-events: write
     steps:
       - name: Check out the repo
         uses: actions/checkout@v6
@@ -49,9 +50,11 @@ jobs:
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "app=ghcr.io/dbwg2009/noted:latest,dbwg2009/noted:latest" >> $GITHUB_OUTPUT
+            echo "app_primary=ghcr.io/dbwg2009/noted:latest" >> $GITHUB_OUTPUT
             echo "migrator=ghcr.io/dbwg2009/noted-migrator:latest,dbwg2009/noted-migrator:latest" >> $GITHUB_OUTPUT
           else
             echo "app=ghcr.io/dbwg2009/noted:development" >> $GITHUB_OUTPUT
+            echo "app_primary=ghcr.io/dbwg2009/noted:development" >> $GITHUB_OUTPUT
             echo "migrator=ghcr.io/dbwg2009/noted-migrator:development" >> $GITHUB_OUTPUT
           fi
 
@@ -80,6 +83,23 @@ jobs:
           sbom: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Scan app image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.31.0
+        with:
+          image-ref: ${{ steps.tags.outputs.app_primary }}
+          scan-type: image
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: sarif
+          output: trivy-results.sarif
+
+      - name: Upload Trivy results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
 
       - name: Update Docker Hub Description
         if: github.ref == 'refs/heads/main'
