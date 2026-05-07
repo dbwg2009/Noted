@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Fix: remove [skip ci] from sync-gemini commit message
+**By:** Claude Code
+**What:** Removed `[skip ci]` from the commit message written by `.github/workflows/sync-gemini.yml`. The workflow only triggers on `paths: ['CLAUDE.md']` so it cannot loop — the flag was redundant. However, GitHub treats `[skip ci]` anywhere in a squash-merge commit body as a signal to skip all Actions for that push, so every Development → main merge was silently blocking all workflows on main (including the Docker build).
+**Why:** Bug: all GitHub Actions on main were being skipped after every squash merge from Development.
+
+---
+
 ## [2026-05-07] Refresh README for public launch
 **By:** Claude Code
 **What:** Complete rewrite of README.md. Added dynamic badges (version, license, Next.js, Docker), three-column screenshots section (dashboard, calendar, person detail — sensitive data redacted), updated features list (now includes Phase 6 Occasions and Phase 7 Shareable Wishlists), rewritten env var table with required/optional column, self-hosting tips (Pi/ARM, uploads, reverse proxy, OpenRouter rate limits), tech stack table, roadmap (phases 8–10), and Contributing/License footer. Added `docs/screenshots/` with three redacted screenshots.
