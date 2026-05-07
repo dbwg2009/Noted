@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [Development, main]
 
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
     name: TypeScript & Lint

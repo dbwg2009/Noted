@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Add concurrency groups to CI workflows
+**By:** Claude Code
+**What:** Added `concurrency: group: ..., cancel-in-progress: true` to `pr-checks.yml` (group key: `pr-checks-${{ github.ref }}`) and `docker-publish.yml` (group key: `docker-publish-${{ github.ref }}`).
+**Why:** Rapid successive pushes to the same branch were queuing duplicate runs. For the Docker multi-arch build (~10 min) this wasted a full build slot on a result that would be immediately superseded. Cancelling the stale run gives faster feedback on the latest commit.
+
+---
+
 ## [2026-05-07] Remove esbuild binaries from Docker runner image (CVE-2024-24790, CVE-2025-68121)
 **By:** Claude Code
 **What:** Added `rm -rf node_modules/@esbuild` to the runner stage in `Dockerfile`, merged into the existing `mkdir/chown` RUN step.
