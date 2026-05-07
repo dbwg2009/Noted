@@ -13,6 +13,20 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-07] Add release helper workflow
+**By:** Claude Code
+**What:** Added `.github/workflows/release.yml` — a `workflow_dispatch` workflow with three inputs (`tag`, `title`, `notes`) that runs `gh release create --latest`. Accessible via Actions → Release in the GitHub UI.
+**Why:** Removes friction from the release process. No automation — still fully manual and phase-gated — just surfaces the `gh release create` command in the GitHub UI so releases can be cut without the CLI.
+
+---
+
+## [2026-05-07] Fix Trivy SARIF severity alignment (limit-severities-for-sarif)
+**By:** Claude Code
+**What:** Added `limit-severities-for-sarif: true` to the Trivy scan step in `.github/workflows/docker-publish.yml`.
+**Why:** With `format: sarif`, trivy-action builds the SARIF report with all severities and the exit code reflects those broader findings — causing exit 1 even after CRITICAL CVEs were resolved. Setting `limit-severities-for-sarif: true` constrains both the SARIF report and the exit-code check to the specified severity (CRITICAL), so the build only fails when CRITICAL unfixed CVEs are actually present.
+
+---
+
 ## [2026-05-07] Add concurrency groups to CI workflows
 **By:** Claude Code
 **What:** Added `concurrency: group: ..., cancel-in-progress: true` to `pr-checks.yml` (group key: `pr-checks-${{ github.ref }}`) and `docker-publish.yml` (group key: `docker-publish-${{ github.ref }}`).
