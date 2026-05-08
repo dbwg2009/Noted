@@ -1,0 +1,7 @@
+reviews:
+  tools:
+    coderabbit:
+      enabled: true
+      checks:
+        docstring_coverage:
+          enabled: false
