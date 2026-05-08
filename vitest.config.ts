@@ -6,6 +6,7 @@ export default defineConfig({
     environment: "node",
     coverage: {
       provider: "v8",
+      reporter: ["text", "lcov"],
       // Only instrument files with tests; DB/email/API files require integration tests
       include: ["lib/birthdays.ts", "lib/occasions.ts"],
       thresholds: {

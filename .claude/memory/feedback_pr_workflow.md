@@ -13,7 +13,11 @@ originSessionId: 8cf213dd-502d-49ba-b859-563e9a338dea
 - Always assign dbwg2009, relevant labels, and milestone
 - Always reference the related issue in the body (`Closes #N`)
 - Post a progress comment on the issue when the PR is opened
-- I can merge feature → Development PRs once opened
+- After opening, wait for bot comments to appear on the PR (e.g. Release Please, Codecov, Socket Security), then read them all
+- If any bot flags issues or suggests changes, address them and push fixes
+- After addressing, re-read the PR comments to confirm no outstanding issues remain
+- Then prompt the user to review the PR
+- I can merge feature → Development PRs once the user has reviewed and approved
 
 **Development → main PRs (phase completion):**
 - Only opened when the user says they are happy with a phase and it can go to main
