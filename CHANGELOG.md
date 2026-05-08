@@ -13,6 +13,17 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-08] Fix Codacy review issues on phase 8 bundle
+**By:** Claude Code
+**What:** Addressed all Codacy comments on PR #113.
+- `db/schema.ts`: added `.references(() => occasions.id, { onDelete: "set null" })` FK to `wishlist_items.occasion_id`.
+- `app/people/actions.ts`: extracted `resolveOccasionId()` helper — validates that the submitted `occasionId` belongs to the current user (security), uses `Number.isNaN` instead of `|| null` (correctness); added `occasionId` field to `createWishlistItem` so it can be set on creation.
+- `app/people/occasion-actions.ts` + `app/settings/occasion-actions.ts`: replaced `kind as any` with `kind as OccasionKindValue` (typed union from the `occasionKind` enum).
+- `app/people/[id]/wishlist-item-edit-form.tsx`: wrapped server action props in `(fd) => void action(fd)` to satisfy the form `action` prop typing.
+**Why:** Codacy flagged a security gap (unverified occasionId), a parse correctness bug, an `any` cast, and a missing FK — all legitimate issues. The fixes harden the data boundary without changing visible behaviour.
+
+---
+
 ## [2026-05-08] Phase 8 bundle — occasion-linked gifts, reminder suppression, duplicate occasion guard
 **By:** Claude Code
 **What:** Four features bundled into the phase-8-group-gifts branch (issues #108, #109, #110, #112).

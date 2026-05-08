@@ -169,7 +169,7 @@ export const wishlistItems = pgTable(
     status: wishlistStatus("status").default("idea").notNull(),
     priceMin: integer("price_min"),
     priceMax: integer("price_max"),
-    occasionId: integer("occasion_id"),
+    occasionId: integer("occasion_id").references(() => occasions.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

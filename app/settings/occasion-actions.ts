@@ -4,7 +4,9 @@ import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { db } from "@/db";
-import { occasions, occasionPersonExclusions, people } from "@/db/schema";
+import { occasionKind, occasions, occasionPersonExclusions, people } from "@/db/schema";
+
+type OccasionKindValue = (typeof occasionKind.enumValues)[number];
 import { requireCurrentUserId } from "@/lib/people-queries";
 import { ensureSiteWideOccasionReminders } from "@/lib/reminders";
 import { getKnownOccasionDate, getKnownOccasionLabel } from "@/lib/occasions";
@@ -51,7 +53,7 @@ export async function createSiteWideOccasion(formData: FormData) {
     const [dupe] = await db
       .select({ id: occasions.id })
       .from(occasions)
-      .where(and(eq(occasions.userId, userId), isNull(occasions.personId), eq(occasions.kind, kind as any)))
+      .where(and(eq(occasions.userId, userId), isNull(occasions.personId), eq(occasions.kind, kind as OccasionKindValue)))
       .limit(1);
     if (dupe) {
       await setSettingsFlash(`${getKnownOccasionLabel(kind)} is already set up site-wide.`, "error");

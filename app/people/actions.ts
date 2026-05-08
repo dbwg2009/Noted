@@ -9,6 +9,7 @@ import { requireCurrentUserId } from "@/lib/people-queries";
 import {
   aiRequestLog,
   giftHistory,
+  occasions,
   people,
   personTags,
   products,
@@ -113,6 +114,19 @@ function parseWishlistStatus(value: FormDataEntryValue | null): (typeof wishlist
     return asString as (typeof wishlistStatus.enumValues)[number];
   }
   return "idea";
+}
+
+async function resolveOccasionId(raw: FormDataEntryValue | null, userId: string): Promise<number | null> {
+  const str = typeof raw === "string" ? raw.trim() : "";
+  if (str === "") return null;
+  const parsed = Number(str);
+  if (Number.isNaN(parsed)) return null;
+  const [occ] = await db
+    .select({ id: occasions.id })
+    .from(occasions)
+    .where(and(eq(occasions.id, parsed), eq(occasions.userId, userId)))
+    .limit(1);
+  return occ ? occ.id : null;
 }
 
 async function syncTagsForPerson(userId: string, personId: string, tagValue: FormDataEntryValue | null) {
@@ -332,6 +346,8 @@ export async function createWishlistItem(formData: FormData) {
   if (!personId || !description) return;
   if (!(await personBelongsToUser(personId, userId))) return;
 
+  const occasionId = await resolveOccasionId(formData.get("occasionId"), userId);
+
   await db.insert(wishlistItems).values({
     personId,
     description,
@@ -340,6 +356,7 @@ export async function createWishlistItem(formData: FormData) {
     status: parseWishlistStatus(formData.get("status")),
     priceMin: parseMoneyToPence(formData.get("priceMin")),
     priceMax: parseMoneyToPence(formData.get("priceMax")),
+    occasionId,
     updatedAt: new Date(),
   });
 
@@ -362,8 +379,7 @@ export async function updateWishlistItem(formData: FormData) {
     .where(eq(wishlistItems.id, wishlistItemId))
     .limit(1);
 
-  const occasionIdRaw = String(formData.get("occasionId") ?? "").trim();
-  const occasionId = occasionIdRaw !== "" ? Number(occasionIdRaw) || null : null;
+  const occasionId = await resolveOccasionId(formData.get("occasionId"), userId);
 
   await db
     .update(wishlistItems)

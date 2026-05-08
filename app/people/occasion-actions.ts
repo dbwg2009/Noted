@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { db } from "@/db";
-import { occasions, people } from "@/db/schema";
+import { occasionKind, occasions, people } from "@/db/schema";
+
+type OccasionKindValue = (typeof occasionKind.enumValues)[number];
 import { requireCurrentUserId } from "@/lib/people-queries";
 import { ensureDefaultReminders } from "@/lib/reminders";
 import { getKnownOccasionDate, getKnownOccasionLabel } from "@/lib/occasions";
@@ -56,8 +58,8 @@ export async function createOccasion(formData: FormData) {
 
   if (kind !== "custom") {
     const dupeWhere = personId
-      ? and(eq(occasions.userId, userId), eq(occasions.personId, personId), eq(occasions.kind, kind as any))
-      : and(eq(occasions.userId, userId), isNull(occasions.personId), eq(occasions.kind, kind as any));
+      ? and(eq(occasions.userId, userId), eq(occasions.personId, personId), eq(occasions.kind, kind as OccasionKindValue))
+      : and(eq(occasions.userId, userId), isNull(occasions.personId), eq(occasions.kind, kind as OccasionKindValue));
     const [dupe] = await db.select({ id: occasions.id }).from(occasions).where(dupeWhere).limit(1);
     if (dupe) {
       await setPeopleFlash(`${getKnownOccasionLabel(kind)} already exists for this person.`, "error");

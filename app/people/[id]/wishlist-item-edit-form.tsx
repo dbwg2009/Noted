@@ -54,7 +54,7 @@ export function WishlistItemEditForm({ item, occasions, updateAction, markGivenA
           <p className="mb-2 text-neutral-500 dark:text-neutral-400">
             Fill in the details to record this gift as given.
           </p>
-          <form action={markGivenAction} className="grid gap-2 md:grid-cols-3">
+          <form action={(fd) => void markGivenAction(fd)} className="grid gap-2 md:grid-cols-3">
             <input type="hidden" name="wishlistItemId" value={item.id} />
             <input name="givenOn" type="date" required defaultValue={today} className={inputCls} />
             <input name="pricePaid" type="number" step="0.01" min="0" placeholder="Price paid (GBP)" className={inputCls} />
@@ -78,7 +78,7 @@ export function WishlistItemEditForm({ item, occasions, updateAction, markGivenA
         </div>
       ) : (
         <>
-          <form action={updateAction} className="mt-3 grid gap-2 md:grid-cols-2">
+          <form action={(fd) => void updateAction(fd)} className="mt-3 grid gap-2 md:grid-cols-2">
             <input type="hidden" name="wishlistItemId" value={item.id} />
             <input
               name="description"
@@ -142,7 +142,7 @@ export function WishlistItemEditForm({ item, occasions, updateAction, markGivenA
             </div>
           </form>
 
-          <form action={deleteAction} className="mt-2">
+          <form action={(fd) => void deleteAction(fd)} className="mt-2">
             <input type="hidden" name="wishlistItemId" value={item.id} />
             <button
               type="submit"
