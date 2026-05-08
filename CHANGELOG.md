@@ -13,9 +13,9 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
-## [2026-05-08] Force postcss ≥8.5.10 via npm overrides to resolve Dependabot alert #10
+## [2026-05-08] Force postcss ≥8.5.10 via npm overrides to resolve Dependabot alert #10 (v1.3.5)
 **By:** Claude Code
-**What:** Added `"overrides": { "postcss": "^8.5.10" }` to `package.json`. Bumped direct devDep from `^8.4.49` → `^8.5.10` to match. Regenerated `package-lock.json` (drops the nested `node_modules/next/node_modules/postcss@8.4.31`). Fixes #101 (GHSA-qx2v-qp2m-jg93).
+**What:** Added `"overrides": { "postcss": "^8.5.10" }` to `package.json`. Bumped direct devDep from `^8.4.49` → `^8.5.10` to match. Bumped package version `1.3.4` → `1.3.5`. Regenerated `package-lock.json` (drops the nested `node_modules/next/node_modules/postcss@8.4.31`). Fixes #101 (GHSA-qx2v-qp2m-jg93).
 **Why:** Next.js ships an internal copy of `postcss@8.4.31`; the XSS fix (unescaped `</style>` in CSS stringify output) landed in `8.5.10`. Our top-level postcss was already fixed; the override forces the same version into Next.js's nested dep tree.
 
 ---
