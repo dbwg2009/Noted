@@ -15,6 +15,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512m
 
   migrate:
     image: ghcr.io/dbwg2009/noted-migrator:${IMAGE_TAG:-latest}
@@ -30,6 +34,10 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: "postgres://birthday:birthday@db:5432/birthday"
+    deploy:
+      resources:
+        limits:
+          memory: 256m
 
   app:
     image: ghcr.io/dbwg2009/noted:${IMAGE_TAG:-latest}
@@ -56,17 +64,30 @@ services:
       OPENROUTER_APP_NAME: "${OPENROUTER_APP_NAME:-Noted}"
       EBAY_APP_ID: "${EBAY_APP_ID:-}"
       CRON_SECRET: "${CRON_SECRET:?CRON_SECRET is required - generate with openssl rand -hex 32}"
+      SENTRY_DSN: "${SENTRY_DSN:-}"
+      SENTRY_ORG: "${SENTRY_ORG:-}"
+      SENTRY_PROJECT: "${SENTRY_PROJECT:-}"
     ports:
       - "3000:3000"
     volumes:
       - uploads:/app/public/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
 
   cron:
     image: curlimages/curl:8.10.1
     restart: unless-stopped
     depends_on:
       app:
-        condition: service_started
+        condition: service_healthy
     environment:
       CRON_SECRET: "${CRON_SECRET:?CRON_SECRET is required}"
       CRON_INTERVAL_SECONDS: "${CRON_INTERVAL_SECONDS:-86400}"
@@ -74,16 +95,16 @@ services:
       - /bin/sh
       - -c
       - |
-        # Wait for the app to come up, then poll the reminders endpoint.
-        until curl -fsS http://app:3000/api/auth/providers >/dev/null 2>&1; do
-          echo "[cron] waiting for app..."; sleep 5;
-        done
         while true; do
           echo "[cron] $(date -u) triggering daily reminders";
           curl -fsS -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/reminders \
             && echo "" || echo "[cron] request failed (will retry next cycle)";
           sleep "$$CRON_INTERVAL_SECONDS";
         done
+    deploy:
+      resources:
+        limits:
+          memory: 64m
 
 volumes:
   db-data:

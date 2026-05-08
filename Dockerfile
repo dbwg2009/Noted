@@ -48,7 +48,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Ensure uploads directory exists and is writable by nextjs
-RUN mkdir -p public/uploads && chown -R nextjs:nodejs public/uploads
+# Remove esbuild platform binaries — dev-only, not needed at runtime, carry Go stdlib CVEs
+RUN mkdir -p public/uploads && chown -R nextjs:nodejs public/uploads \
+    && rm -rf node_modules/@esbuild
 
 USER nextjs
 EXPOSE 3000

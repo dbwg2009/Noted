@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
@@ -11,4 +13,15 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: true,
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+  // Skip source map upload if org/project are not configured
+  sourcemaps: {
+    disable: !process.env.SENTRY_ORG || !process.env.SENTRY_PROJECT,
+  },
+});
