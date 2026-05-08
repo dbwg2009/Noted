@@ -104,7 +104,7 @@ export async function updateOccasion(formData: FormData) {
 
   await db
     .update(occasions)
-    .set({ kind: kind as any, name, date, yearRecurring: true, notes })
+    .set({ kind: kind as OccasionKindValue, name, date, yearRecurring: true, notes })
     .where(eq(occasions.id, id));
 
   revalidatePath("/");
