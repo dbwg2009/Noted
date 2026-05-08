@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { getKnownOccasionLabel } from "@/lib/occasions";
 
+
 export type OccasionOption = {
   id: number;
   name: string | null;
@@ -41,6 +42,7 @@ function occasionLabel(o: OccasionOption) {
 
 export function WishlistItemEditForm({ item, occasions, updateAction, markGivenAction, deleteAction, inputCls }: Props) {
   const [pendingGiven, setPendingGiven] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -68,7 +70,7 @@ export function WishlistItemEditForm({ item, occasions, updateAction, markGivenA
               </button>
               <button
                 type="button"
-                onClick={() => setPendingGiven(false)}
+                onClick={() => { setPendingGiven(false); }}
                 className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
               >
                 Cancel
@@ -142,15 +144,33 @@ export function WishlistItemEditForm({ item, occasions, updateAction, markGivenA
             </div>
           </form>
 
-          <form action={(fd) => void deleteAction(fd)} className="mt-2">
-            <input type="hidden" name="wishlistItemId" value={item.id} />
+          {confirmDelete ? (
+            <form action={(fd) => void deleteAction(fd)} className="mt-2 flex items-center gap-2">
+              <input type="hidden" name="wishlistItemId" value={item.id} />
+              <span className="text-xs text-neutral-500">Are you sure?</span>
+              <button
+                type="submit"
+                className="rounded-md border border-red-300 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+              >
+                Yes, delete
+              </button>
+              <button
+                type="button"
+                onClick={() => { setConfirmDelete(false); }}
+                className="rounded-md border border-neutral-300 px-3 py-1 text-xs font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+              >
+                Cancel
+              </button>
+            </form>
+          ) : (
             <button
-              type="submit"
-              className="rounded-md border border-red-300 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+              type="button"
+              onClick={() => { setConfirmDelete(true); }}
+              className="mt-2 rounded-md border border-red-300 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
             >
               Delete item
             </button>
-          </form>
+          )}
         </>
       )}
     </details>

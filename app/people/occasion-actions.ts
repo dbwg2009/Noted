@@ -70,7 +70,7 @@ export async function createOccasion(formData: FormData) {
 
   const [created] = await db
     .insert(occasions)
-    .values({ userId, personId: personId ?? undefined, kind: kind as any, name, date, yearRecurring: true, notes })
+    .values({ userId, personId: personId ?? undefined, kind: kind as OccasionKindValue, name, date, yearRecurring: true, notes })
     .returning({ id: occasions.id });
 
   if (created && personId) await ensureDefaultReminders(personId);

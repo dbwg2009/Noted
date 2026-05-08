@@ -63,7 +63,7 @@ export async function createSiteWideOccasion(formData: FormData) {
 
   const [created] = await db
     .insert(occasions)
-    .values({ userId, personId: null, kind: kind as any, name, date, yearRecurring: true, notes })
+    .values({ userId, personId: null, kind: kind as OccasionKindValue, name, date, yearRecurring: true, notes })
     .returning({ id: occasions.id });
 
   if (created) await ensureSiteWideOccasionReminders(created.id);

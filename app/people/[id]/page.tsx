@@ -80,7 +80,7 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
   const occasionNameById = new Map<number, string>(
     allOccasionOptions.map((o) => [
       o.id,
-      (o.name ?? o.kind) + (o.isSiteWide ? " (site-wide)" : ""),
+      (o.name ?? getKnownOccasionLabel(o.kind)) + (o.isSiteWide ? " (site-wide)" : ""),
     ]),
   );
 
@@ -205,6 +205,16 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
             </select>
             <input name="priceMin" type="number" min="0" step="0.01" placeholder="Price min (GBP)" className={inputCls} />
             <input name="priceMax" type="number" min="0" step="0.01" placeholder="Price max (GBP)" className={inputCls} />
+            {allOccasionOptions.length > 0 && (
+              <select name="occasionId" defaultValue="" className={`${inputCls} md:col-span-2`}>
+                <option value="">No occasion</option>
+                {allOccasionOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {(o.name ?? getKnownOccasionLabel(o.kind)) + (o.isSiteWide ? " (site-wide)" : "")}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="submit"
               className="btn-primary w-fit px-4 py-2 text-sm md:col-span-2"
