@@ -13,6 +13,10 @@ on:
       - 'CONTRIBUTING.md'
       - 'LICENSE'
 
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   push_to_registry:
     name: Build and push Docker image
@@ -94,6 +98,7 @@ jobs:
           exit-code: '1'
           format: sarif
           output: trivy-results.sarif
+          limit-severities-for-sarif: true
 
       - name: Upload Trivy results to GitHub Security tab
         if: always()
