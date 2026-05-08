@@ -33,6 +33,7 @@ export default async function GiftGroupsPage() {
             name="title"
             required
             placeholder="Gift title (e.g. Nintendo Switch for Tom)"
+            aria-label="Gift title"
             className={`${inputCls} md:col-span-2`}
           />
           <input
@@ -41,12 +42,14 @@ export default async function GiftGroupsPage() {
             min="0"
             step="0.01"
             placeholder="Target amount (GBP, optional)"
+            aria-label="Target amount in GBP (optional)"
             className={inputCls}
           />
           <textarea
             name="notes"
             rows={2}
             placeholder="Notes (optional)"
+            aria-label="Notes (optional)"
             className={`${inputCls} md:col-span-2`}
           />
           <button type="submit" className="btn-primary w-fit px-4 py-2 text-sm">
