@@ -26,6 +26,7 @@ export async function Nav() {
           <NavLink href="/">Dashboard</NavLink>
           <NavLink href="/calendar">Calendar</NavLink>
           <NavLink href="/people">People</NavLink>
+          <NavLink href="/gift-groups">Groups</NavLink>
         </nav>
 
         <div className="flex items-center gap-2 text-xs text-brand-blue-100">
