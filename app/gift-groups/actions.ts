@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
@@ -10,7 +10,7 @@ import { requireCurrentUserId } from "@/lib/people-queries";
 function parsePence(value: FormDataEntryValue | null): number | null {
   if (typeof value !== "string" || !value.trim()) return null;
   const n = parseFloat(value);
-  if (isNaN(n) || n < 0) return null;
+  if (!Number.isFinite(n) || n < 0) return null;
   return Math.round(n * 100);
 }
 
@@ -44,7 +44,10 @@ export async function updateGiftGroup(formData: FormData) {
   const title = (formData.get("title") as string | null)?.trim();
   if (!title) return;
 
-  const status = formData.get("status") as "planning" | "ordered" | "received";
+  const rawStatus = formData.get("status");
+  const validStatuses = ["planning", "ordered", "received"] as const;
+  if (!validStatuses.includes(rawStatus as (typeof validStatuses)[number])) return;
+  const status = rawStatus as (typeof validStatuses)[number];
   const targetAmount = parsePence(formData.get("targetAmount"));
   const notes = (formData.get("notes") as string | null)?.trim() || null;
 
@@ -103,7 +106,7 @@ export async function updateContributor(formData: FormData) {
   await db
     .update(giftGroupContributors)
     .set({ name, email, contributionAmount, paid })
-    .where(eq(giftGroupContributors.id, contributorId));
+    .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
 
   revalidatePath(`/gift-groups/${groupId}`);
 }
@@ -116,7 +119,7 @@ export async function deleteContributor(formData: FormData) {
   const [group] = await db.select({ userId: giftGroups.userId }).from(giftGroups).where(eq(giftGroups.id, groupId));
   if (!group || group.userId !== userId) return;
 
-  await db.delete(giftGroupContributors).where(eq(giftGroupContributors.id, contributorId));
+  await db.delete(giftGroupContributors).where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
 
   revalidatePath(`/gift-groups/${groupId}`);
 }

@@ -11,6 +11,7 @@ import {
   serial,
   uuid,
   index,
+  check,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -312,7 +313,10 @@ export const giftGroups = pgTable(
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (t) => [index("gift_groups_user_id_idx").on(t.userId)],
+  (t) => [
+    index("gift_groups_user_id_idx").on(t.userId),
+    check("gift_groups_target_amount_non_negative", sql`${t.targetAmount} IS NULL OR ${t.targetAmount} >= 0`),
+  ],
 );
 
 export const giftGroupContributors = pgTable(
@@ -328,7 +332,10 @@ export const giftGroupContributors = pgTable(
     paid: boolean("paid").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (t) => [index("gift_group_contributors_group_id_idx").on(t.groupId)],
+  (t) => [
+    index("gift_group_contributors_group_id_idx").on(t.groupId),
+    check("gift_group_contributors_contribution_non_negative", sql`${t.contributionAmount} IS NULL OR ${t.contributionAmount} >= 0`),
+  ],
 );
 
 export const wishlistShares = pgTable(

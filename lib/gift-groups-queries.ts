@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { giftGroups, giftGroupContributors, people, wishlistItems } from "@/db/schema";
-import { eq, desc, inArray } from "drizzle-orm";
+import { and, eq, desc, inArray } from "drizzle-orm";
 
 export async function listGiftGroups(userId: string) {
   const groups = await db
@@ -60,9 +60,9 @@ export async function getGiftGroup(id: string, userId: string) {
     .from(giftGroups)
     .leftJoin(people, eq(giftGroups.personId, people.id))
     .leftJoin(wishlistItems, eq(giftGroups.wishlistItemId, wishlistItems.id))
-    .where(eq(giftGroups.id, id));
+    .where(and(eq(giftGroups.id, id), eq(giftGroups.userId, userId)));
 
-  if (!group || group.userId !== userId) return null;
+  if (!group) return null;
 
   const contributors = await db
     .select()
