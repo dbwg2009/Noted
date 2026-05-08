@@ -31,6 +31,7 @@ import {
   updatePerson,
   updateWishlistItem,
 } from "../actions";
+import { createGiftGroup } from "@/app/gift-groups/actions";
 import { AiSubmitButton } from "./ai-submit-button";
 
 const inputCls =
@@ -330,6 +331,43 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                       </form>
                     </details>
                   )}
+                  <details className="text-xs">
+                    <summary className="cursor-pointer rounded-md border border-neutral-300 px-3 py-1.5 font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900">
+                      👥 Group gift
+                    </summary>
+                    <form action={createGiftGroup} className="mt-3 grid gap-2 md:grid-cols-2">
+                      <input type="hidden" name="personId" value={person.id} />
+                      <input type="hidden" name="wishlistItemId" value={item.id} />
+                      <input
+                        name="title"
+                        required
+                        defaultValue={item.description}
+                        placeholder="Group gift title"
+                        className={`${inputCls} md:col-span-2`}
+                      />
+                      <input
+                        name="targetAmount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        defaultValue={item.priceMax !== null ? (item.priceMax / 100).toFixed(2) : ""}
+                        placeholder="Target amount (GBP, optional)"
+                        className={inputCls}
+                      />
+                      <textarea
+                        name="notes"
+                        rows={2}
+                        placeholder="Notes (optional)"
+                        className={`${inputCls} md:col-span-2`}
+                      />
+                      <button
+                        type="submit"
+                        className="w-fit rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+                      >
+                        Create group
+                      </button>
+                    </form>
+                  </details>
                 </div>
 
                 {item.products.length > 0 && (

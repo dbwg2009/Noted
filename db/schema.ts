@@ -290,6 +290,47 @@ export const reminders = pgTable(
   (t) => [index("reminders_person_id_idx").on(t.personId), index("reminders_occasion_id_idx").on(t.occasionId)],
 );
 
+export const giftGroupStatus = pgEnum("gift_group_status", [
+  "planning",
+  "ordered",
+  "received",
+]);
+
+export const giftGroups = pgTable(
+  "gift_groups",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    personId: uuid("person_id").references(() => people.id, { onDelete: "set null" }),
+    wishlistItemId: uuid("wishlist_item_id").references(() => wishlistItems.id, { onDelete: "set null" }),
+    occasionId: integer("occasion_id").references(() => occasions.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    targetAmount: integer("target_amount"), // pence; null = no fixed target
+    status: giftGroupStatus("status").notNull().default("planning"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("gift_groups_user_id_idx").on(t.userId)],
+);
+
+export const giftGroupContributors = pgTable(
+  "gift_group_contributors",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    groupId: uuid("group_id")
+      .notNull()
+      .references(() => giftGroups.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    email: text("email"),
+    contributionAmount: integer("contribution_amount"), // pence; null = TBD
+    paid: boolean("paid").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("gift_group_contributors_group_id_idx").on(t.groupId)],
+);
+
 export const wishlistShares = pgTable(
   "wishlist_shares",
   {
@@ -362,6 +403,17 @@ export const giftHistoryRelations = relations(giftHistory, ({ one }) => ({
 export const personTagsRelations = relations(personTags, ({ one }) => ({
   person: one(people, { fields: [personTags.personId], references: [people.id] }),
   tag: one(tags, { fields: [personTags.tagId], references: [tags.id] }),
+}));
+
+export const giftGroupsRelations = relations(giftGroups, ({ one, many }) => ({
+  user: one(users, { fields: [giftGroups.userId], references: [users.id] }),
+  person: one(people, { fields: [giftGroups.personId], references: [people.id] }),
+  wishlistItem: one(wishlistItems, { fields: [giftGroups.wishlistItemId], references: [wishlistItems.id] }),
+  contributors: many(giftGroupContributors),
+}));
+
+export const giftGroupContributorsRelations = relations(giftGroupContributors, ({ one }) => ({
+  group: one(giftGroups, { fields: [giftGroupContributors.groupId], references: [giftGroups.id] }),
 }));
 
 // Silence unused-import warning for sql when migrations later need it.
