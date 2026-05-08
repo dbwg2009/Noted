@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { giftGroups, giftGroupContributors } from "@/db/schema";
+import { giftGroups, giftGroupContributors, people, wishlistItems } from "@/db/schema";
 import { requireCurrentUserId } from "@/lib/people-queries";
 
 function parsePence(value: FormDataEntryValue | null): number | null {
@@ -24,6 +24,23 @@ export async function createGiftGroup(formData: FormData) {
   const wishlistItemId = (formData.get("wishlistItemId") as string | null) || null;
   const targetAmount = parsePence(formData.get("targetAmount"));
   const notes = (formData.get("notes") as string | null)?.trim() || null;
+
+  if (personId) {
+    const [person] = await db
+      .select({ userId: people.userId })
+      .from(people)
+      .where(and(eq(people.id, personId), eq(people.userId, userId)));
+    if (!person) return;
+  }
+
+  if (wishlistItemId) {
+    const [item] = await db
+      .select({ userId: people.userId })
+      .from(wishlistItems)
+      .innerJoin(people, eq(wishlistItems.personId, people.id))
+      .where(and(eq(wishlistItems.id, wishlistItemId), eq(people.userId, userId)));
+    if (!item) return;
+  }
 
   const [group] = await db
     .insert(giftGroups)
