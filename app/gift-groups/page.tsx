@@ -42,7 +42,7 @@ export default async function GiftGroupsPage() {
       {/* Create group */}
       <details className="card mt-6">
         <summary className="cursor-pointer text-sm font-medium">+ Create new group gift</summary>
-        <form action={createGiftGroup} className="mt-4 grid gap-3 md:grid-cols-2">
+        <form action={(fd) => void createGiftGroup(fd)} className="mt-4 grid gap-3 md:grid-cols-2">
           <input
             name="title"
             required
@@ -93,9 +93,9 @@ export default async function GiftGroupsPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-base font-semibold">{g.title}</h2>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${STATUS_COLOURS[g.status] ?? ""}`}
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${STATUS_COLOURS[g.status]}`}
                       >
-                        {STATUS_LABELS[g.status] ?? g.status}
+                        {STATUS_LABELS[g.status]}
                       </span>
                     </div>
                     {g.personName && (

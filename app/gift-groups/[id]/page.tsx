@@ -66,9 +66,9 @@ export default async function GiftGroupDetailPage({
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold tracking-tight">{group.title}</h1>
               <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${STATUS_COLOURS[group.status] ?? ""}`}
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${STATUS_COLOURS[group.status]}`}
               >
-                {STATUS_LABELS[group.status] ?? group.status}
+                {STATUS_LABELS[group.status]}
               </span>
             </div>
             {group.personName && (
@@ -99,7 +99,7 @@ export default async function GiftGroupDetailPage({
             <summary className="cursor-pointer text-neutral-600 hover:underline dark:text-neutral-400">
               Edit
             </summary>
-            <form action={updateGiftGroup} className="mt-3 grid gap-2 min-w-[220px]">
+            <form action={(fd) => void updateGiftGroup(fd)} className="mt-3 grid gap-2 min-w-[220px]">
               <input type="hidden" name="groupId" value={group.id} />
               <input
                 name="title"
@@ -176,7 +176,7 @@ export default async function GiftGroupDetailPage({
         {/* Add contributor */}
         <details className="card mt-3">
           <summary className="cursor-pointer text-sm font-medium">+ Add contributor</summary>
-          <form action={addContributor} className="mt-4 grid gap-3 md:grid-cols-2">
+          <form action={(fd) => void addContributor(fd)} className="mt-4 grid gap-3 md:grid-cols-2">
             <input type="hidden" name="groupId" value={group.id} />
             <input name="name" required placeholder="Name" className={inputCls} />
             <input name="email" type="email" placeholder="Email (optional)" className={inputCls} />
@@ -230,7 +230,7 @@ export default async function GiftGroupDetailPage({
                     <summary className="cursor-pointer text-neutral-600 hover:underline dark:text-neutral-400">
                       Edit
                     </summary>
-                    <form action={updateContributor} className="mt-3 grid gap-2">
+                    <form action={(fd) => void updateContributor(fd)} className="mt-3 grid gap-2">
                       <input type="hidden" name="contributorId" value={c.id} />
                       <input type="hidden" name="groupId" value={group.id} />
                       <input
@@ -270,7 +270,7 @@ export default async function GiftGroupDetailPage({
                         </button>
                       </div>
                     </form>
-                    <form action={deleteContributor} className="mt-2">
+                    <form action={(fd) => void deleteContributor(fd)} className="mt-2">
                       <input type="hidden" name="contributorId" value={c.id} />
                       <input type="hidden" name="groupId" value={group.id} />
                       <button
