@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-08] Force postcss ≥8.5.10 via npm overrides to resolve Dependabot alert #10
+**By:** Claude Code
+**What:** Added `"overrides": { "postcss": "^8.5.10" }` to `package.json`. Bumped direct devDep from `^8.4.49` → `^8.5.10` to match. Regenerated `package-lock.json` (drops the nested `node_modules/next/node_modules/postcss@8.4.31`). Fixes #101 (GHSA-qx2v-qp2m-jg93).
+**Why:** Next.js ships an internal copy of `postcss@8.4.31`; the XSS fix (unescaped `</style>` in CSS stringify output) landed in `8.5.10`. Our top-level postcss was already fixed; the override forces the same version into Next.js's nested dep tree.
+
+---
+
 ## [2026-05-07] Upgrade Next.js, next-auth, drizzle-kit to fix npm vulnerabilities
 **By:** Claude Code
 **What:** `next` 15.2.9 → 15.5.18 (+ `eslint-config-next` to match), `next-auth` 5.0.0-beta.25 → 5.0.0-beta.31, `drizzle-kit` 0.30.x → 0.31.10. TypeScript and tests verified clean. 6 moderate vulnerabilities remain in upstream transitive deps (esbuild in drizzle-kit internals, postcss in Next.js internals) with no fix available without downgrading.
