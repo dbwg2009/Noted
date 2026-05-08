@@ -28,7 +28,7 @@ export default async function GiftGroupsPage() {
       {/* Create group */}
       <details className="card mt-6">
         <summary className="cursor-pointer text-sm font-medium">+ Create new group gift</summary>
-        <form action={createGiftGroup} className="mt-4 grid gap-3 md:grid-cols-2">
+        <form action={(fd) => void createGiftGroup(fd)} className="mt-4 grid gap-3 md:grid-cols-2">
           <input
             name="title"
             required
