@@ -13,12 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
-<<<<<<< chore-fix-npm-vulnerabilities
 ## [2026-05-08] Force postcss ≥8.5.10 via npm overrides to resolve Dependabot alert #10
 **By:** Claude Code
 **What:** Added `"overrides": { "postcss": "^8.5.10" }` to `package.json`. Bumped direct devDep from `^8.4.49` → `^8.5.10` to match. Regenerated `package-lock.json` (drops the nested `node_modules/next/node_modules/postcss@8.4.31`). Fixes #101 (GHSA-qx2v-qp2m-jg93).
 **Why:** Next.js ships an internal copy of `postcss@8.4.31`; the XSS fix (unescaped `</style>` in CSS stringify output) landed in `8.5.10`. Our top-level postcss was already fixed; the override forces the same version into Next.js's nested dep tree.
-=======
+
+---
+
 ## [2026-05-08] Bump version to 1.3.4 and compact CHANGELOG
 **By:** Claude Code
 **What:** `package.json` version `1.3.3` → `1.3.4`. Archived entries from 2026-05-06 and earlier to `CHANGELOG-legacy.md` to keep the active log under 300 lines.
@@ -44,7 +45,6 @@ Every significant change to this project is recorded here. **AI agents must add 
 **By:** Claude Code
 **What:** Added `concurrency: group: ..., cancel-in-progress: true` to `pr-checks.yml` (group key: `pr-checks-${{ github.ref }}`) and `docker-publish.yml` (group key: `docker-publish-${{ github.ref }}`).
 **Why:** Rapid successive pushes to the same branch were queuing duplicate runs. For the Docker multi-arch build (~10 min) this wasted a full build slot on a result that would be immediately superseded. Cancelling the stale run gives faster feedback on the latest commit.
->>>>>>> Development
 
 ---
 
