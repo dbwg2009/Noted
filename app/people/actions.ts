@@ -362,6 +362,9 @@ export async function updateWishlistItem(formData: FormData) {
     .where(eq(wishlistItems.id, wishlistItemId))
     .limit(1);
 
+  const occasionIdRaw = String(formData.get("occasionId") ?? "").trim();
+  const occasionId = occasionIdRaw !== "" ? Number(occasionIdRaw) || null : null;
+
   await db
     .update(wishlistItems)
     .set({
@@ -371,6 +374,7 @@ export async function updateWishlistItem(formData: FormData) {
       status: parseWishlistStatus(formData.get("status")),
       priceMin: parseMoneyToPence(formData.get("priceMin")),
       priceMax: parseMoneyToPence(formData.get("priceMax")),
+      occasionId,
       updatedAt: new Date(),
     })
     .where(eq(wishlistItems.id, wishlistItemId));

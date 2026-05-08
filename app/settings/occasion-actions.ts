@@ -2,11 +2,22 @@
 
 import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { db } from "@/db";
 import { occasions, occasionPersonExclusions, people } from "@/db/schema";
 import { requireCurrentUserId } from "@/lib/people-queries";
 import { ensureSiteWideOccasionReminders } from "@/lib/reminders";
 import { getKnownOccasionDate, getKnownOccasionLabel } from "@/lib/occasions";
+
+async function setSettingsFlash(message: string, tone: "success" | "error") {
+  const store = await cookies();
+  store.set("settings_flash", JSON.stringify({ message, tone, ts: Date.now() }), {
+    path: "/settings",
+    maxAge: 30,
+    httpOnly: true,
+    sameSite: "lax",
+  });
+}
 
 function buildDateFromParts(formData: FormData): string | null {
   const rawMonth = String(formData.get("occasionMonth") ?? "").trim();
@@ -35,6 +46,18 @@ export async function createSiteWideOccasion(formData: FormData) {
 
   const date = buildOccasionDate(kind, formData);
   if (kind === "custom" && !date) return;
+
+  if (kind !== "custom") {
+    const [dupe] = await db
+      .select({ id: occasions.id })
+      .from(occasions)
+      .where(and(eq(occasions.userId, userId), isNull(occasions.personId), eq(occasions.kind, kind as any)))
+      .limit(1);
+    if (dupe) {
+      await setSettingsFlash(`${getKnownOccasionLabel(kind)} is already set up site-wide.`, "error");
+      return;
+    }
+  }
 
   const [created] = await db
     .insert(occasions)

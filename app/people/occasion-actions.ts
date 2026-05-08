@@ -1,13 +1,24 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { db } from "@/db";
 import { occasions, people } from "@/db/schema";
 import { requireCurrentUserId } from "@/lib/people-queries";
 import { ensureDefaultReminders } from "@/lib/reminders";
 import { getKnownOccasionDate, getKnownOccasionLabel } from "@/lib/occasions";
+
+async function setPeopleFlash(message: string, tone: "success" | "error") {
+  const store = await cookies();
+  store.set("people_flash", JSON.stringify({ message, tone, ts: Date.now() }), {
+    path: "/people",
+    maxAge: 30,
+    httpOnly: true,
+    sameSite: "lax",
+  });
+}
 
 function buildDateFromParts(formData: FormData): string | null {
   const rawMonth = String(formData.get("occasionMonth") ?? "").trim();
@@ -41,6 +52,18 @@ export async function createOccasion(formData: FormData) {
   if (personId) {
     const [p] = await db.select({ id: people.id }).from(people).where(and(eq(people.id, personId), eq(people.userId, userId))).limit(1);
     if (!p) return;
+  }
+
+  if (kind !== "custom") {
+    const dupeWhere = personId
+      ? and(eq(occasions.userId, userId), eq(occasions.personId, personId), eq(occasions.kind, kind as any))
+      : and(eq(occasions.userId, userId), isNull(occasions.personId), eq(occasions.kind, kind as any));
+    const [dupe] = await db.select({ id: occasions.id }).from(occasions).where(dupeWhere).limit(1);
+    if (dupe) {
+      await setPeopleFlash(`${getKnownOccasionLabel(kind)} already exists for this person.`, "error");
+      if (personId) redirect(`/people/${personId}`);
+      return;
+    }
   }
 
   const [created] = await db
