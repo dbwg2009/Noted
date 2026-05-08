@@ -33,9 +33,11 @@ import {
 } from "../actions";
 import { createGiftGroup } from "@/app/gift-groups/actions";
 import { AiSubmitButton } from "./ai-submit-button";
+import { WishlistItemEditForm, type OccasionOption } from "./wishlist-item-edit-form";
 
 const inputCls =
   "rounded-md border border-neutral-300 bg-white px-3 py-2 text-base dark:border-neutral-700 dark:bg-neutral-900";
+
 
 function formatPenceInput(value: number | null) {
   return value === null ? "" : (value / 100).toFixed(2);
@@ -69,6 +71,18 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
     getSiteWideOccasionsForPerson(userId, id),
     getWishlistShareForPerson(id),
   ]);
+
+  const allOccasionOptions: OccasionOption[] = [
+    ...occasions.map((o) => ({ id: o.id, name: o.name, kind: o.kind, isSiteWide: false })),
+    ...siteWideOccasions.map((o) => ({ id: o.id, name: o.name, kind: o.kind, isSiteWide: true })),
+  ];
+
+  const occasionNameById = new Map<number, string>(
+    allOccasionOptions.map((o) => [
+      o.id,
+      (o.name ?? getKnownOccasionLabel(o.kind)) + (o.isSiteWide ? " (site-wide)" : ""),
+    ]),
+  );
 
   const baseUrl = (process.env.AUTH_URL ?? "").replace(/\/$/, "");
   const shareUrl = wishlistShare ? `${baseUrl}/share/${wishlistShare.token}` : "";
@@ -191,6 +205,16 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
             </select>
             <input name="priceMin" type="number" min="0" step="0.01" placeholder="Price min (GBP)" className={inputCls} />
             <input name="priceMax" type="number" min="0" step="0.01" placeholder="Price max (GBP)" className={inputCls} />
+            {allOccasionOptions.length > 0 && (
+              <select name="occasionId" defaultValue="" className={`${inputCls} md:col-span-2`}>
+                <option value="">No occasion</option>
+                {allOccasionOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {(o.name ?? getKnownOccasionLabel(o.kind)) + (o.isSiteWide ? " (site-wide)" : "")}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="submit"
               className="btn-primary w-fit px-4 py-2 text-sm md:col-span-2"
@@ -212,70 +236,20 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-semibold">{item.description}</h3>
                     <StatusPill status={item.status} />
+                    {item.occasionId && occasionNameById.has(item.occasionId) && (
+                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900 dark:text-violet-200">
+                        {occasionNameById.get(item.occasionId)}
+                      </span>
+                    )}
                   </div>
-                  <details className="text-xs">
-                    <summary className="cursor-pointer text-neutral-600 hover:underline dark:text-neutral-400">
-                      Edit
-                    </summary>
-                    <form action={updateWishlistItem} className="mt-3 grid gap-2 md:grid-cols-2">
-                      <input type="hidden" name="wishlistItemId" value={item.id} />
-                      <input
-                        name="description"
-                        required
-                        defaultValue={item.description}
-                        className={`${inputCls} md:col-span-2`}
-                      />
-                      <input
-                        name="sourceNote"
-                        defaultValue={item.sourceNote ?? ""}
-                        placeholder="Source note"
-                        className={`${inputCls} md:col-span-2`}
-                      />
-                      <input name="heardOn" type="date" defaultValue={item.heardOn ?? ""} className={inputCls} />
-                      <select name="status" defaultValue={item.status} className={inputCls}>
-                        <option value="idea">idea</option>
-                        <option value="researching">researching</option>
-                        <option value="chosen">chosen</option>
-                        <option value="purchased">purchased</option>
-                        <option value="given">given</option>
-                      </select>
-                      <input
-                        name="priceMin"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        defaultValue={formatPenceInput(item.priceMin)}
-                        placeholder="Price min (GBP)"
-                        className={inputCls}
-                      />
-                      <input
-                        name="priceMax"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        defaultValue={formatPenceInput(item.priceMax)}
-                        placeholder="Price max (GBP)"
-                        className={inputCls}
-                      />
-                      <div className="flex items-center gap-2 md:col-span-2">
-                        <button
-                          type="submit"
-                          className="btn-primary px-3 py-1.5 text-sm"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    </form>
-                    <form action={deleteWishlistItem} className="mt-2">
-                      <input type="hidden" name="wishlistItemId" value={item.id} />
-                      <button
-                        type="submit"
-                        className="rounded-md border border-red-300 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
-                      >
-                        Delete item
-                      </button>
-                    </form>
-                  </details>
+                  <WishlistItemEditForm
+                    item={item}
+                    occasions={allOccasionOptions}
+                    updateAction={updateWishlistItem}
+                    markGivenAction={markWishlistItemGiven}
+                    deleteAction={deleteWishlistItem}
+                    inputCls={inputCls}
+                  />
                 </div>
 
                 {item.sourceNote && (
@@ -312,25 +286,6 @@ export default async function PersonDetail({ params }: { params: Promise<{ id: s
                       </button>
                     </form>
                   </details>
-                  {item.status !== "given" && (
-                    <details className="text-xs">
-                      <summary className="cursor-pointer rounded-md border border-green-300 px-3 py-1.5 font-medium text-green-800 hover:bg-green-50 dark:border-green-900 dark:text-green-200 dark:hover:bg-green-950">
-                        🎁 Mark as given
-                      </summary>
-                      <form action={markWishlistItemGiven} className="mt-3 grid gap-2 md:grid-cols-3">
-                        <input type="hidden" name="wishlistItemId" value={item.id} />
-                        <input name="givenOn" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={inputCls} />
-                        <input name="pricePaid" type="number" step="0.01" min="0" placeholder="Price paid (GBP)" className={inputCls} />
-                        <input name="reactionNotes" placeholder="Their reaction" className={inputCls} />
-                        <button
-                          type="submit"
-                          className="w-fit rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-500 md:col-span-3"
-                        >
-                          Record gift
-                        </button>
-                      </form>
-                    </details>
-                  )}
                   <details className="text-xs">
                     <summary className="cursor-pointer rounded-md border border-neutral-300 px-3 py-1.5 font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900">
                       👥 Group gift

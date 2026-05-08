@@ -169,6 +169,7 @@ export const wishlistItems = pgTable(
     status: wishlistStatus("status").default("idea").notNull(),
     priceMin: integer("price_min"),
     priceMax: integer("price_max"),
+    occasionId: integer("occasion_id").references(() => occasions.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -392,6 +393,7 @@ export const peopleRelations = relations(people, ({ many, one }) => ({
 export const wishlistItemsRelations = relations(wishlistItems, ({ many, one }) => ({
   person: one(people, { fields: [wishlistItems.personId], references: [people.id] }),
   products: many(products),
+  occasion: one(occasions, { fields: [wishlistItems.occasionId], references: [occasions.id] }),
 }));
 
 export const productsRelations = relations(products, ({ one }) => ({

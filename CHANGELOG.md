@@ -13,6 +13,31 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-08] Fix Codacy review issues on phase 8 bundle
+**By:** Claude Code
+**What:** Addressed all Codacy comments on PR #113.
+- `db/schema.ts`: added `.references(() => occasions.id, { onDelete: "set null" })` FK to `wishlist_items.occasion_id`.
+- `app/people/actions.ts`: extracted `resolveOccasionId()` helper — validates that the submitted `occasionId` belongs to the current user (security), uses `Number.isNaN` instead of `|| null` (correctness); added `occasionId` field to `createWishlistItem` so it can be set on creation.
+- `app/people/occasion-actions.ts` + `app/settings/occasion-actions.ts`: replaced `kind as any` with `kind as OccasionKindValue` (typed union from the `occasionKind` enum).
+- `app/people/[id]/wishlist-item-edit-form.tsx`: wrapped server action props in `(fd) => void action(fd)` to satisfy the form `action` prop typing.
+**Why:** Codacy flagged a security gap (unverified occasionId), a parse correctness bug, an `any` cast, and a missing FK — all legitimate issues. The fixes harden the data boundary without changing visible behaviour.
+
+---
+
+## [2026-05-08] Phase 8 bundle — occasion-linked gifts, reminder suppression, duplicate occasion guard
+**By:** Claude Code
+**What:** Four features bundled into the phase-8-group-gifts branch (issues #108, #109, #110, #112).
+- `db/schema.ts`: added nullable `occasion_id` integer column to `wishlist_items`; updated `wishlistItemsRelations` to include the `occasion` relation.
+- `app/people/[id]/wishlist-item-edit-form.tsx` (new): client component replacing the inline edit `<details>`. Renders the update form (with occasion picker) and intercepts status → "given" to switch inline to the "Record gift" form, prompting for givenOn / pricePaid / reactionNotes before submitting to `markWishlistItemGiven`. Eliminates the need for a separate "Mark as given" button.
+- `app/people/[id]/page.tsx`: imports `WishlistItemEditForm`; builds `allOccasionOptions` (person-specific + site-wide) and `occasionNameById` map; shows a violet occasion badge on each wishlist item card when linked; removed the now-redundant standalone "Mark as given" `<details>` block; removed the server-only `formatPenceInput` helper (moved into the client component).
+- `app/people/actions.ts` (`updateWishlistItem`): parses `occasionId` from form data and persists it on the wishlist item.
+- `app/people/occasion-actions.ts` (`createOccasion`): added duplicate-kind check — if a preset occasion of the same kind already exists for the person (or site-wide when no personId), returns with a flash error rather than inserting a duplicate. Only applies to non-custom kinds.
+- `app/settings/occasion-actions.ts` (`createSiteWideOccasion`): same duplicate guard for site-wide occasions; sets a `settings_flash` cookie with an error message.
+- `lib/reminders.ts`: added `allWishlistItemsDone()` helper; `buildDigestForUser` now skips people whose every wishlist item is `purchased` or `given` (no email block for them); `runDailyReminders` still marks those reminders as sent to prevent daily re-triggers; site-wide occasion path filters `finalPeople` to exclude anyone whose wishlist items linked to that specific `occasionId` are all purchased/given (people with no linked items are kept).
+**Why:** #110 closes the gap where gifts couldn't be associated with a specific occasion. #108 ensures the status dropdown to "given" always triggers history capture rather than a silent status update. #109 prevents noise emails when the user has already sorted all gifts for an occasion. #112 prevents accidental duplicate reminders from duplicate preset occasions.
+
+---
+
 ## [2026-05-08] Phase 8 — Group Gifts (v1.4.0)
 **By:** Claude Code
 **What:** Implemented Phase 8 of the V2 roadmap. New schema: `gift_group_status` enum, `gift_groups` table (userId, personId, wishlistItemId, occasionId, title, targetAmount, status, notes), `gift_group_contributors` table (groupId, name, email, contributionAmount, paid). New files: `lib/gift-groups-queries.ts`, `app/gift-groups/actions.ts`, `app/gift-groups/page.tsx`, `app/gift-groups/[id]/page.tsx`. Updated: `components/nav.tsx` (Groups tab), `app/people/[id]/page.tsx` (👥 Group gift button on each wishlist item). Bumped version 1.3.5 → 1.4.0.
