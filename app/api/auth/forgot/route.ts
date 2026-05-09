@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
     const resend = new Resend(apiKey);
     const baseUrl = process.env.AUTH_URL?.replace(/\/$/, "") || "http://localhost:3000";
-    const from = process.env.EMAIL_FROM?.trim() || "Noted <onboarding@resend.dev>";
+    const from = process.env.EMAIL_FROM_AUTH?.trim() || process.env.EMAIL_FROM?.trim() || "Noted <onboarding@resend.dev>";
     const resetUrl = `${baseUrl}/login/reset?token=${token}&email=${encodeURIComponent(email)}`;
 
     await resend.emails.send({

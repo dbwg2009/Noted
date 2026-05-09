@@ -4,6 +4,14 @@ import { poundsFromPence } from "@/lib/birthdays";
 
 const FALLBACK_FROM = "Noted <onboarding@resend.dev>";
 
+function fromAddress(specificEnvKey: string): string {
+  return (
+    process.env[specificEnvKey]?.trim() ||
+    process.env.EMAIL_FROM?.trim() ||
+    FALLBACK_FROM
+  );
+}
+
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -164,7 +172,7 @@ export async function sendSiteWideOccasionEmail(
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("RESEND_API_KEY is not set");
 
-  const from = process.env.EMAIL_FROM?.trim() || FALLBACK_FROM;
+  const from = fromAddress("EMAIL_FROM_REMINDERS");
   const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
   const lead = describeLead(leadDays);
 
@@ -181,10 +189,9 @@ export async function sendSiteWideOccasionEmail(
   return { skipped: false as const, id: result.data?.id ?? null };
 }
 
-async function sendViaResend(to: string, subject: string, text: string, html: string) {
+async function sendViaResend(to: string, subject: string, text: string, html: string, from: string) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("RESEND_API_KEY is not set");
-  const from = process.env.EMAIL_FROM?.trim() || FALLBACK_FROM;
   const resend = new Resend(apiKey);
   const result = await resend.emails.send({ from, to, subject, text, html });
   if (result.error) {
@@ -207,7 +214,7 @@ export async function sendGroupGiftNotification(toEmail: string, groupTitle: str
     <p style="margin:0;font-size:12px;color:#6b7280;">Sent by Noted.</p>
   </div>
 </body></html>`;
-  return sendViaResend(toEmail, subject, text, html);
+  return sendViaResend(toEmail, subject, text, html, fromAddress("EMAIL_FROM_INVITES"));
 }
 
 export async function sendGroupGiftInvite(toEmail: string, groupTitle: string, inviteToken: string) {
@@ -225,7 +232,7 @@ export async function sendGroupGiftInvite(toEmail: string, groupTitle: string, i
     <p style="font-size:12px;color:#6b7280;margin:0;">This link expires in 30 days. Sent by Noted.</p>
   </div>
 </body></html>`;
-  return sendViaResend(toEmail, subject, text, html);
+  return sendViaResend(toEmail, subject, text, html, fromAddress("EMAIL_FROM_INVITES"));
 }
 
 export async function sendReminderDigest(digest: DigestUserBlock) {
@@ -234,7 +241,7 @@ export async function sendReminderDigest(digest: DigestUserBlock) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("RESEND_API_KEY is not set");
 
-  const from = process.env.EMAIL_FROM?.trim() || FALLBACK_FROM;
+  const from = fromAddress("EMAIL_FROM_REMINDERS");
   const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
 
   const subject = digest.blocks.length === 1

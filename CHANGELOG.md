@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] Per-email-type from addresses with shared fallback
+**By:** Claude Code
+**What:** Added `EMAIL_FROM_REMINDERS`, `EMAIL_FROM_INVITES`, and `EMAIL_FROM_AUTH` env vars. Each email type uses its specific var if set, falling back to `EMAIL_FROM`, then to the hardcoded Resend test address. Updated `lib/notify/email.ts` (`fromAddress()` helper), `app/api/auth/forgot/route.ts`, `.env.example`, and `docker-compose.yml`.
+**Why:** User wanted different from addresses per email type (e.g. `reminders@noted.dbwg2009.uk`, `help@noted.dbwg2009.uk`) after setting up their own verified domain.
+
+---
+
 ## [2026-05-09] Fix accept-before-notify race and improve email error logs
 **By:** Claude Code
 **What:** In `addContributor`, existing-user contributors are now inserted without `inviteAcceptedAt`; it is set only after `sendGroupGiftNotification` succeeds. If the email fails, the row stays in a re-invitable state so `resendInvite` can retry. All three `console.error` calls now include the recipient email address.
