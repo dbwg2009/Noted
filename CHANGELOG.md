@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-09] Fix invite email not sending — generate UUID in application code
+**By:** Claude Code
+**What:** `addContributor` and `resendInvite` in `app/gift-groups/actions.ts` now generate the `inviteToken` UUID via `randomUUID()` in application code and pass it explicitly in the insert/update, rather than relying on the DB column default (`gen_random_uuid()`).
+**Why:** If `db:push` had not been run after adding `.defaultRandom()` to the schema, the column had no server default, so the insert returned `null` for `inviteToken` and `sendGroupGiftInvite` was never called. Generating it in application code makes the flow migration-independent.
+
+---
+
 ## [2026-05-09] Fix useSearchParams Suspense boundary on /login/register
 **By:** Claude Code
 **What:** Extracted form logic into `RegisterForm` component in `app/login/register/page.tsx`, wrapped it in `<Suspense>`. The page shell remains the default export.

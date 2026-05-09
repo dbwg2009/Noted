@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -136,17 +137,15 @@ export async function addContributor(formData: FormData) {
       }
     } else {
       // Generate invite token valid for 30 days
+      const inviteToken = randomUUID();
       const inviteExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      const [row] = await db
+      await db
         .insert(giftGroupContributors)
-        .values({ groupId, name, email, contributionAmount, inviteExpiresAt })
-        .returning({ inviteToken: giftGroupContributors.inviteToken });
-      if (row?.inviteToken) {
-        try {
-          await sendGroupGiftInvite(email, group.title, row.inviteToken);
-        } catch {
-          // email failure is non-fatal
-        }
+        .values({ groupId, name, email, contributionAmount, inviteToken, inviteExpiresAt });
+      try {
+        await sendGroupGiftInvite(email, group.title, inviteToken);
+      } catch {
+        // email failure is non-fatal
       }
     }
   } else {
@@ -210,19 +209,17 @@ export async function resendInvite(formData: FormData) {
     .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
   if (!contributor?.email || contributor.inviteAcceptedAt) return;
 
+  const inviteToken = randomUUID();
   const inviteExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const [updated] = await db
+  await db
     .update(giftGroupContributors)
-    .set({ inviteExpiresAt })
-    .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)))
-    .returning({ inviteToken: giftGroupContributors.inviteToken });
+    .set({ inviteToken, inviteExpiresAt })
+    .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
 
-  if (updated?.inviteToken) {
-    try {
-      await sendGroupGiftInvite(contributor.email, group.title, updated.inviteToken);
-    } catch {
-      // non-fatal
-    }
+  try {
+    await sendGroupGiftInvite(contributor.email, group.title, inviteToken);
+  } catch {
+    // non-fatal
   }
 
   revalidatePath(`/gift-groups/${groupId}`);
