@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-09] Fix useSearchParams Suspense boundary on /login/register
+**By:** Claude Code
+**What:** Extracted form logic into `RegisterForm` component in `app/login/register/page.tsx`, wrapped it in `<Suspense>`. The page shell remains the default export.
+**Why:** Next.js requires `useSearchParams()` to be inside a Suspense boundary during static prerendering. Without it the Docker build failed with "Export encountered an error on /login/register/page".
+
 ## [2026-05-09] Fix Promise-returning form action Codacy flags
 **By:** Claude Code
 **What:** Introduced `app/gift-groups/action-form.tsx` — a thin client component wrapper around `<form>` that accepts `action: (FormData) => Promise<void>` and internally wraps it in a void-returning arrow function. Replaced the 5 flagged `<form action={serverAction}>` usages in `app/gift-groups/[id]/page.tsx` and `app/gift-groups/invite/[token]/page.tsx` with `<ActionForm action={serverAction}>`.
