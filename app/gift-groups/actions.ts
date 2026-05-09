@@ -9,6 +9,10 @@ import { giftGroups, giftGroupContributors, people, wishlistItems, users } from 
 import { requireCurrentUserId } from "@/lib/people-queries";
 import { sendGroupGiftNotification, sendGroupGiftInvite } from "@/lib/notify/email";
 
+function newInvite() {
+  return { inviteToken: randomUUID(), inviteExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) };
+}
+
 function parsePence(value: FormDataEntryValue | null): number | null {
   if (typeof value !== "string" || !value.trim()) return null;
   const n = parseFloat(value);
@@ -136,9 +140,7 @@ export async function addContributor(formData: FormData) {
         // email failure is non-fatal
       }
     } else {
-      // Generate invite token valid for 30 days
-      const inviteToken = randomUUID();
-      const inviteExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const { inviteToken, inviteExpiresAt } = newInvite();
       await db
         .insert(giftGroupContributors)
         .values({ groupId, name, email, contributionAmount, inviteToken, inviteExpiresAt });
@@ -209,8 +211,7 @@ export async function resendInvite(formData: FormData) {
     .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
   if (!contributor?.email || contributor.inviteAcceptedAt) return;
 
-  const inviteToken = randomUUID();
-  const inviteExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const { inviteToken, inviteExpiresAt } = newInvite();
   await db
     .update(giftGroupContributors)
     .set({ inviteToken, inviteExpiresAt })
