@@ -13,6 +13,19 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-09] Collaborative group gift contributors
+**By:** Claude Code
+**What:** Extended Phase 8 group gifts with multi-user collaboration. Contributors with accounts can see and interact with group gifts they've been added to.
+- `db/schema.ts`: added `userId` (FK → users), `inviteToken` (uuid unique), `inviteExpiresAt`, `inviteAcceptedAt` columns to `gift_group_contributors`.
+- `lib/gift-groups-queries.ts`: `listGiftGroups` now returns `{ owned, contributing }` split; `getGiftGroup` allows contributor access; new `getContributorByInviteToken`.
+- `lib/notify/email.ts`: added `sendGroupGiftNotification` (existing users) and `sendGroupGiftInvite` (new users with invite link).
+- `app/gift-groups/actions.ts`: `addContributor` now checks email against users table — links immediately + notifies if found, or generates 30-day invite token + sends invite email if not. New actions: `resendInvite`, `acceptInvite`, `leaveGroup`, `updateMyContribution`.
+- `app/gift-groups/page.tsx`: split into "Groups I manage" and "Groups I'm contributing to" sections.
+- `app/gift-groups/[id]/page.tsx`: shows owner controls or contributor controls (edit own amount, leave group) based on role. Contributor rows show Linked/Invite pending/Invite expired badges.
+- `app/gift-groups/invite/[token]/page.tsx`: new public invite acceptance page. Handles wrong-account blocking, expired tokens, already-accepted states.
+- `app/login/register/page.tsx`: forwards `callbackUrl` query param through to post-registration login redirect so invite links survive the sign-up flow.
+**Why:** App is multi-user; contributors should be able to view and manage their own involvement in group gifts without relying on the organiser for everything.
+
 ## [2026-05-08] Fix Codacy review issues on phase 8 bundle
 **By:** Claude Code
 **What:** Addressed all Codacy comments on PR #113.

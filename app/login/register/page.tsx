@@ -1,10 +1,13 @@
 "use client";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -15,12 +18,13 @@ export default function RegisterPage() {
     try {
       const res = await fetch("/api/auth/register", { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
       if (res.ok) {
-        window.location.href = "/login";
+        const dest = callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login";
+        window.location.href = dest;
       } else {
         const json = await res.json();
         setError(json?.error || "Failed to create account");
       }
-    } catch (err) {
+    } catch {
       setError("Network error");
     } finally {
       setLoading(false);
@@ -42,7 +46,12 @@ export default function RegisterPage() {
           <button type="submit" disabled={loading} className="btn-primary px-4 py-2 text-sm">
             {loading ? "Creating…" : "Create account"}
           </button>
-          <a href="/login" className="text-sm text-neutral-500 hover:underline">Back to login</a>
+          <a
+            href={callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login"}
+            className="text-sm text-neutral-500 hover:underline"
+          >
+            Back to login
+          </a>
         </div>
       </form>
     </main>

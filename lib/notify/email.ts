@@ -181,6 +181,53 @@ export async function sendSiteWideOccasionEmail(
   return { skipped: false as const, id: result.data?.id ?? null };
 }
 
+async function sendViaResend(to: string, subject: string, text: string, html: string) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error("RESEND_API_KEY is not set");
+  const from = process.env.EMAIL_FROM?.trim() || FALLBACK_FROM;
+  const resend = new Resend(apiKey);
+  const result = await resend.emails.send({ from, to, subject, text, html });
+  if (result.error) {
+    throw new Error(`Resend: ${result.error.name ?? "error"} - ${result.error.message ?? "unknown"}`);
+  }
+  return result.data?.id ?? null;
+}
+
+export async function sendGroupGiftNotification(toEmail: string, groupTitle: string, groupId: string) {
+  const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
+  const url = `${baseUrl}/gift-groups/${groupId}`;
+  const subject = `You've been added to a group gift: ${groupTitle}`;
+  const text = `You've been added as a contributor to the group gift "${groupTitle}".\n\nView it here: ${url}\n\n---\nSent by Noted.`;
+  const html = `<!doctype html>
+<html><body style="margin:0;background:#f9fafb;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;">
+  <div style="max-width:560px;margin:24px auto;padding:0 16px;">
+    <h1 style="margin:0 0 12px;font-size:20px;">🎁 You've been added to a group gift</h1>
+    <p style="font-size:15px;margin:0 0 16px;">You've been added as a contributor to <strong>${escapeHtml(groupTitle)}</strong>.</p>
+    <p style="margin:0 0 24px;"><a href="${escapeHtml(url)}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View group gift →</a></p>
+    <p style="margin:0;font-size:12px;color:#6b7280;">Sent by Noted.</p>
+  </div>
+</body></html>`;
+  return sendViaResend(toEmail, subject, text, html);
+}
+
+export async function sendGroupGiftInvite(toEmail: string, groupTitle: string, inviteToken: string) {
+  const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
+  const url = `${baseUrl}/gift-groups/invite/${inviteToken}`;
+  const subject = `You're invited to contribute to a group gift: ${groupTitle}`;
+  const text = `You've been invited to join a group gift on Noted: "${groupTitle}".\n\nCreate your account and accept the invite here:\n${url}\n\nThis link expires in 30 days.\n\n---\nSent by Noted.`;
+  const html = `<!doctype html>
+<html><body style="margin:0;background:#f9fafb;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;">
+  <div style="max-width:560px;margin:24px auto;padding:0 16px;">
+    <h1 style="margin:0 0 12px;font-size:20px;">🎁 You're invited to a group gift</h1>
+    <p style="font-size:15px;margin:0 0 8px;">You've been invited to contribute to <strong>${escapeHtml(groupTitle)}</strong> on Noted.</p>
+    <p style="font-size:14px;color:#6b7280;margin:0 0 20px;">Create an account (or log in) to view and manage your contribution.</p>
+    <p style="margin:0 0 24px;"><a href="${escapeHtml(url)}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Accept invite →</a></p>
+    <p style="font-size:12px;color:#6b7280;margin:0;">This link expires in 30 days. Sent by Noted.</p>
+  </div>
+</body></html>`;
+  return sendViaResend(toEmail, subject, text, html);
+}
+
 export async function sendReminderDigest(digest: DigestUserBlock) {
   if (digest.blocks.length === 0) return { skipped: true as const };
 

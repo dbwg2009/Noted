@@ -327,14 +327,19 @@ export const giftGroupContributors = pgTable(
     groupId: uuid("group_id")
       .notNull()
       .references(() => giftGroups.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     name: text("name").notNull(),
     email: text("email"),
-    contributionAmount: integer("contribution_amount"), // pence; null = TBD
+    contributionAmount: integer("contribution_amount"),
     paid: boolean("paid").notNull().default(false),
+    inviteToken: uuid("invite_token").unique(),
+    inviteExpiresAt: timestamp("invite_expires_at"),
+    inviteAcceptedAt: timestamp("invite_accepted_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [
     index("gift_group_contributors_group_id_idx").on(t.groupId),
+    index("gift_group_contributors_user_id_idx").on(t.userId),
     check("gift_group_contributors_contribution_non_negative", sql`${t.contributionAmount} IS NULL OR ${t.contributionAmount} >= 0`),
   ],
 );
@@ -423,6 +428,7 @@ export const giftGroupsRelations = relations(giftGroups, ({ one, many }) => ({
 
 export const giftGroupContributorsRelations = relations(giftGroupContributors, ({ one }) => ({
   group: one(giftGroups, { fields: [giftGroupContributors.groupId], references: [giftGroups.id] }),
+  user: one(users, { fields: [giftGroupContributors.userId], references: [users.id] }),
 }));
 
 // Silence unused-import warning for sql when migrations later need it.
