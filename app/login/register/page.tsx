@@ -9,7 +9,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const rawCallbackUrl = searchParams.get("callbackUrl");
-  const callbackUrl = rawCallbackUrl?.startsWith("/") ? rawCallbackUrl : null;
+  const callbackUrl = rawCallbackUrl?.startsWith("/") && !rawCallbackUrl.startsWith("//") ? rawCallbackUrl : null;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
