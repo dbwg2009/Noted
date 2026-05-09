@@ -4,7 +4,7 @@ import { poundsFromPence } from "@/lib/birthdays";
 
 const FALLBACK_FROM = "Noted <onboarding@resend.dev>";
 
-function fromAddress(specificEnvKey: string): string {
+export function fromAddress(specificEnvKey: string): string {
   return (
     process.env[specificEnvKey]?.trim() ||
     process.env.EMAIL_FROM?.trim() ||
@@ -169,24 +169,17 @@ export async function sendSiteWideOccasionEmail(
 ) {
   if (people.length === 0) return { skipped: true as const };
 
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("RESEND_API_KEY is not set");
-
-  const from = fromAddress("EMAIL_FROM_REMINDERS");
   const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
   const lead = describeLead(leadDays);
-
   const subject = `${occasionName} ${lead} — gift reminder`;
-  const text = renderSiteWideText(occasionName, lead, people, baseUrl);
-  const html = renderSiteWideHtml(occasionName, lead, people, baseUrl);
-
-  const resend = new Resend(apiKey);
-  const result = await resend.emails.send({ from, to: userEmail, subject, text, html });
-
-  if (result.error) {
-    throw new Error(`Resend: ${result.error.name ?? "error"} - ${result.error.message ?? "unknown"}`);
-  }
-  return { skipped: false as const, id: result.data?.id ?? null };
+  const id = await sendViaResend(
+    userEmail,
+    subject,
+    renderSiteWideText(occasionName, lead, people, baseUrl),
+    renderSiteWideHtml(occasionName, lead, people, baseUrl),
+    fromAddress("EMAIL_FROM_REMINDERS"),
+  );
+  return { skipped: false as const, id };
 }
 
 async function sendViaResend(to: string, subject: string, text: string, html: string, from: string) {
@@ -238,27 +231,17 @@ export async function sendGroupGiftInvite(toEmail: string, groupTitle: string, i
 export async function sendReminderDigest(digest: DigestUserBlock) {
   if (digest.blocks.length === 0) return { skipped: true as const };
 
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("RESEND_API_KEY is not set");
-
-  const from = fromAddress("EMAIL_FROM_REMINDERS");
   const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
-
   const subject = digest.blocks.length === 1
     ? `Birthday reminder: ${digest.blocks[0].personName}`
     : `Birthday reminders: ${digest.blocks.length} upcoming`;
 
-  const resend = new Resend(apiKey);
-  const result = await resend.emails.send({
-    from,
-    to: digest.userEmail,
+  const id = await sendViaResend(
+    digest.userEmail,
     subject,
-    text: renderDigestText(digest, baseUrl),
-    html: renderDigestHtml(digest, baseUrl),
-  });
-
-  if (result.error) {
-    throw new Error(`Resend: ${result.error.name ?? "error"} - ${result.error.message ?? "unknown"}`);
-  }
-  return { skipped: false as const, id: result.data?.id ?? null };
+    renderDigestText(digest, baseUrl),
+    renderDigestHtml(digest, baseUrl),
+    fromAddress("EMAIL_FROM_REMINDERS"),
+  );
+  return { skipped: false as const, id };
 }
