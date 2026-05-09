@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { giftGroups, giftGroupContributors, people, wishlistItems } from "@/db/schema";
-import { and, eq, desc, inArray, or } from "drizzle-orm";
+import { and, eq, desc, inArray } from "drizzle-orm";
 
 async function attachContributors<T extends { id: string }>(groups: T[]) {
   if (groups.length === 0) return groups.map((g) => ({ ...g, contributors: [] as (typeof allContributors), totalRaised: 0 }));

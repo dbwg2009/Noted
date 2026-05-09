@@ -13,6 +13,14 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-09] Fix third-round Codacy issues on PR #115
+**By:** Claude Code
+**What:** Fixed 7 new issues flagged by Codacy on the latest push.
+- `eslint.config.mjs`: configured `@typescript-eslint/no-misused-promises` with `checksVoidReturn: { attributes: false }` — suppresses the "Promise-returning function in void attribute" error for server action form props. Arrow-function wrappers are not viable here (they break Next.js RSC action serialization).
+- `app/login/register/page.tsx`: replaced `window.location.href = dest` with `router.push(dest)` using Next.js `useRouter` — eliminates the Codacy XSS flag on direct `location.href` assignment.
+- `lib/gift-groups-queries.ts`: removed unused `or` import from drizzle-orm.
+**Why:** Codacy flagged the async form actions as high-severity error-prone and the location.href assignment as a high-severity XSS risk. ESLint rule configuration is the correct fix for the server action pattern; router.push is the safer and idiomatic Next.js navigation method.
+
 ## [2026-05-09] Fix second-round Codacy issues on PR #115
 **By:** Claude Code
 **What:** Fixed two further issues flagged in Codacy's follow-up review.

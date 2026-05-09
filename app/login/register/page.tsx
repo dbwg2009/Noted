@@ -1,9 +1,10 @@
 "use client";
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
@@ -20,7 +21,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
       if (res.ok) {
         const dest = callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login";
-        window.location.href = dest;
+        router.push(dest);
       } else {
         const json = await res.json();
         setError(json?.error || "Failed to create account");
