@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-09] Fix Promise-returning form action Codacy flags
+**By:** Claude Code
+**What:** Introduced `app/gift-groups/action-form.tsx` — a thin client component wrapper around `<form>` that accepts `action: (FormData) => Promise<void>` and internally wraps it in a void-returning arrow function. Replaced the 5 flagged `<form action={serverAction}>` usages in `app/gift-groups/[id]/page.tsx` and `app/gift-groups/invite/[token]/page.tsx` with `<ActionForm action={serverAction}>`.
+**Why:** Codacy flags `action={asyncFn}` as "Promise-returning function in void attribute" because it lacks React 19's type context where form `action` already accepts `Promise<void>`. Arrow wrappers directly in server components break Next.js RSC action serialization; passing the server action as a prop to a client component (which then wraps it) is the correct Next.js pattern that satisfies both the type checker and the linter.
+
 ## [2026-05-09] Fix third-round Codacy issues on PR #115
 **By:** Claude Code
 **What:** Fixed 7 new issues flagged by Codacy on the latest push.

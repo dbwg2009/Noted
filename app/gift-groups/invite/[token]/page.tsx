@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getContributorByInviteToken } from "@/lib/gift-groups-queries";
 import { acceptInviteAction } from "../../actions";
+import { ActionForm } from "../../action-form";
 
 export default async function InvitePage({
   params,
@@ -89,12 +90,12 @@ export default async function InvitePage({
       <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
         Accept the invite to join this group gift and track your contribution.
       </p>
-      <form action={acceptInviteAction} className="mt-6">
+      <ActionForm action={acceptInviteAction} className="mt-6">
         <input type="hidden" name="token" value={token} />
         <button type="submit" className="btn-primary px-4 py-2 text-sm">
           Accept invite
         </button>
-      </form>
+      </ActionForm>
     </main>
   );
 }
