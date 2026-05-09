@@ -125,19 +125,23 @@ export async function addContributor(formData: FormData) {
         revalidatePath(`/gift-groups/${groupId}`);
         return;
       }
-      // Link immediately and notify
+      // Link by userId; only mark accepted after notification succeeds so
+      // resendInvite can retry if the email fails.
       await db.insert(giftGroupContributors).values({
         groupId,
         userId: existingUser.id,
         name,
         email,
         contributionAmount,
-        inviteAcceptedAt: new Date(),
       });
       try {
         await sendGroupGiftNotification(email, group.title, groupId);
-      } catch {
-        // email failure is non-fatal
+        await db
+          .update(giftGroupContributors)
+          .set({ inviteAcceptedAt: new Date() })
+          .where(and(eq(giftGroupContributors.groupId, groupId), eq(giftGroupContributors.userId, existingUser.id)));
+      } catch (err) {
+        console.error(`[gift-groups] sendGroupGiftNotification failed for ${email}:`, err);
       }
     } else {
       const { inviteToken, inviteExpiresAt } = newInvite();
@@ -146,8 +150,8 @@ export async function addContributor(formData: FormData) {
         .values({ groupId, name, email, contributionAmount, inviteToken, inviteExpiresAt });
       try {
         await sendGroupGiftInvite(email, group.title, inviteToken);
-      } catch {
-        // email failure is non-fatal
+      } catch (err) {
+        console.error(`[gift-groups] sendGroupGiftInvite failed for ${email}:`, err);
       }
     }
   } else {
@@ -219,8 +223,8 @@ export async function resendInvite(formData: FormData) {
 
   try {
     await sendGroupGiftInvite(contributor.email, group.title, inviteToken);
-  } catch {
-    // non-fatal
+  } catch (err) {
+    console.error(`[gift-groups] resendInvite sendGroupGiftInvite failed for ${contributor.email}:`, err);
   }
 
   revalidatePath(`/gift-groups/${groupId}`);
