@@ -111,6 +111,15 @@ export async function addContributor(formData: FormData) {
       .where(eq(users.email, email));
 
     if (existingUser) {
+      // Skip silently if this user is already a contributor
+      const [already] = await db
+        .select({ id: giftGroupContributors.id })
+        .from(giftGroupContributors)
+        .where(and(eq(giftGroupContributors.groupId, groupId), eq(giftGroupContributors.userId, existingUser.id)));
+      if (already) {
+        revalidatePath(`/gift-groups/${groupId}`);
+        return;
+      }
       // Link immediately and notify
       await db.insert(giftGroupContributors).values({
         groupId,
@@ -159,7 +168,7 @@ export async function updateContributor(formData: FormData) {
   const name = (formData.get("name") as string | null)?.trim();
   if (!name) return;
 
-  const email = (formData.get("email") as string | null)?.trim() || null;
+  const email = (formData.get("email") as string | null)?.trim().toLowerCase() || null;
   const contributionAmount = parsePence(formData.get("contributionAmount"));
   const paid = formData.get("paid") === "on";
 

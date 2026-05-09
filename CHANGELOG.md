@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-09] Fix second-round Codacy issues on PR #115
+**By:** Claude Code
+**What:** Fixed two further issues flagged in Codacy's follow-up review.
+- `app/gift-groups/actions.ts` (`updateContributor`): normalize email to lowercase on save — consistent with `addContributor` which already did this, prevents case-fragmented duplicates.
+- `app/gift-groups/actions.ts` (`addContributor`): check for existing contributor row before inserting when the invited user already has an account — prevents a 500 crash from the unique `(groupId, userId)` index added in the previous round.
+**Why:** Inconsistent email casing causes silent data fragmentation; missing duplicate check causes an unhandled constraint violation crash.
+
 ## [2026-05-09] Fix Codacy and CodeRabbit issues on PR #115
 **By:** Claude Code
 **What:** Fixed all actionable review issues from Codacy and CodeRabbit on the collaborative contributors PR.
