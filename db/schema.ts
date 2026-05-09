@@ -11,6 +11,7 @@ import {
   serial,
   uuid,
   index,
+  uniqueIndex,
   check,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
@@ -332,7 +333,7 @@ export const giftGroupContributors = pgTable(
     email: text("email"),
     contributionAmount: integer("contribution_amount"),
     paid: boolean("paid").notNull().default(false),
-    inviteToken: uuid("invite_token").unique(),
+    inviteToken: uuid("invite_token").unique().defaultRandom(),
     inviteExpiresAt: timestamp("invite_expires_at"),
     inviteAcceptedAt: timestamp("invite_accepted_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -340,6 +341,7 @@ export const giftGroupContributors = pgTable(
   (t) => [
     index("gift_group_contributors_group_id_idx").on(t.groupId),
     index("gift_group_contributors_user_id_idx").on(t.userId),
+    uniqueIndex("gift_group_contributors_group_user_uniq").on(t.groupId, t.userId).where(sql`${t.userId} IS NOT NULL`),
     check("gift_group_contributors_contribution_non_negative", sql`${t.contributionAmount} IS NULL OR ${t.contributionAmount} >= 0`),
   ],
 );

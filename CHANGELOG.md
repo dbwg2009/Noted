@@ -13,6 +13,16 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-09] Fix Codacy and CodeRabbit issues on PR #115
+**By:** Claude Code
+**What:** Fixed all actionable review issues from Codacy and CodeRabbit on the collaborative contributors PR.
+- `app/gift-groups/invite/[token]/page.tsx`: removed unsafe mutation-on-GET — invite page now shows an "Accept invite" button; mutation only happens on form submit via new `acceptInviteAction`. Error states (`wrong_account`, `failed`) are surfaced via URL search param redirect.
+- `app/gift-groups/actions.ts`: added `acceptInviteAction(formData)` server action that delegates to `acceptInvite` and redirects on error rather than returning to render. Fixed case-sensitive email comparison in `acceptInvite` — now normalises both sides to lowercase.
+- `app/login/register/page.tsx`: validated `callbackUrl` query param starts with `/` before using it in `window.location.href` — prevents potential `javascript:` redirect XSS.
+- `db/schema.ts`: added `.defaultRandom()` to `inviteToken` so new contributor rows always receive a UUID token (previously NULL, breaking invite emails). Added `uniqueIndex` on `(groupId, userId) WHERE userId IS NOT NULL` to prevent duplicate contributor rows for the same user.
+- `app/gift-groups/[id]/page.tsx`: consolidated two duplicate resend-invite forms into one with conditional text/colour.
+**Why:** Codacy flagged mutation-on-GET, XSS risk, and case-sensitivity bug as high severity. CodeRabbit flagged the missing invite token default and duplicate form blocks.
+
 ## [2026-05-09] Collaborative group gift contributors
 **By:** Claude Code
 **What:** Extended Phase 8 group gifts with multi-user collaboration. Contributors with accounts can see and interact with group gifts they've been added to.

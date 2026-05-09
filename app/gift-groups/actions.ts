@@ -241,7 +241,7 @@ export async function acceptInvite(token: string) {
   // Block if logged-in user's email doesn't match the invite email
   if (contributor.email) {
     const [me] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
-    if (!me || me.email !== contributor.email) return { error: "wrong_account" as const };
+    if (!me || me.email.toLowerCase() !== contributor.email.toLowerCase()) return { error: "wrong_account" as const };
   }
 
   await db
@@ -253,6 +253,18 @@ export async function acceptInvite(token: string) {
   revalidatePath(`/gift-groups/${contributor.groupId}`);
 
   return { groupId: contributor.groupId };
+}
+
+export async function acceptInviteAction(formData: FormData) {
+  const token = formData.get("token") as string;
+  const result = await acceptInvite(token);
+  if ("error" in result) {
+    if (result.error === "wrong_account") {
+      redirect(`/gift-groups/invite/${token}?error=wrong_account`);
+    }
+    redirect(`/gift-groups/invite/${token}?error=failed`);
+  }
+  redirect(`/gift-groups/${result.groupId}`);
 }
 
 export async function leaveGroup(formData: FormData) {

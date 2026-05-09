@@ -1,14 +1,17 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getContributorByInviteToken } from "@/lib/gift-groups-queries";
-import { acceptInvite } from "../../actions";
+import { acceptInviteAction } from "../../actions";
 
 export default async function InvitePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { token } = await params;
+  const { error } = await searchParams;
   const invite = await getContributorByInviteToken(token);
 
   if (!invite) {
@@ -50,29 +53,26 @@ export default async function InvitePage({
   const session = await auth();
 
   if (!session?.user) {
-    // Not logged in — redirect to login, passing this page as callbackUrl
     const callbackUrl = encodeURIComponent(`/gift-groups/invite/${token}`);
     redirect(`/login?callbackUrl=${callbackUrl}`);
   }
 
-  // Logged in — try to accept
-  const result = await acceptInvite(token);
+  if (error === "wrong_account") {
+    return (
+      <main className="mx-auto max-w-md px-4 py-16 text-center">
+        <h1 className="text-xl font-semibold">Wrong account</h1>
+        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+          This invite was sent to <strong>{invite.email}</strong>. You&rsquo;re logged in with
+          a different email. Please log in with the correct account to accept this invite.
+        </p>
+        <a href={`/login?callbackUrl=${encodeURIComponent(`/gift-groups/invite/${token}`)}`} className="mt-4 inline-block text-sm text-brand-blue-600 hover:underline dark:text-brand-blue-400">
+          Log in with a different account →
+        </a>
+      </main>
+    );
+  }
 
-  if ("error" in result) {
-    if (result.error === "wrong_account") {
-      return (
-        <main className="mx-auto max-w-md px-4 py-16 text-center">
-          <h1 className="text-xl font-semibold">Wrong account</h1>
-          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-            This invite was sent to <strong>{invite.email}</strong>. You&rsquo;re logged in with
-            a different email. Please log in with the correct account to accept this invite.
-          </p>
-          <a href={`/login?callbackUrl=${encodeURIComponent(`/gift-groups/invite/${token}`)}`} className="mt-4 inline-block text-sm text-brand-blue-600 hover:underline dark:text-brand-blue-400">
-            Log in with a different account →
-          </a>
-        </main>
-      );
-    }
+  if (error === "failed") {
     return (
       <main className="mx-auto max-w-md px-4 py-16 text-center">
         <h1 className="text-xl font-semibold">Something went wrong</h1>
@@ -83,5 +83,18 @@ export default async function InvitePage({
     );
   }
 
-  redirect(`/gift-groups/${result.groupId}`);
+  return (
+    <main className="mx-auto max-w-md px-4 py-16 text-center">
+      <h1 className="text-xl font-semibold">You&rsquo;ve been invited to a group gift</h1>
+      <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+        Accept the invite to join this group gift and track your contribution.
+      </p>
+      <form action={acceptInviteAction} className="mt-6">
+        <input type="hidden" name="token" value={token} />
+        <button type="submit" className="btn-primary px-4 py-2 text-sm">
+          Accept invite
+        </button>
+      </form>
+    </main>
+  );
 }

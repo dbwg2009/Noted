@@ -293,22 +293,15 @@ export default async function GiftGroupDetailPage({
                           </form>
                         </details>
 
-                        {isPending && !isExpired && (
+                        {isPending && (
                           <form action={resendInvite}>
                             <input type="hidden" name="contributorId" value={c.id} />
                             <input type="hidden" name="groupId" value={group.id} />
-                            <button type="submit" className="text-xs text-brand-blue-600 hover:underline dark:text-brand-blue-400">
-                              Resend invite
-                            </button>
-                          </form>
-                        )}
-
-                        {isExpired && (
-                          <form action={resendInvite}>
-                            <input type="hidden" name="contributorId" value={c.id} />
-                            <input type="hidden" name="groupId" value={group.id} />
-                            <button type="submit" className="text-xs text-amber-600 hover:underline dark:text-amber-400">
-                              Resend invite (expired)
+                            <button
+                              type="submit"
+                              className={`text-xs hover:underline ${isExpired ? "text-amber-600 dark:text-amber-400" : "text-brand-blue-600 dark:text-brand-blue-400"}`}
+                            >
+                              {isExpired ? "Resend invite (expired)" : "Resend invite"}
                             </button>
                           </form>
                         )}
