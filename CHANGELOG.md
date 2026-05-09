@@ -13,6 +13,49 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-09] Fix Promise-returning form action Codacy flags
+**By:** Claude Code
+**What:** Introduced `app/gift-groups/action-form.tsx` — a thin client component wrapper around `<form>` that accepts `action: (FormData) => Promise<void>` and internally wraps it in a void-returning arrow function. Replaced the 5 flagged `<form action={serverAction}>` usages in `app/gift-groups/[id]/page.tsx` and `app/gift-groups/invite/[token]/page.tsx` with `<ActionForm action={serverAction}>`.
+**Why:** Codacy flags `action={asyncFn}` as "Promise-returning function in void attribute" because it lacks React 19's type context where form `action` already accepts `Promise<void>`. Arrow wrappers directly in server components break Next.js RSC action serialization; passing the server action as a prop to a client component (which then wraps it) is the correct Next.js pattern that satisfies both the type checker and the linter.
+
+## [2026-05-09] Fix third-round Codacy issues on PR #115
+**By:** Claude Code
+**What:** Fixed 7 new issues flagged by Codacy on the latest push.
+- `eslint.config.mjs`: configured `@typescript-eslint/no-misused-promises` with `checksVoidReturn: { attributes: false }` — suppresses the "Promise-returning function in void attribute" error for server action form props. Arrow-function wrappers are not viable here (they break Next.js RSC action serialization).
+- `app/login/register/page.tsx`: replaced `window.location.href = dest` with `router.push(dest)` using Next.js `useRouter` — eliminates the Codacy XSS flag on direct `location.href` assignment.
+- `lib/gift-groups-queries.ts`: removed unused `or` import from drizzle-orm.
+**Why:** Codacy flagged the async form actions as high-severity error-prone and the location.href assignment as a high-severity XSS risk. ESLint rule configuration is the correct fix for the server action pattern; router.push is the safer and idiomatic Next.js navigation method.
+
+## [2026-05-09] Fix second-round Codacy issues on PR #115
+**By:** Claude Code
+**What:** Fixed two further issues flagged in Codacy's follow-up review.
+- `app/gift-groups/actions.ts` (`updateContributor`): normalize email to lowercase on save — consistent with `addContributor` which already did this, prevents case-fragmented duplicates.
+- `app/gift-groups/actions.ts` (`addContributor`): check for existing contributor row before inserting when the invited user already has an account — prevents a 500 crash from the unique `(groupId, userId)` index added in the previous round.
+**Why:** Inconsistent email casing causes silent data fragmentation; missing duplicate check causes an unhandled constraint violation crash.
+
+## [2026-05-09] Fix Codacy and CodeRabbit issues on PR #115
+**By:** Claude Code
+**What:** Fixed all actionable review issues from Codacy and CodeRabbit on the collaborative contributors PR.
+- `app/gift-groups/invite/[token]/page.tsx`: removed unsafe mutation-on-GET — invite page now shows an "Accept invite" button; mutation only happens on form submit via new `acceptInviteAction`. Error states (`wrong_account`, `failed`) are surfaced via URL search param redirect.
+- `app/gift-groups/actions.ts`: added `acceptInviteAction(formData)` server action that delegates to `acceptInvite` and redirects on error rather than returning to render. Fixed case-sensitive email comparison in `acceptInvite` — now normalises both sides to lowercase.
+- `app/login/register/page.tsx`: validated `callbackUrl` query param starts with `/` before using it in `window.location.href` — prevents potential `javascript:` redirect XSS.
+- `db/schema.ts`: added `.defaultRandom()` to `inviteToken` so new contributor rows always receive a UUID token (previously NULL, breaking invite emails). Added `uniqueIndex` on `(groupId, userId) WHERE userId IS NOT NULL` to prevent duplicate contributor rows for the same user.
+- `app/gift-groups/[id]/page.tsx`: consolidated two duplicate resend-invite forms into one with conditional text/colour.
+**Why:** Codacy flagged mutation-on-GET, XSS risk, and case-sensitivity bug as high severity. CodeRabbit flagged the missing invite token default and duplicate form blocks.
+
+## [2026-05-09] Collaborative group gift contributors
+**By:** Claude Code
+**What:** Extended Phase 8 group gifts with multi-user collaboration. Contributors with accounts can see and interact with group gifts they've been added to.
+- `db/schema.ts`: added `userId` (FK → users), `inviteToken` (uuid unique), `inviteExpiresAt`, `inviteAcceptedAt` columns to `gift_group_contributors`.
+- `lib/gift-groups-queries.ts`: `listGiftGroups` now returns `{ owned, contributing }` split; `getGiftGroup` allows contributor access; new `getContributorByInviteToken`.
+- `lib/notify/email.ts`: added `sendGroupGiftNotification` (existing users) and `sendGroupGiftInvite` (new users with invite link).
+- `app/gift-groups/actions.ts`: `addContributor` now checks email against users table — links immediately + notifies if found, or generates 30-day invite token + sends invite email if not. New actions: `resendInvite`, `acceptInvite`, `leaveGroup`, `updateMyContribution`.
+- `app/gift-groups/page.tsx`: split into "Groups I manage" and "Groups I'm contributing to" sections.
+- `app/gift-groups/[id]/page.tsx`: shows owner controls or contributor controls (edit own amount, leave group) based on role. Contributor rows show Linked/Invite pending/Invite expired badges.
+- `app/gift-groups/invite/[token]/page.tsx`: new public invite acceptance page. Handles wrong-account blocking, expired tokens, already-accepted states.
+- `app/login/register/page.tsx`: forwards `callbackUrl` query param through to post-registration login redirect so invite links survive the sign-up flow.
+**Why:** App is multi-user; contributors should be able to view and manage their own involvement in group gifts without relying on the organiser for everything.
+
 ## [2026-05-08] Fix Codacy review issues on phase 8 bundle
 **By:** Claude Code
 **What:** Addressed all Codacy comments on PR #113.
