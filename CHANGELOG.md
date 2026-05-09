@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-09] Fix accept-before-notify race and improve email error logs
+**By:** Claude Code
+**What:** In `addContributor`, existing-user contributors are now inserted without `inviteAcceptedAt`; it is set only after `sendGroupGiftNotification` succeeds. If the email fails, the row stays in a re-invitable state so `resendInvite` can retry. All three `console.error` calls now include the recipient email address.
+**Why:** Codacy AI flagged that setting `inviteAcceptedAt` before the email meant a failed notification left the contributor permanently stuck with no retry path. Log messages also lacked the recipient address, making them hard to act on in production.
+
+---
+
 ## [2026-05-09] Deduplicate invite token generation into newInvite() helper
 **By:** Claude Code
 **What:** Extracted `randomUUID()` + 30-day expiry into a `newInvite()` helper in `app/gift-groups/actions.ts`. Both `addContributor` and `resendInvite` now call it instead of repeating the same two lines.
