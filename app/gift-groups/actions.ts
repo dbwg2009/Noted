@@ -136,8 +136,8 @@ export async function addContributor(formData: FormData) {
       });
       try {
         await sendGroupGiftNotification(email, group.title, groupId);
-      } catch {
-        // email failure is non-fatal
+      } catch (err) {
+        console.error("[gift-groups] sendGroupGiftNotification failed:", err);
       }
     } else {
       const { inviteToken, inviteExpiresAt } = newInvite();
@@ -146,8 +146,8 @@ export async function addContributor(formData: FormData) {
         .values({ groupId, name, email, contributionAmount, inviteToken, inviteExpiresAt });
       try {
         await sendGroupGiftInvite(email, group.title, inviteToken);
-      } catch {
-        // email failure is non-fatal
+      } catch (err) {
+        console.error("[gift-groups] sendGroupGiftInvite failed:", err);
       }
     }
   } else {
@@ -219,8 +219,8 @@ export async function resendInvite(formData: FormData) {
 
   try {
     await sendGroupGiftInvite(contributor.email, group.title, inviteToken);
-  } catch {
-    // non-fatal
+  } catch (err) {
+    console.error("[gift-groups] resendInvite sendGroupGiftInvite failed:", err);
   }
 
   revalidatePath(`/gift-groups/${groupId}`);
