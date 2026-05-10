@@ -5,32 +5,6 @@ Every significant change to this project is recorded here. **AI agents must add 
 ## Entry format
 
 ```
-## [1.4.0](https://github.com/dbwg2009/Noted/compare/noted-v1.3.5...noted-v1.4.0) (2026-05-10)
-
-
-### Features
-
-* **ai:** tighter product prompt + loading spinner on AI buttons ([02744b4](https://github.com/dbwg2009/Noted/commit/02744b484aa266cf62546552673728ebf0850499))
-* Phase 8 group gifts ([#130](https://github.com/dbwg2009/Noted/issues/130)) ([dde9a44](https://github.com/dbwg2009/Noted/commit/dde9a44b6237ea410c682359abbecafa32f75818))
-
-
-### Bug Fixes
-
-* bump drizzle-orm to 0.45.2 (SQL injection security fix) ([#61](https://github.com/dbwg2009/Noted/issues/61)) ([05d1db5](https://github.com/dbwg2009/Noted/commit/05d1db5d95f5744dcc289910b85d739d79c2ce08))
-* **docker:** drive drizzle-kit through an expect script ([e1d2272](https://github.com/dbwg2009/Noted/commit/e1d22721a6a9796bfbda44e51fd179f5db222356))
-* **docker:** give drizzle-kit a pseudo-TTY so piped newlines reach prompts ([23feb35](https://github.com/dbwg2009/Noted/commit/23feb35dd114cea2c85eb9e84a7564f3dabd7707))
-* **docker:** unblock migrator when drizzle-kit prompts despite --force ([0604b68](https://github.com/dbwg2009/Noted/commit/0604b68f81f06372e6fdd628b3e4152616210bf0))
-* **docker:** unblock migrator when drizzle-kit prompts despite --force ([560ec6f](https://github.com/dbwg2009/Noted/commit/560ec6fd37fe7a1f8a45bd2f4b12978550fd56f5))
-* remove from sync-gemini to unblock Actions on main ([#70](https://github.com/dbwg2009/Noted/issues/70)) ([e7ed402](https://github.com/dbwg2009/Noted/commit/e7ed402392528773247815c7f3504dee36e48a9e)), closes [#69](https://github.com/dbwg2009/Noted/issues/69)
-* remove from sync-gemini to unblock Actions on main ([#71](https://github.com/dbwg2009/Noted/issues/71)) ([818904c](https://github.com/dbwg2009/Noted/commit/818904cf8955fe9f10140bcbd50c87fa79aadca0))
-* restore missing occasionKind enum in schema ([0e563c2](https://github.com/dbwg2009/Noted/commit/0e563c27fa3093e469ffcf45b41fb9fda296080a))
-* **ui:** move iCal URL onFocus handler into a client component ([7489701](https://github.com/dbwg2009/Noted/commit/7489701aaba812fac345ec1de2a5899d84220385))
-
-
-### Performance
-
-* DB indexes, connection pool, request caching, SQL reminders filter ([e05f11d](https://github.com/dbwg2009/Noted/commit/e05f11d2075950670be301b0632201c9df5719d1))
-
 ## [YYYY-MM-DD] Title
 **By:** human | Claude Code | Gemini CLI | Cursor | etc.
 **What:** Short description of what changed (files, features, behaviour).
