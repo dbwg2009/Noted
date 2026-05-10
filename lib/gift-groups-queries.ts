@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { giftGroups, giftGroupContributors, people, wishlistItems } from "@/db/schema";
 import { and, eq, desc, inArray } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
 async function attachContributors<T extends { id: string }>(groups: T[]) {
   if (groups.length === 0) return groups.map((g) => ({ ...g, contributors: [] as (typeof allContributors), totalRaised: 0 }));
@@ -32,14 +33,18 @@ const groupSelectFields = {
   wishlistItemDescription: wishlistItems.description,
 };
 
-export async function listGiftGroups(userId: string) {
-  const owned = await db
+async function fetchGroups(where: SQL) {
+  return db
     .select({ ...groupSelectFields, ownerId: giftGroups.userId })
     .from(giftGroups)
     .leftJoin(people, eq(giftGroups.personId, people.id))
     .leftJoin(wishlistItems, eq(giftGroups.wishlistItemId, wishlistItems.id))
-    .where(eq(giftGroups.userId, userId))
+    .where(where)
     .orderBy(desc(giftGroups.createdAt));
+}
+
+export async function listGiftGroups(userId: string) {
+  const owned = await fetchGroups(eq(giftGroups.userId, userId));
 
   // Groups the user is a contributor on (but doesn't own), split by acceptance
   const contributingRows = await db
@@ -52,20 +57,14 @@ export async function listGiftGroups(userId: string) {
   const pendingRows = nonOwnedRows.filter((r) => r.inviteAcceptedAt === null);
   const pendingIds = pendingRows.map((r) => r.groupId);
 
-  const fetchGroups = async (ids: string[]) =>
+  const fetchById = (ids: string[]) =>
     ids.length === 0
-      ? []
-      : db
-          .select({ ...groupSelectFields, ownerId: giftGroups.userId })
-          .from(giftGroups)
-          .leftJoin(people, eq(giftGroups.personId, people.id))
-          .leftJoin(wishlistItems, eq(giftGroups.wishlistItemId, wishlistItems.id))
-          .where(inArray(giftGroups.id, ids))
-          .orderBy(desc(giftGroups.createdAt));
+      ? attachContributors([])
+      : fetchGroups(inArray(giftGroups.id, ids)).then(attachContributors);
 
   const [contributing, pendingGroups, ownedWithContributors] = await Promise.all([
-    fetchGroups(acceptedIds).then(attachContributors),
-    fetchGroups(pendingIds).then(attachContributors),
+    fetchById(acceptedIds),
+    fetchById(pendingIds),
     attachContributors(owned),
   ]);
 

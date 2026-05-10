@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] Refactor gift-groups queries to eliminate duplication and fix Codacy HIGH
+**By:** Claude Code
+**What:** Extracted a module-level named `fetchGroups(where: SQL)` function from `listGiftGroups` in `lib/gift-groups-queries.ts`. The owned query now calls `fetchGroups` with the user-id condition, and the contributing/pending queries use a `fetchById` helper that delegates to `fetchGroups`. Eliminates the 9-line query duplication Codacy detected and resolves the HIGH "non-serializable expression" issue caused by the inner async arrow function.
+**Why:** Codacy flagged the inner `const fetchGroups = async () =>` as a HIGH issue and detected +9 duplicate lines; both rooted in the same structural problem.
+
+---
+
 ## [2026-05-10] In-app accept/decline for existing users + register link for new users
 **By:** Claude Code
 **What:** When an existing registered user is added as a contributor, they now get an invite token (same as unregistered users) and must explicitly accept or decline via the app rather than being auto-accepted. A new "Pending invitations" section on `/gift-groups` shows these with Accept/Decline buttons. Unregistered users now receive a "Get started" link pointing to `/login/register?callbackUrl=...` instead of the invite page. New `acceptLinkedInvite` and `declineInvitation` server actions added.
