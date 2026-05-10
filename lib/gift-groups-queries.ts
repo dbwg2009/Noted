@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { giftGroups, giftGroupContributors, people, wishlistItems } from "@/db/schema";
-import { and, eq, desc, inArray, isNotNull } from "drizzle-orm";
+import { and, eq, desc, inArray } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 async function attachContributors<T extends { id: string }>(groups: T[]) {
@@ -50,7 +50,7 @@ export async function listGiftGroups(userId: string) {
   const contributingRows = await db
     .select({ groupId: giftGroupContributors.groupId, inviteAcceptedAt: giftGroupContributors.inviteAcceptedAt, contributorId: giftGroupContributors.id })
     .from(giftGroupContributors)
-    .where(eq(giftGroupContributors.userId, userId));
+    .where(and(eq(giftGroupContributors.userId, userId)));
 
   const nonOwnedRows = contributingRows.filter((r) => !owned.some((g) => g.id === r.groupId));
   const acceptedIds = nonOwnedRows.filter((r) => r.inviteAcceptedAt !== null).map((r) => r.groupId);
@@ -68,14 +68,10 @@ export async function listGiftGroups(userId: string) {
   ]);
 
   // Attach the contributorId so the list page can build accept/decline forms
-  const pendingByGroup = new Map(pendingRows.map((r) => [r.groupId, r.contributorId]));
-  const pendingInvitations = pendingGroups
-    .map((g) => {
-      const contributorId = pendingByGroup.get(g.id);
-      if (!contributorId) return null;
-      return { ...g, contributorId };
-    })
-    .filter((g): g is NonNullable<typeof g> => g !== null);
+  const pendingInvitations = pendingGroups.map((g) => ({
+    ...g,
+    contributorId: pendingRows.find((r) => r.groupId === g.id)!.contributorId,
+  }));
 
   return { owned: ownedWithContributors, contributing, pendingInvitations };
 }
@@ -110,7 +106,7 @@ export async function getGiftGroup(id: string, userId: string) {
     const [myRow] = await db
       .select({ id: giftGroupContributors.id })
       .from(giftGroupContributors)
-      .where(and(eq(giftGroupContributors.groupId, id), eq(giftGroupContributors.userId, userId), isNotNull(giftGroupContributors.inviteAcceptedAt)));
+      .where(and(eq(giftGroupContributors.groupId, id), eq(giftGroupContributors.userId, userId)));
     if (!myRow) return null;
   }
 

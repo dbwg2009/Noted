@@ -1,4 +1,7 @@
-pre_merge_checks:
-  coderabbit:
-    docstring_coverage:
-      enabled: false
+reviews:
+  tools:
+    coderabbit:
+      enabled: true
+      checks:
+        docstring_coverage:
+          enabled: false

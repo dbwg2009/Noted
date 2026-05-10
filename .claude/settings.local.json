@@ -18,12 +18,8 @@
       "Bash(gh api *)",
       "Bash(gh milestone *)",
       "Bash(gh issue *)",
-      "Bash(git stash)",
-      "Bash(git stash pop)",
-      "Bash(git checkout Development)",
-      "Bash(git checkout main)",
-      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\dbwg2\\\\Downloads\\\\Noted\" -Recurse -Filter \"*.ts\" -ErrorAction SilentlyContinue)",
-      "PowerShell(Select-Object FullName)"
+      "Bash(git stash *)",
+      "Bash(git checkout *)"
     ]
   }
 }
