@@ -91,6 +91,18 @@ export async function updateSiteWideOccasion(formData: FormData) {
     .limit(1);
   if (!row || row.userId !== userId) return;
 
+  if (kind !== "custom") {
+    const [otherOccasion] = await db
+      .select({ id: occasions.id })
+      .from(occasions)
+      .where(and(eq(occasions.userId, userId), isNull(occasions.personId), eq(occasions.kind, kind as OccasionKindValue)))
+      .limit(1);
+    if (otherOccasion && otherOccasion.id !== id) {
+      await setSettingsFlash(`${getKnownOccasionLabel(kind)} is already set up site-wide.`, "error");
+      return;
+    }
+  }
+
   await db
     .update(occasions)
     .set({ kind: kind as OccasionKindValue, name, date, yearRecurring: true, notes })
