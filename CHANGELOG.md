@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] Unit tests for fromAddress and digest email renderers
+**By:** Claude Code
+**What:** Added `lib/__tests__/email.test.ts` with 16 tests covering `fromAddress` (specific key, fallback, hardcoded default, double-quote strip, single-quote strip, no inner-quote strip) and both text/HTML digest renderers (no prices, no external buy links, item titles present, retailer name present, person-page link present, empty shortlist message).
+**Why:** Codacy AI reviewer flagged missing test coverage for the quote-stripping logic and email renderers added in the email fix PR.
+
+---
+
 ## [2026-05-10] Fix sender display name and reduce promotional classification of digest emails
 **By:** Claude Code
 **What:** Two changes to `lib/notify/email.ts`. (1) `fromAddress()` now strips leading/trailing quote characters from the env var value before returning it, so display names like "Noted Support" survive Docker Compose .env parsing. (2) Removed external retailer URLs and prices from the birthday digest shortlist (both text and HTML renderers); the shortlist now shows item title, kind tag, and retailer name only, linking to the Noted person page for full details. Prices and buy-links are the primary signals Gmail uses to classify emails as promotional.
