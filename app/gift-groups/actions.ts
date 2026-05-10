@@ -193,7 +193,16 @@ export async function updateContributor(formData: FormData) {
 
   // If email changed, we need to reset invite status so they can be re-invited
   const emailChanged = email !== existing.email;
-  const update: any = { name, email, contributionAmount, paid };
+  const update: {
+    name: string;
+    email: string | null;
+    contributionAmount: number | null;
+    paid: boolean;
+    userId?: string | null;
+    inviteAcceptedAt?: Date | null;
+    inviteToken?: string | null;
+    inviteExpiresAt?: Date | null;
+  } = { name, email, contributionAmount, paid };
   if (emailChanged) {
     update.userId = null;
     update.inviteAcceptedAt = null;

@@ -13,6 +13,14 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] Fix: final round of PR review hardening
+**By:** Gemini CLI
+**What:** Final refinements to address Codacy and CodeRabbit feedback on PR #130:
+- **Type Safety:** Replaced `any` with a proper typed shape for the `update` object in `updateContributor` server action.
+- **Linter Compliance:** Migrated the "Delete group" form to the `ActionForm` client wrapper to satisfy the Codacy promise-returning function rule.
+- **Infrastructure:** Corrected shell wrappers in `.claude/settings.local.json` to use `PowerShell()` instead of `Bash()` for PowerShell-specific commands.
+**Why:** Ensures 100% type safety in the gift group actions, resolves the last few high-priority linter warnings, and fixes incorrect shell configurations.
+
 ## [2026-05-10] Chore: sync release-please manifest version to 1.4.0
 **By:** Gemini CLI
 **What:** Updated `.github/release-please-manifest.json` from `1.3.5` to `1.4.0` to match `package.json`.

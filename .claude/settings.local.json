@@ -22,8 +22,8 @@
       "Bash(git stash pop)",
       "Bash(git checkout Development)",
       "Bash(git checkout main)",
-      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\dbwg2\\\\Downloads\\\\Noted\" -Recurse -Filter \"*.ts\" -o ErrorAction SilentlyContinue)",
-      "Bash(Select-Object FullName)"
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\dbwg2\\\\Downloads\\\\Noted\" -Recurse -Filter \"*.ts\" -o ErrorAction SilentlyContinue)",
+      "PowerShell(Select-Object FullName)"
     ]
   }
 }
