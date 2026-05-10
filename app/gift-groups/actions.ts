@@ -326,10 +326,18 @@ export async function acceptLinkedInvite(formData: FormData) {
   const groupId = formData.get("groupId") as string;
 
   const [row] = await db
-    .select({ userId: giftGroupContributors.userId })
+    .select({
+      userId: giftGroupContributors.userId,
+      inviteExpiresAt: giftGroupContributors.inviteExpiresAt,
+      inviteAcceptedAt: giftGroupContributors.inviteAcceptedAt,
+    })
     .from(giftGroupContributors)
     .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
   if (!row || row.userId !== userId) return;
+  if (row.inviteAcceptedAt) return;
+  if (row.inviteExpiresAt && row.inviteExpiresAt < new Date()) {
+    redirect(`/gift-groups?error=invite_expired`);
+  }
 
   await db
     .update(giftGroupContributors)

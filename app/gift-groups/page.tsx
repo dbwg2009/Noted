@@ -57,15 +57,25 @@ function GroupCard({ g }: { g: { id: string; title: string; status: string; targ
   );
 }
 
-export default async function GiftGroupsPage() {
+export default async function GiftGroupsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const userId = await requireCurrentUserId();
   const { owned, contributing, pendingInvitations } = await listGiftGroups(userId);
+  const { error } = await searchParams;
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
+      {error === "invite_expired" && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          This invitation has expired. Ask the group organiser to resend it.
+        </div>
+      )}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Group Gifts</h1>
