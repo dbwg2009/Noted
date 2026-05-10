@@ -45,7 +45,7 @@ export async function createOccasion(formData: FormData) {
   let name = String(formData.get("name") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  if (!kind) return;
+  if (!kind || !Object.values(occasionKind.enumValues).includes(kind as OccasionKindValue)) return;
   if (!name && kind !== "custom") name = getKnownOccasionLabel(kind);
 
   const date = buildOccasionDate(kind, formData);

@@ -21,7 +21,9 @@ function maskEmail(email: string) {
 
 function parsePence(value: FormDataEntryValue | null): number | null {
   if (typeof value !== "string" || !value.trim()) return null;
-  const n = parseFloat(value);
+  const trimmed = value.trim();
+  if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return null;
+  const n = parseFloat(trimmed);
   if (!Number.isFinite(n) || n < 0) return null;
   return Math.round(n * 100);
 }
@@ -310,10 +312,7 @@ export async function acceptInviteAction(formData: FormData) {
   const token = formData.get("token") as string;
   const result = await acceptInvite(token);
   if ("error" in result) {
-    if (result.error === "wrong_account") {
-      redirect(`/gift-groups/invite/${token}?error=wrong_account`);
-    }
-    redirect(`/gift-groups/invite/${token}?error=failed`);
+    redirect(`/gift-groups/invite/${token}?error=${result.error}`);
   }
   redirect(`/gift-groups/${result.groupId}`);
 }

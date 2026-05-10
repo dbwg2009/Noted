@@ -14,7 +14,6 @@ import {
   updateMyContribution,
 } from "../actions";
 import { DeleteGroupButton } from "./delete-group-button";
-import { ActionForm } from "../action-form";
 import { inputCls, STATUS_LABELS, STATUS_COLOURS } from "../constants";
 
 function formatPenceInput(value: number | null) {
@@ -89,7 +88,7 @@ export default async function GiftGroupDetailPage({
               <summary className="cursor-pointer text-neutral-600 hover:underline dark:text-neutral-400">
                 Edit
               </summary>
-              <ActionForm action={updateGiftGroup} className="mt-3 grid gap-2 min-w-[220px]">
+              <form action={updateGiftGroup} className="mt-3 grid gap-2 min-w-[220px]">
                 <input type="hidden" name="groupId" value={group.id} />
                 <input name="title" required defaultValue={group.title} className={inputCls} />
                 <select name="status" defaultValue={group.status} className={inputCls}>
@@ -116,7 +115,7 @@ export default async function GiftGroupDetailPage({
                 <button type="submit" className="btn-primary px-3 py-1.5 text-sm w-fit">
                   Save
                 </button>
-              </ActionForm>
+              </form>
               <DeleteGroupButton groupId={group.id} />
             </details>
           )}
@@ -128,7 +127,7 @@ export default async function GiftGroupDetailPage({
                 <summary className="cursor-pointer text-neutral-600 hover:underline dark:text-neutral-400">
                   Edit my contribution
                 </summary>
-                <ActionForm action={updateMyContribution} className="mt-2 flex gap-2 items-end">
+                <form action={updateMyContribution} className="mt-2 flex gap-2 items-end">
                   <input type="hidden" name="contributorId" value={myContributorRow.id} />
                   <input type="hidden" name="groupId" value={group.id} />
                   <input
@@ -142,9 +141,9 @@ export default async function GiftGroupDetailPage({
                     className={inputCls}
                   />
                   <button type="submit" className="btn-primary px-3 py-1.5 text-sm">Save</button>
-                </ActionForm>
+                </form>
               </details>
-              <ActionForm action={leaveGroup}>
+              <form action={leaveGroup}>
                 <input type="hidden" name="contributorId" value={myContributorRow.id} />
                 <input type="hidden" name="groupId" value={group.id} />
                 <button
@@ -153,7 +152,7 @@ export default async function GiftGroupDetailPage({
                 >
                   Leave group
                 </button>
-              </ActionForm>
+              </form>
             </div>
           )}
         </div>
@@ -195,7 +194,7 @@ export default async function GiftGroupDetailPage({
         {isOwner && (
           <details className="card mt-3">
             <summary className="cursor-pointer text-sm font-medium">+ Add contributor</summary>
-            <ActionForm action={addContributor} className="mt-4 grid gap-3 md:grid-cols-2">
+            <form action={addContributor} className="mt-4 grid gap-3 md:grid-cols-2">
               <input type="hidden" name="groupId" value={group.id} />
               <input name="name" required placeholder="Name" aria-label="Contributor name" className={inputCls} />
               <input name="email" type="email" placeholder="Email (optional — links account or sends invite)" aria-label="Contributor email" className={inputCls} />
@@ -211,7 +210,7 @@ export default async function GiftGroupDetailPage({
               <button type="submit" className="btn-primary w-fit px-4 py-2 text-sm">
                 Add
               </button>
-            </ActionForm>
+            </form>
           </details>
         )}
 
@@ -265,7 +264,7 @@ export default async function GiftGroupDetailPage({
                           <summary className="cursor-pointer text-neutral-600 hover:underline dark:text-neutral-400">
                             Edit
                           </summary>
-                          <ActionForm action={updateContributor} className="mt-3 grid gap-2">
+                          <form action={updateContributor} className="mt-3 grid gap-2">
                             <input type="hidden" name="contributorId" value={c.id} />
                             <input type="hidden" name="groupId" value={group.id} />
                             <input name="name" required defaultValue={c.name} className={inputCls} />
@@ -291,11 +290,11 @@ export default async function GiftGroupDetailPage({
                             <button type="submit" className="btn-primary px-3 py-1.5 text-sm w-fit">
                               Save
                             </button>
-                          </ActionForm>
+                          </form>
                         </details>
 
                         {isPending && (
-                          <ActionForm action={resendInvite}>
+                          <form action={resendInvite}>
                             <input type="hidden" name="contributorId" value={c.id} />
                             <input type="hidden" name="groupId" value={group.id} />
                             <button
@@ -304,10 +303,10 @@ export default async function GiftGroupDetailPage({
                             >
                               {isExpired ? "Resend invite (expired)" : "Resend invite"}
                             </button>
-                          </ActionForm>
+                          </form>
                         )}
 
-                        <ActionForm action={deleteContributor}>
+                        <form action={deleteContributor}>
                           <input type="hidden" name="contributorId" value={c.id} />
                           <input type="hidden" name="groupId" value={group.id} />
                           <button
@@ -316,7 +315,7 @@ export default async function GiftGroupDetailPage({
                           >
                             Remove
                           </button>
-                        </ActionForm>
+                        </form>
                       </div>
                     )}
                   </div>

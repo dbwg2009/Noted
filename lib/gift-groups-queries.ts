@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { giftGroups, giftGroupContributors, people, wishlistItems } from "@/db/schema";
-import { and, eq, desc, inArray } from "drizzle-orm";
+import { and, eq, desc, inArray, isNotNull } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 async function attachContributors<T extends { id: string }>(groups: T[]) {
@@ -50,7 +50,7 @@ export async function listGiftGroups(userId: string) {
   const contributingRows = await db
     .select({ groupId: giftGroupContributors.groupId, inviteAcceptedAt: giftGroupContributors.inviteAcceptedAt, contributorId: giftGroupContributors.id })
     .from(giftGroupContributors)
-    .where(and(eq(giftGroupContributors.userId, userId)));
+    .where(eq(giftGroupContributors.userId, userId));
 
   const nonOwnedRows = contributingRows.filter((r) => !owned.some((g) => g.id === r.groupId));
   const acceptedIds = nonOwnedRows.filter((r) => r.inviteAcceptedAt !== null).map((r) => r.groupId);
@@ -110,7 +110,7 @@ export async function getGiftGroup(id: string, userId: string) {
     const [myRow] = await db
       .select({ id: giftGroupContributors.id })
       .from(giftGroupContributors)
-      .where(and(eq(giftGroupContributors.groupId, id), eq(giftGroupContributors.userId, userId)));
+      .where(and(eq(giftGroupContributors.groupId, id), eq(giftGroupContributors.userId, userId), isNotNull(giftGroupContributors.inviteAcceptedAt)));
     if (!myRow) return null;
   }
 

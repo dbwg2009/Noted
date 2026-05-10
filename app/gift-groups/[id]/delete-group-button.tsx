@@ -1,11 +1,10 @@
 "use client";
 
 import { deleteGiftGroup } from "../actions";
-import { ActionForm } from "../action-form";
 
 export function DeleteGroupButton({ groupId }: { groupId: string }) {
   return (
-    <ActionForm
+    <form
       action={deleteGiftGroup}
       onSubmit={(e) => {
         if (!confirm("Delete this group gift? This cannot be undone.")) {
@@ -21,6 +20,6 @@ export function DeleteGroupButton({ groupId }: { groupId: string }) {
       >
         Delete group
       </button>
-    </ActionForm>
+    </form>
   );
 }
