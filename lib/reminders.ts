@@ -103,7 +103,7 @@ export async function findDueReminders(today = new Date()): Promise<DueReminder[
 }
 
 export type ShortlistEntry = {
-  kind: "product" | "suggestion";
+  kind: "product" | "suggestion" | "wishlist";
   title: string;
   retailer: string | null;
   url: string | null;
@@ -123,7 +123,7 @@ async function buildShortlistForPerson(
   budgetMax: number | null,
 ): Promise<ShortlistEntry[]> {
   const wishlistRows = await db
-    .select({ id: wishlistItems.id })
+    .select()
     .from(wishlistItems)
     .where(eq(wishlistItems.personId, personId));
   const wishlistIds = wishlistRows.map((w) => w.id);
@@ -159,6 +159,20 @@ async function buildShortlistForPerson(
       rationale: null,
     }));
 
+  const activeWishlistRows = wishlistRows.filter(
+    (w) => w.status !== "purchased" && w.status !== "given",
+  );
+  const wishlistEntries: ShortlistEntry[] = activeWishlistRows
+    .filter((w) => matchesBudget(w.priceMin))
+    .map((w) => ({
+      kind: "wishlist",
+      title: w.description,
+      retailer: null,
+      url: null,
+      pricePence: w.priceMin ?? w.priceMax ?? null,
+      rationale: w.sourceNote,
+    }));
+
   const suggestionEntries: ShortlistEntry[] = suggestionRows.map((s) => ({
     kind: "suggestion",
     title: s.title,
@@ -168,10 +182,11 @@ async function buildShortlistForPerson(
     rationale: s.rationale,
   }));
 
-  // Prioritise real products over suggestions, then sort by price ascending,
-  // then cap at 5 entries.
-  const combined = [...productEntries, ...suggestionEntries].sort((a, b) => {
-    if (a.kind !== b.kind) return a.kind === "product" ? -1 : 1;
+  // Priority: AI-found products → wishlist items → AI suggestions; within each group sort by price asc.
+  const kindOrder: Record<ShortlistEntry["kind"], number> = { product: 0, wishlist: 1, suggestion: 2 };
+  const combined = [...productEntries, ...wishlistEntries, ...suggestionEntries].sort((a, b) => {
+    const kindDiff = kindOrder[a.kind] - kindOrder[b.kind];
+    if (kindDiff !== 0) return kindDiff;
     return (a.pricePence ?? Infinity) - (b.pricePence ?? Infinity);
   });
   return combined.slice(0, 5);
