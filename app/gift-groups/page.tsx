@@ -5,14 +5,10 @@ import { requireCurrentUserId } from "@/lib/people-queries";
 import { listGiftGroups } from "@/lib/gift-groups-queries";
 import { poundsFromPence } from "@/lib/birthdays";
 import { createGiftGroup, acceptLinkedInvite, declineInvitation } from "./actions";
+import { ActionForm } from "./action-form";
 import { inputCls, STATUS_LABELS, STATUS_COLOURS } from "./constants";
 
-interface Contributor {
-  id: string;
-  contributionAmount: number | null;
-}
-
-function GroupCard({ g }: { g: { id: string; title: string; status: string; targetAmount: number | null; personName: string | null; wishlistItemDescription: string | null; contributors: Contributor[]; totalRaised: number } }) {
+function GroupCard({ g }: { g: { id: string; title: string; status: string; targetAmount: number | null; personName: string | null; wishlistItemDescription: string | null; contributors: unknown[]; totalRaised: number } }) {
   const pct =
     g.targetAmount && g.targetAmount > 0
       ? Math.min(100, Math.round((g.totalRaised / g.targetAmount) * 100))
@@ -155,14 +151,14 @@ export default async function GiftGroupsPage({
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <form action={acceptLinkedInvite}>
+                  <ActionForm action={acceptLinkedInvite}>
                     <input type="hidden" name="contributorId" value={g.contributorId} />
                     <input type="hidden" name="groupId" value={g.id} />
                     <button type="submit" className="btn-primary px-4 py-1.5 text-sm">
                       Accept
                     </button>
-                  </form>
-                  <form action={declineInvitation}>
+                  </ActionForm>
+                  <ActionForm action={declineInvitation}>
                     <input type="hidden" name="contributorId" value={g.contributorId} />
                     <input type="hidden" name="groupId" value={g.id} />
                     <button
@@ -171,7 +167,7 @@ export default async function GiftGroupsPage({
                     >
                       Decline
                     </button>
-                  </form>
+                  </ActionForm>
                 </div>
               </li>
             ))}

@@ -6,11 +6,11 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { db } from "@/db";
 import { occasionKind, occasions, people } from "@/db/schema";
+
+type OccasionKindValue = (typeof occasionKind.enumValues)[number];
 import { requireCurrentUserId } from "@/lib/people-queries";
 import { ensureDefaultReminders } from "@/lib/reminders";
 import { getKnownOccasionDate, getKnownOccasionLabel } from "@/lib/occasions";
-
-type OccasionKindValue = (typeof occasionKind.enumValues)[number];
 
 async function setPeopleFlash(message: string, tone: "success" | "error") {
   const store = await cookies();
@@ -45,7 +45,7 @@ export async function createOccasion(formData: FormData) {
   let name = String(formData.get("name") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  if (!kind || !Object.values(occasionKind.enumValues).includes(kind as OccasionKindValue)) return;
+  if (!kind) return;
   if (!name && kind !== "custom") name = getKnownOccasionLabel(kind);
 
   const date = buildOccasionDate(kind, formData);
@@ -62,10 +62,7 @@ export async function createOccasion(formData: FormData) {
       : and(eq(occasions.userId, userId), isNull(occasions.personId), eq(occasions.kind, kind as OccasionKindValue));
     const [dupe] = await db.select({ id: occasions.id }).from(occasions).where(dupeWhere).limit(1);
     if (dupe) {
-      const message = personId
-        ? `${getKnownOccasionLabel(kind)} already exists for this person.`
-        : `${getKnownOccasionLabel(kind)} already exists site-wide.`;
-      await setPeopleFlash(message, "error");
+      await setPeopleFlash(`${getKnownOccasionLabel(kind)} already exists for this person.`, "error");
       if (personId) redirect(`/people/${personId}`);
       return;
     }
