@@ -425,6 +425,7 @@ export const giftGroupsRelations = relations(giftGroups, ({ one, many }) => ({
   user: one(users, { fields: [giftGroups.userId], references: [users.id] }),
   person: one(people, { fields: [giftGroups.personId], references: [people.id] }),
   wishlistItem: one(wishlistItems, { fields: [giftGroups.wishlistItemId], references: [wishlistItems.id] }),
+  occasion: one(occasions, { fields: [giftGroups.occasionId], references: [occasions.id] }),
   contributors: many(giftGroupContributors),
 }));
 

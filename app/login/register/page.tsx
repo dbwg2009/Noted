@@ -26,7 +26,8 @@ function RegisterForm() {
         const json = await res.json();
         setError(json?.error || "Failed to create account");
       }
-    } catch {
+    } catch (err) {
+      console.error("Registration error:", err);
       setError("Network error");
     } finally {
       setLoading(false);
@@ -61,7 +62,7 @@ export default function RegisterPage() {
         <Image src="/logo/icon.png" alt="Noted" width={140} height={140} priority />
       </div>
       <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
-      <Suspense>
+      <Suspense fallback={<div className="text-sm text-neutral-500">Loading...</div>}>
         <RegisterForm />
       </Suspense>
     </main>
