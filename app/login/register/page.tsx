@@ -1,10 +1,15 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
-export default function RegisterPage() {
+function RegisterForm() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const rawCallbackUrl = searchParams.get("callbackUrl");
+  const callbackUrl = rawCallbackUrl?.startsWith("/") && !rawCallbackUrl.startsWith("//") ? rawCallbackUrl : null;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -15,12 +20,27 @@ export default function RegisterPage() {
     try {
       const res = await fetch("/api/auth/register", { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
       if (res.ok) {
-        window.location.href = "/login";
+        const dest = callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login";
+        router.push(dest);
       } else {
-        const json = await res.json();
-        setError(json?.error || "Failed to create account");
+        const raw = await res.text();
+        let parsed: unknown;
+        try {
+          parsed = raw ? JSON.parse(raw) : undefined;
+        } catch {
+          parsed = undefined;
+        }
+        const fromJson =
+          typeof parsed === "object" &&
+          parsed !== null &&
+          "error" in parsed &&
+          typeof (parsed as { error: unknown }).error === "string"
+            ? (parsed as { error: string }).error
+            : null;
+        const trimmed = raw.trim();
+        setError(fromJson || trimmed || res.statusText || "Failed to create account");
       }
-    } catch (err) {
+    } catch {
       setError("Network error");
     } finally {
       setLoading(false);
@@ -28,23 +48,36 @@ export default function RegisterPage() {
   }
 
   return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-3">
+      <input name="name" placeholder="Your name (optional)" className="input-field" />
+      <input required name="email" type="email" placeholder="you@example.com" className="input-field" />
+      <input required name="password" type="password" placeholder="Password (min 8 chars)" className="input-field" />
+      {error && <div className="text-sm text-red-600">{error}</div>}
+      <div className="flex items-center justify-between">
+        <button type="submit" disabled={loading} className="btn-primary px-4 py-2 text-sm">
+          {loading ? "Creating…" : "Create account"}
+        </button>
+        <a
+          href={callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login"}
+          className="text-sm text-neutral-500 hover:underline"
+        >
+          Back to login
+        </a>
+      </div>
+    </form>
+  );
+}
+
+export default function RegisterPage() {
+  return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12 text-center">
       <div className="flex justify-center mb-4">
         <Image src="/logo/icon.png" alt="Noted" width={140} height={140} priority />
       </div>
       <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
-      <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        <input name="name" placeholder="Your name (optional)" className="input-field" />
-        <input required name="email" type="email" placeholder="you@example.com" className="input-field" />
-        <input required name="password" type="password" placeholder="Password (min 8 chars)" className="input-field" />
-        {error && <div className="text-sm text-red-600">{error}</div>}
-        <div className="flex items-center justify-between">
-          <button type="submit" disabled={loading} className="btn-primary px-4 py-2 text-sm">
-            {loading ? "Creating…" : "Create account"}
-          </button>
-          <a href="/login" className="text-sm text-neutral-500 hover:underline">Back to login</a>
-        </div>
-      </form>
+      <Suspense>
+        <RegisterForm />
+      </Suspense>
     </main>
   );
 }

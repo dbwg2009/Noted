@@ -103,7 +103,7 @@ export async function findDueReminders(today = new Date()): Promise<DueReminder[
 }
 
 export type ShortlistEntry = {
-  kind: "product" | "suggestion";
+  kind: "product" | "suggestion" | "wishlist";
   title: string;
   retailer: string | null;
   url: string | null;
@@ -111,13 +111,19 @@ export type ShortlistEntry = {
   rationale: string | null;
 };
 
+async function allWishlistItemsDone(personId: string): Promise<boolean> {
+  const rows = await db.select({ status: wishlistItems.status }).from(wishlistItems).where(eq(wishlistItems.personId, personId));
+  if (rows.length === 0) return false;
+  return rows.every((r) => r.status === "purchased" || r.status === "given");
+}
+
 async function buildShortlistForPerson(
   personId: string,
   budgetMin: number | null,
   budgetMax: number | null,
 ): Promise<ShortlistEntry[]> {
   const wishlistRows = await db
-    .select({ id: wishlistItems.id })
+    .select()
     .from(wishlistItems)
     .where(eq(wishlistItems.personId, personId));
   const wishlistIds = wishlistRows.map((w) => w.id);
@@ -153,6 +159,20 @@ async function buildShortlistForPerson(
       rationale: null,
     }));
 
+  const activeWishlistRows = wishlistRows.filter(
+    (w) => w.status !== "purchased" && w.status !== "given",
+  );
+  const wishlistEntries: ShortlistEntry[] = activeWishlistRows
+    .filter((w) => matchesBudget(w.priceMin))
+    .map((w) => ({
+      kind: "wishlist",
+      title: w.description,
+      retailer: null,
+      url: null,
+      pricePence: w.priceMin ?? w.priceMax ?? null,
+      rationale: w.sourceNote,
+    }));
+
   const suggestionEntries: ShortlistEntry[] = suggestionRows.map((s) => ({
     kind: "suggestion",
     title: s.title,
@@ -162,10 +182,11 @@ async function buildShortlistForPerson(
     rationale: s.rationale,
   }));
 
-  // Prioritise real products over suggestions, then sort by price ascending,
-  // then cap at 5 entries.
-  const combined = [...productEntries, ...suggestionEntries].sort((a, b) => {
-    if (a.kind !== b.kind) return a.kind === "product" ? -1 : 1;
+  // Priority: AI-found products → wishlist items → AI suggestions; within each group sort by price asc.
+  const kindOrder: Record<ShortlistEntry["kind"], number> = { product: 0, wishlist: 1, suggestion: 2 };
+  const combined = [...productEntries, ...wishlistEntries, ...suggestionEntries].sort((a, b) => {
+    const kindDiff = kindOrder[a.kind] - kindOrder[b.kind];
+    if (kindDiff !== 0) return kindDiff;
     return (a.pricePence ?? Infinity) - (b.pricePence ?? Infinity);
   });
   return combined.slice(0, 5);
@@ -195,6 +216,7 @@ export async function buildDigestForUser(
 ): Promise<DigestUserBlock> {
   const blocks: DigestPersonBlock[] = [];
   for (const reminder of due) {
+    if (await allWishlistItemsDone(reminder.personId)) continue;
     const shortlist = await buildShortlistForPerson(
       reminder.personId,
       reminder.budgetMin,
@@ -237,14 +259,16 @@ export async function runDailyReminders(today = new Date()) {
 
     for (const [userId, userDue] of byUser) {
       const digest = await buildDigestForUser(userId, userDue[0].userEmail, userDue);
+      const byYear = new Map<number, string[]>();
+      for (const r of userDue) {
+        const ids = byYear.get(r.targetYear) ?? [];
+        ids.push(r.reminderId);
+        byYear.set(r.targetYear, ids);
+      }
       try {
-        await sendReminderDigest(digest);
-        sent += 1;
-        const byYear = new Map<number, string[]>();
-        for (const r of userDue) {
-          const ids = byYear.get(r.targetYear) ?? [];
-          ids.push(r.reminderId);
-          byYear.set(r.targetYear, ids);
+        if (digest.blocks.length > 0) {
+          await sendReminderDigest(digest);
+          sent += 1;
         }
         for (const [year, ids] of byYear) {
           await db
@@ -277,12 +301,33 @@ export async function runDailyReminders(today = new Date()) {
       const excludedIds = new Set(exclusionRows.map((e) => e.personId));
       const includedPeople = allPeople.filter((p) => !excludedIds.has(p.id));
 
+      // Remove people whose wishlist items linked to this occasion are all purchased/given
+      let finalPeople = includedPeople;
+      if (includedPeople.length > 0) {
+        const personIds = includedPeople.map((p) => p.id);
+        const linkedItems = await db
+          .select({ personId: wishlistItems.personId, status: wishlistItems.status })
+          .from(wishlistItems)
+          .where(and(inArray(wishlistItems.personId, personIds), eq(wishlistItems.occasionId, sw.occasionId)));
+        const byPerson = new Map<string, string[]>();
+        for (const row of linkedItems) {
+          const list = byPerson.get(row.personId) ?? [];
+          list.push(row.status);
+          byPerson.set(row.personId, list);
+        }
+        finalPeople = includedPeople.filter((p) => {
+          const statuses = byPerson.get(p.id);
+          if (!statuses || statuses.length === 0) return true;
+          return statuses.some((s) => s !== "purchased" && s !== "given");
+        });
+      }
+
       const occasionLabel = sw.occasionName ?? sw.occasionKind;
       const result = await sendSiteWideOccasionEmail(
         sw.userEmail,
         occasionLabel,
         sw.leadDays,
-        includedPeople,
+        finalPeople,
       );
       if (!result.skipped) {
         sent += 1;

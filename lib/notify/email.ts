@@ -1,8 +1,15 @@
 import { Resend } from "resend";
 import type { DigestUserBlock, ShortlistEntry } from "@/lib/reminders";
-import { poundsFromPence } from "@/lib/birthdays";
 
 const FALLBACK_FROM = "Noted <onboarding@resend.dev>";
+
+export function fromAddress(specificEnvKey: string): string {
+  const val =
+    process.env[specificEnvKey]?.trim() ||
+    process.env.EMAIL_FROM?.trim() ||
+    FALLBACK_FROM;
+  return val.replace(/^["']|["']$/g, "");
+}
 
 function escapeHtml(value: string) {
   return value
@@ -19,40 +26,39 @@ function describeLead(leadDays: number) {
   return `in ${leadDays} days`;
 }
 
-function priceLabel(entry: ShortlistEntry) {
-  const price = poundsFromPence(entry.pricePence);
-  if (entry.kind === "suggestion") {
-    return price ? `est. ${price}` : "est. price unknown";
-  }
-  return price ?? "price unknown";
+function kindTag(kind: ShortlistEntry["kind"]) {
+  if (kind === "product") return "product";
+  if (kind === "wishlist") return "wishlist";
+  return "idea";
 }
 
 function renderShortlistText(shortlist: ShortlistEntry[]) {
-  if (shortlist.length === 0) return "  (no shortlist yet — add wishlist items or run Suggest gifts)\n";
+  if (shortlist.length === 0) return `  (no shortlist yet — add wishlist items or run Suggest gifts)\n`;
   return shortlist
     .map((entry) => {
-      const tag = entry.kind === "product" ? "product" : "idea";
+      const tag = kindTag(entry.kind);
       const retailer = entry.retailer ? ` @ ${entry.retailer}` : "";
-      const url = entry.url ? `\n     ${entry.url}` : "";
-      return `  - [${tag}] ${entry.title}${retailer} (${priceLabel(entry)})${url}`;
+      return `  - [${tag}] ${entry.title}${retailer}`;
     })
     .join("\n");
 }
 
+function kindTagDisplay(kind: ShortlistEntry["kind"]) {
+  if (kind === "product") return "Product";
+  if (kind === "wishlist") return "Wishlist";
+  return "Idea";
+}
+
 function renderShortlistHtml(shortlist: ShortlistEntry[]) {
   if (shortlist.length === 0) {
-    return `<p style="color:#6b7280;font-size:13px;margin:8px 0 0;">No shortlist yet — add wishlist items or run “Suggest gifts”.</p>`;
+    return `<p style="color:#6b7280;font-size:13px;margin:8px 0 0;">No shortlist yet — add wishlist items or run "Suggest gifts".</p>`;
   }
   return `<ul style="margin:8px 0 0;padding-left:18px;font-size:14px;color:#1f2937;">
 ${shortlist
   .map((entry) => {
-    const tag = entry.kind === "product" ? "Product" : "Idea";
+    const tag = kindTagDisplay(entry.kind);
     const retailer = entry.retailer ? ` <span style="color:#6b7280;">@ ${escapeHtml(entry.retailer)}</span>` : "";
-    const price = `<span style="color:#6b7280;"> · ${escapeHtml(priceLabel(entry))}</span>`;
-    const link = entry.url
-      ? `<br/><a href="${escapeHtml(entry.url)}" style="color:#2563eb;font-size:13px;">${escapeHtml(entry.url)}</a>`
-      : "";
-    return `<li style="margin-bottom:6px;"><strong>${escapeHtml(entry.title)}</strong> <span style="color:#6b7280;font-size:12px;">[${tag}]</span>${retailer}${price}${link}</li>`;
+    return `<li style="margin-bottom:6px;"><strong>${escapeHtml(entry.title)}</strong> <span style="color:#6b7280;font-size:12px;">[${tag}]</span>${retailer}</li>`;
   })
   .join("\n")}
 </ul>`;
@@ -161,50 +167,71 @@ export async function sendSiteWideOccasionEmail(
 ) {
   if (people.length === 0) return { skipped: true as const };
 
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("RESEND_API_KEY is not set");
-
-  const from = process.env.EMAIL_FROM?.trim() || FALLBACK_FROM;
   const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
   const lead = describeLead(leadDays);
-
   const subject = `${occasionName} ${lead} — gift reminder`;
-  const text = renderSiteWideText(occasionName, lead, people, baseUrl);
-  const html = renderSiteWideHtml(occasionName, lead, people, baseUrl);
+  const id = await sendViaResend(
+    userEmail,
+    subject,
+    renderSiteWideText(occasionName, lead, people, baseUrl),
+    renderSiteWideHtml(occasionName, lead, people, baseUrl),
+    fromAddress("EMAIL_FROM_REMINDERS"),
+  );
+  return { skipped: false as const, id };
+}
 
+async function sendViaResend(to: string, subject: string, text: string, html: string, from: string) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error("RESEND_API_KEY is not set");
   const resend = new Resend(apiKey);
-  const result = await resend.emails.send({ from, to: userEmail, subject, text, html });
-
+  const result = await resend.emails.send({ from, to, subject, text, html });
   if (result.error) {
     throw new Error(`Resend: ${result.error.name ?? "error"} - ${result.error.message ?? "unknown"}`);
   }
-  return { skipped: false as const, id: result.data?.id ?? null };
+  return result.data?.id ?? null;
+}
+
+
+export async function sendGroupGiftInvite(toEmail: string, groupTitle: string, inviteToken: string, registered: boolean) {
+  const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
+  const inviteUrl = `${baseUrl}/gift-groups/invite/${inviteToken}`;
+  // Registered users land on the invite page; unregistered go to sign-up first
+  const ctaUrl = registered
+    ? inviteUrl
+    : `${baseUrl}/login/register?callbackUrl=${encodeURIComponent(inviteUrl)}`;
+  const ctaLabel = registered ? "Accept invite" : "Get started";
+  const subtext = registered
+    ? "Log in to Noted to accept or decline."
+    : "Create a free Noted account to accept or decline.";
+  const subject = `You have been invited to a group gift: ${groupTitle}`;
+  const text = `You've been invited to contribute to "${groupTitle}" on Noted.\n\n${subtext}\n${ctaUrl}\n\nThis link expires in 30 days.\n\n---\nSent by Noted.`;
+  const html = `<!doctype html>
+<html><body style="margin:0;background:#f9fafb;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;">
+  <div style="max-width:560px;margin:24px auto;padding:0 16px;">
+    <h1 style="margin:0 0 12px;font-size:20px;">You have been invited to a group gift</h1>
+    <p style="font-size:15px;margin:0 0 8px;">You've been invited to contribute to <strong>${escapeHtml(groupTitle)}</strong> on Noted.</p>
+    <p style="font-size:14px;color:#6b7280;margin:0 0 20px;">${escapeHtml(subtext)}</p>
+    <p style="margin:0 0 24px;"><a href="${escapeHtml(ctaUrl)}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">${escapeHtml(ctaLabel)} →</a></p>
+    <p style="font-size:12px;color:#6b7280;margin:0;">This link expires in 30 days. Sent by Noted.</p>
+  </div>
+</body></html>`;
+  return sendViaResend(toEmail, subject, text, html, fromAddress("EMAIL_FROM_INVITES"));
 }
 
 export async function sendReminderDigest(digest: DigestUserBlock) {
   if (digest.blocks.length === 0) return { skipped: true as const };
 
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("RESEND_API_KEY is not set");
-
-  const from = process.env.EMAIL_FROM?.trim() || FALLBACK_FROM;
   const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
-
   const subject = digest.blocks.length === 1
     ? `Birthday reminder: ${digest.blocks[0].personName}`
     : `Birthday reminders: ${digest.blocks.length} upcoming`;
 
-  const resend = new Resend(apiKey);
-  const result = await resend.emails.send({
-    from,
-    to: digest.userEmail,
+  const id = await sendViaResend(
+    digest.userEmail,
     subject,
-    text: renderDigestText(digest, baseUrl),
-    html: renderDigestHtml(digest, baseUrl),
-  });
-
-  if (result.error) {
-    throw new Error(`Resend: ${result.error.name ?? "error"} - ${result.error.message ?? "unknown"}`);
-  }
-  return { skipped: false as const, id: result.data?.id ?? null };
+    renderDigestText(digest, baseUrl),
+    renderDigestHtml(digest, baseUrl),
+    fromAddress("EMAIL_FROM_REMINDERS"),
+  );
+  return { skipped: false as const, id };
 }

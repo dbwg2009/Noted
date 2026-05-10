@@ -1,6 +1,7 @@
 node_modules/
 .next/
 .vercel/
+.vscode/
 .env
 .env.local
 .env*.local

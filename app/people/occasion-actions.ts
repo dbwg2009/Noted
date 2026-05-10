@@ -1,13 +1,26 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { db } from "@/db";
-import { occasions, people } from "@/db/schema";
+import { occasionKind, occasions, people } from "@/db/schema";
+
+type OccasionKindValue = (typeof occasionKind.enumValues)[number];
 import { requireCurrentUserId } from "@/lib/people-queries";
 import { ensureDefaultReminders } from "@/lib/reminders";
 import { getKnownOccasionDate, getKnownOccasionLabel } from "@/lib/occasions";
+
+async function setPeopleFlash(message: string, tone: "success" | "error") {
+  const store = await cookies();
+  store.set("people_flash", JSON.stringify({ message, tone, ts: Date.now() }), {
+    path: "/people",
+    maxAge: 30,
+    httpOnly: true,
+    sameSite: "lax",
+  });
+}
 
 function buildDateFromParts(formData: FormData): string | null {
   const rawMonth = String(formData.get("occasionMonth") ?? "").trim();
@@ -43,9 +56,21 @@ export async function createOccasion(formData: FormData) {
     if (!p) return;
   }
 
+  if (kind !== "custom") {
+    const dupeWhere = personId
+      ? and(eq(occasions.userId, userId), eq(occasions.personId, personId), eq(occasions.kind, kind as OccasionKindValue))
+      : and(eq(occasions.userId, userId), isNull(occasions.personId), eq(occasions.kind, kind as OccasionKindValue));
+    const [dupe] = await db.select({ id: occasions.id }).from(occasions).where(dupeWhere).limit(1);
+    if (dupe) {
+      await setPeopleFlash(`${getKnownOccasionLabel(kind)} already exists for this person.`, "error");
+      if (personId) redirect(`/people/${personId}`);
+      return;
+    }
+  }
+
   const [created] = await db
     .insert(occasions)
-    .values({ userId, personId: personId ?? undefined, kind: kind as any, name, date, yearRecurring: true, notes })
+    .values({ userId, personId: personId ?? undefined, kind: kind as OccasionKindValue, name, date, yearRecurring: true, notes })
     .returning({ id: occasions.id });
 
   if (created && personId) await ensureDefaultReminders(personId);
@@ -77,9 +102,31 @@ export async function updateOccasion(formData: FormData) {
     return;
   }
 
+  if (kind !== "custom") {
+    const dupeWhere = row.personId
+      ? and(
+          eq(occasions.userId, userId),
+          eq(occasions.personId, row.personId),
+          eq(occasions.kind, kind as OccasionKindValue),
+          ne(occasions.id, id),
+        )
+      : and(
+          eq(occasions.userId, userId),
+          isNull(occasions.personId),
+          eq(occasions.kind, kind as OccasionKindValue),
+          ne(occasions.id, id),
+        );
+    const [dupe] = await db.select({ id: occasions.id }).from(occasions).where(dupeWhere).limit(1);
+    if (dupe) {
+      await setPeopleFlash(`${getKnownOccasionLabel(kind)} already exists for this person.`, "error");
+      if (row.personId) redirect(`/people/${row.personId}`);
+      return;
+    }
+  }
+
   await db
     .update(occasions)
-    .set({ kind: kind as any, name, date, yearRecurring: true, notes })
+    .set({ kind: kind as OccasionKindValue, name, date, yearRecurring: true, notes })
     .where(eq(occasions.id, id));
 
   revalidatePath("/");
