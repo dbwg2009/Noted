@@ -89,7 +89,7 @@ export default async function GiftGroupDetailPage({
               <summary className="cursor-pointer text-neutral-600 hover:underline dark:text-neutral-400">
                 Edit
               </summary>
-              <form action={updateGiftGroup} className="mt-3 grid gap-2 min-w-[220px]">
+              <ActionForm action={updateGiftGroup} className="mt-3 grid gap-2 min-w-[220px]">
                 <input type="hidden" name="groupId" value={group.id} />
                 <input name="title" required defaultValue={group.title} className={inputCls} />
                 <select name="status" defaultValue={group.status} className={inputCls}>
@@ -116,7 +116,7 @@ export default async function GiftGroupDetailPage({
                 <button type="submit" className="btn-primary px-3 py-1.5 text-sm w-fit">
                   Save
                 </button>
-              </form>
+              </ActionForm>
               <DeleteGroupButton groupId={group.id} />
             </details>
           )}
@@ -195,7 +195,7 @@ export default async function GiftGroupDetailPage({
         {isOwner && (
           <details className="card mt-3">
             <summary className="cursor-pointer text-sm font-medium">+ Add contributor</summary>
-            <form action={addContributor} className="mt-4 grid gap-3 md:grid-cols-2">
+            <ActionForm action={addContributor} className="mt-4 grid gap-3 md:grid-cols-2">
               <input type="hidden" name="groupId" value={group.id} />
               <input name="name" required placeholder="Name" aria-label="Contributor name" className={inputCls} />
               <input name="email" type="email" placeholder="Email (optional — links account or sends invite)" aria-label="Contributor email" className={inputCls} />
@@ -211,7 +211,7 @@ export default async function GiftGroupDetailPage({
               <button type="submit" className="btn-primary w-fit px-4 py-2 text-sm">
                 Add
               </button>
-            </form>
+            </ActionForm>
           </details>
         )}
 
@@ -265,7 +265,7 @@ export default async function GiftGroupDetailPage({
                           <summary className="cursor-pointer text-neutral-600 hover:underline dark:text-neutral-400">
                             Edit
                           </summary>
-                          <form action={updateContributor} className="mt-3 grid gap-2">
+                          <ActionForm action={updateContributor} className="mt-3 grid gap-2">
                             <input type="hidden" name="contributorId" value={c.id} />
                             <input type="hidden" name="groupId" value={group.id} />
                             <input name="name" required defaultValue={c.name} className={inputCls} />
@@ -291,7 +291,7 @@ export default async function GiftGroupDetailPage({
                             <button type="submit" className="btn-primary px-3 py-1.5 text-sm w-fit">
                               Save
                             </button>
-                          </form>
+                          </ActionForm>
                         </details>
 
                         {isPending && (

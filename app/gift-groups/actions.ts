@@ -13,6 +13,12 @@ function newInvite() {
   return { inviteToken: randomUUID(), inviteExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) };
 }
 
+function maskEmail(email: string) {
+  const [user, domain] = email.split("@");
+  if (!user || !domain) return email;
+  return `${user[0]}***@${domain}`;
+}
+
 function parsePence(value: FormDataEntryValue | null): number | null {
   if (typeof value !== "string" || !value.trim()) return null;
   const n = parseFloat(value);
@@ -41,11 +47,14 @@ export async function createGiftGroup(formData: FormData) {
 
   if (wishlistItemId) {
     const [item] = await db
-      .select({ userId: people.userId })
+      .select({ userId: people.userId, personId: wishlistItems.personId })
       .from(wishlistItems)
       .innerJoin(people, eq(wishlistItems.personId, people.id))
       .where(and(eq(wishlistItems.id, wishlistItemId), eq(people.userId, userId)));
     if (!item) return;
+
+    // Validate personId matches wishlistItemId
+    if (personId && item.personId !== personId) return;
   }
 
   const [group] = await db
@@ -139,7 +148,7 @@ export async function addContributor(formData: FormData) {
       try {
         await sendGroupGiftInvite(email, group.title, inviteToken, true);
       } catch (err) {
-        console.error(`[gift-groups] sendGroupGiftInvite failed for ${email}:`, err);
+        console.error(`[gift-groups] sendGroupGiftInvite failed for ${maskEmail(email)}:`, err);
       }
     } else {
       // Unregistered user: invite link goes to sign-up
@@ -150,7 +159,7 @@ export async function addContributor(formData: FormData) {
       try {
         await sendGroupGiftInvite(email, group.title, inviteToken, false);
       } catch (err) {
-        console.error(`[gift-groups] sendGroupGiftInvite failed for ${email}:`, err);
+        console.error(`[gift-groups] sendGroupGiftInvite failed for ${maskEmail(email)}:`, err);
       }
     }
   } else {
@@ -169,6 +178,12 @@ export async function updateContributor(formData: FormData) {
   const [group] = await db.select({ userId: giftGroups.userId }).from(giftGroups).where(eq(giftGroups.id, groupId));
   if (!group || group.userId !== userId) return;
 
+  const [existing] = await db
+    .select({ email: giftGroupContributors.email })
+    .from(giftGroupContributors)
+    .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
+  if (!existing) return;
+
   const name = (formData.get("name") as string | null)?.trim();
   if (!name) return;
 
@@ -176,9 +191,19 @@ export async function updateContributor(formData: FormData) {
   const contributionAmount = parsePence(formData.get("contributionAmount"));
   const paid = formData.get("paid") === "on";
 
+  // If email changed, we need to reset invite status so they can be re-invited
+  const emailChanged = email !== existing.email;
+  const update: any = { name, email, contributionAmount, paid };
+  if (emailChanged) {
+    update.userId = null;
+    update.inviteAcceptedAt = null;
+    update.inviteToken = null;
+    update.inviteExpiresAt = null;
+  }
+
   await db
     .update(giftGroupContributors)
-    .set({ name, email, contributionAmount, paid })
+    .set(update)
     .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
 
   revalidatePath(`/gift-groups/${groupId}`);
@@ -227,7 +252,7 @@ export async function resendInvite(formData: FormData) {
   try {
     await sendGroupGiftInvite(contributor.email, group.title, inviteToken, !!contributor.userId);
   } catch (err) {
-    console.error(`[gift-groups] resendInvite sendGroupGiftInvite failed for ${contributor.email}:`, err);
+    console.error(`[gift-groups] resendInvite sendGroupGiftInvite failed for ${maskEmail(contributor.email)}:`, err);
   }
 
   revalidatePath(`/gift-groups/${groupId}`);
@@ -252,8 +277,11 @@ export async function acceptInvite(token: string) {
   if (contributor.inviteAcceptedAt) return { error: "already_accepted" as const };
   if (contributor.inviteExpiresAt && contributor.inviteExpiresAt < new Date()) return { error: "expired" as const };
 
-  // Block if logged-in user's email doesn't match the invite email
-  if (contributor.email) {
+  // Block if invite is already linked to a different userId
+  if (contributor.userId && contributor.userId !== userId) return { error: "wrong_account" as const };
+
+  // Block if logged-in user's email doesn't match the invite email (only if userId wasn't already linked)
+  if (!contributor.userId && contributor.email) {
     const [me] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
     if (!me || me.email.toLowerCase() !== contributor.email.toLowerCase()) return { error: "wrong_account" as const };
   }

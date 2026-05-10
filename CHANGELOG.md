@@ -13,6 +13,50 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] Chore: sync release-please manifest version to 1.4.0
+**By:** Gemini CLI
+**What:** Updated `.github/release-please-manifest.json` from `1.3.5` to `1.4.0` to match `package.json`.
+**Why:** Ensures consistency between the application version and the automated release manager, avoiding duplicate or incorrect version tags on the next release.
+
+## [2026-05-10] Fix: scope git permissions in settings.local.json
+**By:** Gemini CLI
+**What:** Updated `.claude/settings.local.json` to replace broad `git stash *` and `git checkout *` permissions with specific allowed commands (`git stash`, `git stash pop`, `git checkout Development`, `git checkout main`).
+**Why:** Improves security posture by limiting the shell commands the AI is pre-authorized to run, following CodeRabbit's security recommendation.
+
+## [2026-05-10] Fix: harden gift-group actions (masking, validation, re-invites)
+**By:** Gemini CLI
+**What:** Multiple security and logic hardening updates to `app/gift-groups/actions.ts`:
+- Masked PII (emails) in server-side error logs using a new `maskEmail` helper.
+- Added validation in `createGiftGroup` to ensure `personId` matches the person associated with `wishlistItemId`.
+- Improved `acceptInvite` authorization to prefer `contributor.userId` matching if already set.
+- Implemented re-invite logic in `updateContributor`: if the email is changed, the `userId`, `inviteAcceptedAt`, `inviteToken`, and `inviteExpiresAt` are reset to allow a fresh invitation flow.
+**Why:** Addresses several security and robustness findings from the CodeRabbit and Codacy reviews of PR #130. Prevents PII leakage in logs, ensures data integrity in group creation, and fixes the "stuck" state when a contributor's email is updated.
+
+## [2026-05-10] Fix: defensive pendingInvitations construction in gift-group queries
+**By:** Gemini CLI
+**What:** Updated `listGiftGroups` in `lib/gift-groups-queries.ts` to use a `Map` and a filter-null pattern for constructing `pendingInvitations`.
+**Why:** Eliminates a non-null assertion (`!`) that was flagged by CodeRabbit and Codacy, making the query result construction more resilient to potential data inconsistencies.
+
+## [2026-05-10] Fix: migrate remaining gift-group forms to ActionForm
+**By:** Gemini CLI
+**What:** Migrated all remaining `<form action={serverAction}>` usages in `app/gift-groups/page.tsx` and `app/gift-groups/[id]/page.tsx` to the `ActionForm` client component wrapper.
+**Why:** Satisfies Codacy's "Promise-returning function provided to attribute where a void return was expected" rule. While React 19 supports async actions, a void-returning wrapper in a client component is a safe pattern to resolve the linter warning without breaking RSC serialization.
+
+## [2026-05-10] Fix: delete group button server action pass-through
+**By:** Gemini CLI
+**What:** Passed the `deleteGiftGroup` server action directly to the `action` prop of the delete form in `app/gift-groups/[id]/delete-group-button.tsx`, removing the `void` arrow wrapper.
+**Why:** React 19 handles async actions directly in the `action` prop; wrapping with `void` is unnecessary and can suppress error handling.
+
+## [2026-05-10] Fix: occasion actions import order and duplicate message
+**By:** Gemini CLI
+**What:** Moved `requireCurrentUserId` import to the top block in `app/people/occasion-actions.ts` and updated the duplicate occasion flash message to distinguish between per-person and site-wide occasions.
+**Why:** Fixes a minor import ordering nitpick and improves error message clarity when a site-wide occasion already exists.
+
+## [2026-05-10] Fix: registration page Suspense fallback and error logging
+**By:** Gemini CLI
+**What:** Added a loading fallback to the `Suspense` boundary in `app/login/register/page.tsx` and updated the `onSubmit` catch block to log registration/network errors to `console.error`.
+**Why:** Improves UX by showing a loading state during navigation/suspension and aids debugging by capturing suppressed error details.
+
 ## [2026-05-10] Fix: reminder email showed empty shortlist even when wishlist items exist
 **By:** Claude Code
 **What:** `buildShortlistForPerson` in `lib/reminders.ts` now includes active (non-purchased/given) wishlist items directly in the shortlist, not just AI-found products and AI suggestions. Wishlist items are ordered after products but before suggestions. Added a third `ShortlistEntry` kind `"wishlist"` and updated `lib/notify/email.ts` to label them as "Wishlist" in the email.

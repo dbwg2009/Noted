@@ -68,10 +68,14 @@ export async function listGiftGroups(userId: string) {
   ]);
 
   // Attach the contributorId so the list page can build accept/decline forms
-  const pendingInvitations = pendingGroups.map((g) => ({
-    ...g,
-    contributorId: pendingRows.find((r) => r.groupId === g.id)!.contributorId,
-  }));
+  const pendingByGroup = new Map(pendingRows.map((r) => [r.groupId, r.contributorId]));
+  const pendingInvitations = pendingGroups
+    .map((g) => {
+      const contributorId = pendingByGroup.get(g.id);
+      if (!contributorId) return null;
+      return { ...g, contributorId };
+    })
+    .filter((g): g is NonNullable<typeof g> => g !== null);
 
   return { owned: ownedWithContributors, contributing, pendingInvitations };
 }

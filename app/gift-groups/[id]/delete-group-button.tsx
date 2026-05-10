@@ -5,7 +5,7 @@ import { deleteGiftGroup } from "../actions";
 export function DeleteGroupButton({ groupId }: { groupId: string }) {
   return (
     <form
-      action={(fd) => void deleteGiftGroup(fd)}
+      action={deleteGiftGroup}
       onSubmit={(e) => {
         if (!confirm("Delete this group gift? This cannot be undone.")) {
           e.preventDefault();
