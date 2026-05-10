@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] Fix: reminder email showed empty shortlist even when wishlist items exist
+**By:** Claude Code
+**What:** `buildShortlistForPerson` in `lib/reminders.ts` now includes active (non-purchased/given) wishlist items directly in the shortlist, not just AI-found products and AI suggestions. Wishlist items are ordered after products but before suggestions. Added a third `ShortlistEntry` kind `"wishlist"` and updated `lib/notify/email.ts` to label them as "Wishlist" in the email.
+**Why:** Users who had wishlist items but had not run the AI product search saw "No shortlist yet" in the test reminder email, even though items were present in the app.
+
 ## [2026-05-10] Unit tests for fromAddress and digest email renderers
 **By:** Claude Code
 **What:** Added `lib/__tests__/email.test.ts` with 16 tests covering `fromAddress` (specific key, fallback, hardcoded default, double-quote strip, single-quote strip, no inner-quote strip) and both text/HTML digest renderers (no prices, no external buy links, item titles present, retailer name present, person-page link present, empty shortlist message).

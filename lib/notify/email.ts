@@ -26,15 +26,27 @@ function describeLead(leadDays: number) {
   return `in ${leadDays} days`;
 }
 
+function kindTag(kind: ShortlistEntry["kind"]) {
+  if (kind === "product") return "product";
+  if (kind === "wishlist") return "wishlist";
+  return "idea";
+}
+
 function renderShortlistText(shortlist: ShortlistEntry[]) {
   if (shortlist.length === 0) return `  (no shortlist yet — add wishlist items or run Suggest gifts)\n`;
   return shortlist
     .map((entry) => {
-      const tag = entry.kind === "product" ? "product" : "idea";
+      const tag = kindTag(entry.kind);
       const retailer = entry.retailer ? ` @ ${entry.retailer}` : "";
       return `  - [${tag}] ${entry.title}${retailer}`;
     })
     .join("\n");
+}
+
+function kindTagDisplay(kind: ShortlistEntry["kind"]) {
+  if (kind === "product") return "Product";
+  if (kind === "wishlist") return "Wishlist";
+  return "Idea";
 }
 
 function renderShortlistHtml(shortlist: ShortlistEntry[]) {
@@ -44,7 +56,7 @@ function renderShortlistHtml(shortlist: ShortlistEntry[]) {
   return `<ul style="margin:8px 0 0;padding-left:18px;font-size:14px;color:#1f2937;">
 ${shortlist
   .map((entry) => {
-    const tag = entry.kind === "product" ? "Product" : "Idea";
+    const tag = kindTagDisplay(entry.kind);
     const retailer = entry.retailer ? ` <span style="color:#6b7280;">@ ${escapeHtml(entry.retailer)}</span>` : "";
     return `<li style="margin-bottom:6px;"><strong>${escapeHtml(entry.title)}</strong> <span style="color:#6b7280;font-size:12px;">[${tag}]</span>${retailer}</li>`;
   })
