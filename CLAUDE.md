@@ -23,7 +23,7 @@ Owner / initial admin: **dbwg2009**.
 - **`docs/DESIGN.md`** — full design: goals, features, data model, architecture, build phases, repo layout. **Read this before changing anything non-trivial.**
 - **`docs/V2_DESIGN.md`** — **V2 roadmap**: five new phases (6–10) with schema deltas, new routes, and step-by-step implementation notes. **Read this before starting any V2 phase.** Each phase has a corresponding GitHub milestone.
 - **`docs/DECISIONS.md`** — locked decisions and a change log (single-user, email reminders, UK/GBP, OpenRouter LLM, Docker primary). Update this when a decision changes; do not silently override.
-- **`CHANGELOG.md`** — running log of every significant change: what changed, why, and when. **All AI agents must update this on every commit without exception.** See the file for the entry format. (Automated GitHub Release notes come from **Release Please** and do not replace this file — see Versioning.)
+- **`CHANGELOG.md`** — running log of every significant change: what changed, why, and when. **All AI agents must update this on every commit without exception.** See the file for the entry format. (Automated GitHub Release notes come from **Release Please** and do not replace this file — see Versioning.) When this file grows past **~300 lines**, **`.github/workflows/changelog-archive.yml`** on **`Development`** moves oldest entries to **`CHANGELOG-legacy.md`** (or run **`npm run changelog:compact`** locally).
 - **`.github/release-please-config.json`** + **`.github/release-please-manifest.json`** — Release Please manifest config (semver bump, release PR, GitHub Release body). **`CHANGELOG.md` is not modified by Release Please** (`skip-changelog`).
 - **`README.md`** — quick-start (Docker + native Node).
 - **`db/schema.ts`** — the source of truth for the DB shape.
@@ -66,7 +66,7 @@ If a decision genuinely needs to change, update `docs/DECISIONS.md` in the same 
 |-------|--------|-------|
 | 6 — Other Occasions | **done** | Anniversary, Christmas, Mother's/Father's Day, custom occasions. New `occasions` table + per-occasion reminders. Dashboard + calendar updated. |
 | 7 — Shareable Wishlists | **done** | Read-only token-based public link to a person's wishlist. New `wishlist_shares` table. `/share/[token]` public route. |
-| 8 — Group Gifts | **pending** | Coordinate split purchases. `gift_groups` + `gift_group_contributors` tables. `/gift-groups` UI. |
+| 8 — Group Gifts | **done** | Coordinate split purchases. `gift_groups` + `gift_group_contributors` tables. `/gift-groups` UI. |
 | 9 — Price-Drop Alerts | **pending** | Watch a saved product; email when price drops below target. `price_alerts` table + cron extension + eBay price check. |
 | 10 — Browser Extension | **pending** | Chrome/Firefox MV3 extension: right-click → save product to wishlist. New `/api/v1/wishlist-items` REST endpoint + `api_keys` table. |
 
@@ -134,6 +134,7 @@ The repo uses **semantic versioning** tied to build phases. All tags and release
 | `v1.1.0` | Auth overhaul + infra | Credentials provider, JWT sessions, multi-arch Docker, perf fixes |
 | `v1.2.0` | Phase 6 — Other Occasions | Occasions table, per-occasion reminders, site-wide occasions with exclusions |
 | `v1.3.0` | Phase 7 — Shareable Wishlists | Token-based public wishlist links, configurable visibility, expiry presets |
+| `v1.4.0` | Phase 8 — Group Gifts | `gift_groups`, `gift_group_contributors`, `/gift-groups`, invites |
 
 ### Release Please (primary path)
 
@@ -180,7 +181,7 @@ All process rules are stored as individual files in `.claude/memory/`. The index
 - Use conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`.
 - Update `CHANGELOG.md` on every commit without exception.
 - **Do not bump `package.json` `"version"`** — Release Please updates it on the release PR (see Versioning).
-- Compact `CHANGELOG.md` into `CHANGELOG-legacy.md` when it exceeds ~300 lines (flag to user first).
+- If `CHANGELOG.md` is huge and the automated archive has not run yet, you may run **`npm run changelog:compact`** or flag the user; do not silently delete history.
 
 ### Pull requests
 - **Do not open a PR unless the user explicitly says to.** When in doubt, ask.
@@ -224,6 +225,7 @@ All process rules are stored as individual files in `.claude/memory/`. The index
 - Photo uploads use `lib/storage.ts`. Default strategy is `local` (writes to `public/uploads/`, needs a Docker volume for persistence). Set `STORAGE_STRATEGY=base64` for serverless/Vercel deployments (stores the file as a `data:` URI in `photo_url`).
 - The iCal feed is at `/api/ical/[token]`. The token is `users.ical_token` (a UUID). Resetting it invalidates old calendar subscriptions. Token must be non-null for the feed route to work — it is auto-generated on account creation via `defaultRandom()`.
 - **Release Please:** If the release PR fails to open, check **Actions → Workflow permissions** (allow Actions to create PRs). If **`sync-main-to-development`** fails on push, branch protection may block `github-actions[bot]` from pushing to `Development`, or there is a merge conflict to resolve locally.
+- **`changelog-archive`:** Pushes only when `CHANGELOG.md` changes on `Development`. The bot commit message includes `[changelog-archive]` so the job does not recurse. If **`github-actions[bot]`** cannot push to `Development`, allow it in branch protection (same as sync workflow).
 
 ## When something is unclear
 

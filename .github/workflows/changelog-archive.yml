@@ -1,0 +1,47 @@
+# When CHANGELOG.md on Development exceeds ~300 lines, moves oldest dated entries to CHANGELOG-legacy.md.
+# Commits use [changelog-archive] so this workflow does not loop on its own push.
+
+name: Changelog archive
+
+on:
+  push:
+    branches: [Development]
+    paths:
+      - "CHANGELOG.md"
+  workflow_dispatch:
+
+concurrency:
+  group: changelog-archive-development
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    if: github.event_name == 'workflow_dispatch' || (github.event.head_commit != null && !contains(github.event.head_commit.message, '[changelog-archive]'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: Development
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Compact CHANGELOG if over limit
+        run: node scripts/compact-changelog.mjs
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md CHANGELOG-legacy.md
+          if git diff --staged --quiet; then
+            echo "No archive needed or no file changes."
+            exit 0
+          fi
+          git commit -m "chore: archive old CHANGELOG entries [changelog-archive]"
+          git push

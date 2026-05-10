@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] chore: Phase 8 done in CLAUDE + automated CHANGELOG archive on Development
+**By:** Cursor
+**What:** Marked **Phase 8 — Group Gifts** **done** and added **`v1.4.0`** to the release table in **CLAUDE.md**. Added **`scripts/compact-changelog.mjs`** + **`npm run changelog:compact`**, and **`.github/workflows/changelog-archive.yml`** (runs on **`Development`** when **`CHANGELOG.md`** changes, or **`workflow_dispatch`**) to move oldest dated entries to **`CHANGELOG-legacy.md`** when **`CHANGELOG.md`** exceeds **300** lines (target **250**); bot commits use **`[changelog-archive]`** to avoid loops. Documented in **CLAUDE.md** and **`.claude/memory`**.
+**Why:** Owner request: phase table accuracy and hands-free archival so the main changelog stays readable in agent context.
+
 ## [2026-05-10] chore: Release Please — skip root CHANGELOG, sync main→Development, docs
 **By:** Cursor
 **What:** `release-please-config.json`: `skip-changelog` for root `CHANGELOG.md` (human file only); `include-component-in-tag: false` so GitHub release names/tags are `vX.Y.Z` not `noted: vX.Y.Z`; visible sections for refactor/chore/docs; `pull-request-header` intro pointing to `CHANGELOG.md`. Manifest set to **1.4.0**. New workflow **`sync-main-to-development.yml`** merges `main` into `Development` on each push to `main` (plus `workflow_dispatch`). **CLAUDE.md** and `.claude/memory` (commits, releases, MEMORY index) updated: agents must **not** bump `package.json`; Release Please owns semver on the release PR; post-release checklist references merging the release PR.
