@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] chore: Release Please token fallback for PR creation
+**By:** Cursor
+**What:** `release-please.yml` uses `token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}` and comments document enabling Actions-created PRs or adding the `RELEASE_PLEASE_TOKEN` repo secret.
+**Why:** GitHub rejects `GITHUB_TOKEN` for `POST /repos/.../pulls` unless the repo allows Actions to create/approve pull requests; optional PAT avoids that when the setting cannot be enabled.
+
 ## [2026-05-10] chore: wire Release Please to manifest config
 **By:** Cursor
 **What:** Updated `.github/workflows/release-please.yml` to use manifest mode with `config-file` / `manifest-file` under `.github/` (removed the workflow-level `release-type: node`, which forced simple mode and ignored `release-please-config.json`). Added `issues: write` to match upstream Release Please permission recommendations.
