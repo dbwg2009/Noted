@@ -14,6 +14,7 @@ import {
   updateMyContribution,
 } from "../actions";
 import { DeleteGroupButton } from "./delete-group-button";
+import { ActionForm } from "../action-form";
 import { inputCls, STATUS_LABELS, STATUS_COLOURS } from "../constants";
 
 function formatPenceInput(value: number | null) {
@@ -127,7 +128,7 @@ export default async function GiftGroupDetailPage({
                 <summary className="cursor-pointer text-neutral-600 hover:underline dark:text-neutral-400">
                   Edit my contribution
                 </summary>
-                <form action={updateMyContribution} className="mt-2 flex gap-2 items-end">
+                <ActionForm action={updateMyContribution} className="mt-2 flex gap-2 items-end">
                   <input type="hidden" name="contributorId" value={myContributorRow.id} />
                   <input type="hidden" name="groupId" value={group.id} />
                   <input
@@ -141,9 +142,9 @@ export default async function GiftGroupDetailPage({
                     className={inputCls}
                   />
                   <button type="submit" className="btn-primary px-3 py-1.5 text-sm">Save</button>
-                </form>
+                </ActionForm>
               </details>
-              <form action={leaveGroup}>
+              <ActionForm action={leaveGroup}>
                 <input type="hidden" name="contributorId" value={myContributorRow.id} />
                 <input type="hidden" name="groupId" value={group.id} />
                 <button
@@ -152,7 +153,7 @@ export default async function GiftGroupDetailPage({
                 >
                   Leave group
                 </button>
-              </form>
+              </ActionForm>
             </div>
           )}
         </div>
@@ -294,7 +295,7 @@ export default async function GiftGroupDetailPage({
                         </details>
 
                         {isPending && (
-                          <form action={resendInvite}>
+                          <ActionForm action={resendInvite}>
                             <input type="hidden" name="contributorId" value={c.id} />
                             <input type="hidden" name="groupId" value={group.id} />
                             <button
@@ -303,10 +304,10 @@ export default async function GiftGroupDetailPage({
                             >
                               {isExpired ? "Resend invite (expired)" : "Resend invite"}
                             </button>
-                          </form>
+                          </ActionForm>
                         )}
 
-                        <form action={deleteContributor}>
+                        <ActionForm action={deleteContributor}>
                           <input type="hidden" name="contributorId" value={c.id} />
                           <input type="hidden" name="groupId" value={group.id} />
                           <button
@@ -315,7 +316,7 @@ export default async function GiftGroupDetailPage({
                           >
                             Remove
                           </button>
-                        </form>
+                        </ActionForm>
                       </div>
                     )}
                   </div>
