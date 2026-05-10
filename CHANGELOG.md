@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] Security: Codacy ReDoS flag on parsePence + Dependabot esbuild override
+**By:** Cursor
+**What:** Replaced the `parsePence` regex in `app/gift-groups/actions.ts` with explicit digit/fraction parsing so static analysis no longer flags a ReDoS pattern (behaviour unchanged: non-negative GBP strings with 0–2 decimal places). Adjusted register error JSON handling in `app/login/register/page.tsx` to drop the redundant `parsed !== null` branch Codacy flagged. Added an npm `overrides` entry for `esbuild` `^0.25.12` so the transitive copy pulled in via `drizzle-kit` / `@esbuild-kit/core-utils` resolves to a patched release (GHSA-67mh-4wv8-2f99); refreshed `package-lock.json` accordingly.
+**Why:** Codacy PR report listed the regex as a high-severity security issue; GitHub Dependabot still reported the moderate esbuild advisory on the default branch until the dependency tree resolves beyond `0.24.2`.
+
 ## [2026-05-10] Fix: review hardening (register errors, occasions, gift-groups, Cursor permissions)
 **By:** Cursor
 **What:** Register API errors are parsed via `res.text()` + safe `JSON.parse` so non-JSON bodies never throw. `updateOccasion` now blocks preset-kind duplicates the same way as `createOccasion` (excluding the current row). Gift groups: stricter `parsePence`, consistent `personId`/`wishlistItemId` validation on create, duplicate contributor detection by normalized email per group, `acceptInvite` honours pre-linked `userId`, `acceptInviteAction` preserves specific error query params, invite page renders those errors, and invite email failures log `groupId`/`contributorId` plus masked recipient instead of raw email. `.claude/settings.local.json` replaces broad `git stash`/`git checkout` wildcards with scoped allow patterns.

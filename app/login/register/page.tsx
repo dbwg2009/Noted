@@ -24,14 +24,13 @@ function RegisterForm() {
         router.push(dest);
       } else {
         const raw = await res.text();
-        let parsed: unknown = null;
+        let parsed: unknown;
         try {
-          parsed = raw ? JSON.parse(raw) : null;
+          parsed = raw ? JSON.parse(raw) : undefined;
         } catch {
-          parsed = null;
+          parsed = undefined;
         }
         const fromJson =
-          parsed &&
           typeof parsed === "object" &&
           parsed !== null &&
           "error" in parsed &&
