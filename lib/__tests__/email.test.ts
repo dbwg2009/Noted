@@ -10,6 +10,8 @@ const baseDigest: DigestUserBlock = {
       personId: "p1",
       personName: "Alice",
       relationship: "friend",
+      birthday: "1990-06-01",
+      birthYearKnown: true,
       targetDate: "2026-06-01",
       leadDays: 7,
       shortlist: [],
