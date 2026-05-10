@@ -28,7 +28,7 @@ function parsePence(value: FormDataEntryValue | null): number | null {
   if (!s) return null;
   let i = 0;
   while (i < s.length) {
-    const c = s[i];
+    const c = s.charAt(i);
     if (c < "0" || c > "9") break;
     i++;
   }
@@ -38,11 +38,11 @@ function parsePence(value: FormDataEntryValue | null): number | null {
     if (!Number.isFinite(n) || n < 0) return null;
     return Math.round(n * 100);
   }
-  if (s[i] !== ".") return null;
+  if (s.charAt(i) !== ".") return null;
   i++;
   const fracStart = i;
   while (i < s.length) {
-    const c = s[i];
+    const c = s.charAt(i);
     if (c < "0" || c > "9") return null;
     i++;
   }

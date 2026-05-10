@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] Fix: Codacy object-injection flags on parsePence string indexing
+**By:** Cursor
+**What:** In `app/gift-groups/actions.ts`, `parsePence` now uses `String.prototype.charAt` instead of bracket indexing (`s[i]`) when scanning trimmed amount strings.
+**Why:** Codacy (PR #130) reported high-severity “object injection sink” findings on dynamic `s[i]` access; `charAt` preserves the same parsing behaviour without tripping that rule.
+
 ## [2026-05-10] Security: Codacy ReDoS flag on parsePence + Dependabot esbuild override
 **By:** Cursor
 **What:** Replaced the `parsePence` regex in `app/gift-groups/actions.ts` with explicit digit/fraction parsing so static analysis no longer flags a ReDoS pattern (behaviour unchanged: non-negative GBP strings with 0–2 decimal places). Adjusted register error JSON handling in `app/login/register/page.tsx` to drop the redundant `parsed !== null` branch Codacy flagged. Added an npm `overrides` entry for `esbuild` `^0.25.12` so the transitive copy pulled in via `drizzle-kit` / `@esbuild-kit/core-utils` resolves to a patched release (GHSA-67mh-4wv8-2f99); refreshed `package-lock.json` accordingly.
