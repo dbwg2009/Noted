@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] fix: create-pull-request duplicate Authorization header with checkout
+**By:** Cursor
+**What:** **`changelog-archive`**, **`sync-gemini`**, and **`sync-main-to-development`**: **`actions/checkout@v6`** now uses **`persist-credentials: false`** (plus **`token`**) where no follow-up **`git fetch`** is needed; **`sync-main-to-development`** clears **`http.https://github.com/.extraheader`** after the merge step. All three unset that config before **`peter-evans/create-pull-request`** as a safeguard and pass **`token: ${{ secrets.GITHUB_TOKEN }}`** explicitly to the action.
+**Why:** Git was sending two `Authorization` headers (`Duplicate header` / HTTP 400) because checkout persisted credentials and create-pull-request injected its own.
+
 ## [2026-05-10] fix: bot workflows use PRs + setup-node v6 (protected Development)
 **By:** Cursor
 **What:** **`changelog-archive`**, **`sync-gemini`**, and **`sync-main-to-development`** now use **`peter-evans/create-pull-request@v7.0.8`** so updates land via PRs (branch protection was rejecting direct pushes that lacked prior passing checks). **`changelog-archive`** uses **`actions/setup-node@v6`**. Removed **`changelog:compact`** from **`package.json`** — run **`node scripts/compact-changelog.mjs`** locally instead; **CLAUDE.md** / memory updated.

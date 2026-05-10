@@ -25,13 +25,19 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
 
       - name: Copy CLAUDE.md to GEMINI.md
         run: cp CLAUDE.md GEMINI.md
 
+      - name: Clear persisted checkout credentials before create-pull-request
+        run: git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
+
       - name: Open PR with changes
         uses: peter-evans/create-pull-request@v7.0.8
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           base: ${{ github.ref_name }}
           branch: automated/gemini-sync/${{ github.ref_name }}
           commit-message: "chore: sync GEMINI.md from CLAUDE.md [gemini-sync]"

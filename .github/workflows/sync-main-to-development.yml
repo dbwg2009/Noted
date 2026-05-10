@@ -31,9 +31,14 @@ jobs:
           git checkout Development
           git merge origin/main --no-edit
 
+      # checkout@v6 persists Authorization in git config; create-pull-request adds another → HTTP 400 "Duplicate header"
+      - name: Clear persisted checkout credentials before create-pull-request
+        run: git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
+
       - name: Open PR with merge result
         uses: peter-evans/create-pull-request@v7.0.8
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           base: Development
           branch: automated/sync-main-into-development
           commit-message: "chore: merge main into Development [sync-main]"

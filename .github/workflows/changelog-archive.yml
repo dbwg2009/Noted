@@ -28,6 +28,8 @@ jobs:
         with:
           ref: Development
           fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
 
       - uses: actions/setup-node@v6
         with:
@@ -36,9 +38,13 @@ jobs:
       - name: Compact CHANGELOG if over limit
         run: node scripts/compact-changelog.mjs
 
+      - name: Clear persisted checkout credentials before create-pull-request
+        run: git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
+
       - name: Open PR with changes
         uses: peter-evans/create-pull-request@v7.0.8
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           base: Development
           branch: automated/changelog-archive
           commit-message: "chore: archive old CHANGELOG entries [changelog-archive]"
