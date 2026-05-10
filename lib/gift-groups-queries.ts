@@ -57,14 +57,13 @@ export async function listGiftGroups(userId: string) {
   const pendingRows = nonOwnedRows.filter((r) => r.inviteAcceptedAt === null);
   const pendingIds = pendingRows.map((r) => r.groupId);
 
-  const fetchById = (ids: string[]) =>
-    ids.length === 0
-      ? attachContributors([])
-      : fetchGroups(inArray(giftGroups.id, ids)).then(attachContributors);
-
   const [contributing, pendingGroups, ownedWithContributors] = await Promise.all([
-    fetchById(acceptedIds),
-    fetchById(pendingIds),
+    acceptedIds.length === 0
+      ? attachContributors([])
+      : fetchGroups(inArray(giftGroups.id, acceptedIds)).then(attachContributors),
+    pendingIds.length === 0
+      ? attachContributors([])
+      : fetchGroups(inArray(giftGroups.id, pendingIds)).then(attachContributors),
     attachContributors(owned),
   ]);
 
