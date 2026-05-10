@@ -21,13 +21,12 @@ Never) are computed at save time so no cron cleanup is needed.
 
 **CHANGELOG:** Update on every commit — no exceptions, including typo fixes and chores.
 
-**Version bump (`package.json`):** Bump just before opening a PR to Development — as the final commit on the feature branch. The version reflects what is about to ship, so by the time the PR lands on main and the release is cut, the tag and `package.json` version already match.
+**`package.json` version:** Do **not** bump manually. **Release Please** updates `"version"` on its release PR to `main` (see `CLAUDE.md` → Versioning). If the manifest drifts after an out-of-band release, fix `.github/release-please-manifest.json` to match the latest shipped tag — do not preemptively bump `package.json` on feature branches.
 
-**CHANGELOG compaction:** When `CHANGELOG.md` exceeds ~300 lines, move entries older than the last major version into `CHANGELOG-legacy.md`. Flag this to the user before doing it — never silently archive.
+**CHANGELOG compaction:** When `CHANGELOG.md` exceeds **300 lines**, **`changelog-archive.yml`** opens a PR on **`Development`** that moves oldest dated entries to **`CHANGELOG-legacy.md`** (merge after CI). Locally: **`node scripts/compact-changelog.mjs`**. If one entry is enormous or automation stalls, flag the user — do not delete history silently.
 
-**Why:** Version in `package.json` should always reflect the work about to land, not what was last released. CHANGELOG kept short to avoid bloating the AI context window.
+**Why:** One source of truth for semver on `main` avoids fighting Release Please. CHANGELOG stays human-authored; GitHub Release bodies from Release Please are separate.
 
 **How to apply:**
 - Every commit: update `CHANGELOG.md` first, then commit with the right prefix
-- Pre-PR commit: bump `"version"` in `package.json`, add a `chore: bump version to X.Y.Z` commit
 - If CHANGELOG is approaching 300 lines, flag it before the next commit

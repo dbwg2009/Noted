@@ -1,6 +1,251 @@
 # Changelog (legacy — archived from CHANGELOG.md)
 
 Entries from 2026-05-06 and earlier. See CHANGELOG.md for recent entries.
+---
+
+
+## [2026-05-07] Add release helper workflow
+**By:** Claude Code
+**What:** Added `.github/workflows/release.yml` — a `workflow_dispatch` workflow with three inputs (`tag`, `title`, `notes`) that runs `gh release create --latest`. Accessible via Actions → Release in the GitHub UI.
+**Why:** Removes friction from the release process. No automation — still fully manual and phase-gated — just surfaces the `gh release create` command in the GitHub UI so releases can be cut without the CLI.
+
+---
+
+
+---
+
+## [2026-05-07] Fix Trivy SARIF severity alignment (limit-severities-for-sarif)
+**By:** Claude Code
+**What:** Added `limit-severities-for-sarif: true` to the Trivy scan step in `.github/workflows/docker-publish.yml`.
+**Why:** With `format: sarif`, trivy-action builds the SARIF report with all severities and the exit code reflects those broader findings — causing exit 1 even after CRITICAL CVEs were resolved. Setting `limit-severities-for-sarif: true` constrains both the SARIF report and the exit-code check to the specified severity (CRITICAL), so the build only fails when CRITICAL unfixed CVEs are actually present.
+
+---
+
+
+---
+
+## [2026-05-07] Add concurrency groups to CI workflows
+**By:** Claude Code
+**What:** Added `concurrency: group: ..., cancel-in-progress: true` to `pr-checks.yml` (group key: `pr-checks-${{ github.ref }}`) and `docker-publish.yml` (group key: `docker-publish-${{ github.ref }}`).
+**Why:** Rapid successive pushes to the same branch were queuing duplicate runs. For the Docker multi-arch build (~10 min) this wasted a full build slot on a result that would be immediately superseded. Cancelling the stale run gives faster feedback on the latest commit.
+
+---
+
+
+---
+
+## [2026-05-07] Upgrade Next.js, next-auth, drizzle-kit to fix npm vulnerabilities
+**By:** Claude Code
+**What:** `next` 15.2.9 → 15.5.18 (+ `eslint-config-next` to match), `next-auth` 5.0.0-beta.25 → 5.0.0-beta.31, `drizzle-kit` 0.30.x → 0.31.10. TypeScript and tests verified clean. 4 moderate vulnerabilities remain in upstream transitive deps (esbuild in drizzle-kit internals via `@esbuild-kit/core-utils`); postcss was subsequently fixed via npm overrides (see 2026-05-08 entry).
+**Why:** High severity Next.js CVEs (SSRF, cache poisoning, HTTP request smuggling, DoS, content injection), moderate next-auth email misdelivery CVE. The high severity issues are the priority given the app is publicly reachable.
+
+---
+
+
+---
+
+## [2026-05-07] Remove esbuild binaries from Docker runner image (CVE-2024-24790, CVE-2025-68121)
+**By:** Claude Code
+**What:** Added `rm -rf node_modules/@esbuild` to the runner stage in `Dockerfile`, merged into the existing `mkdir/chown` RUN step.
+**Why:** Next.js standalone file tracing includes `@esbuild/linux-x64` (esbuild v0.19.12, compiled with Go 1.20.12) in the runner image even though esbuild is a build-time tool not needed at runtime. The binary carries two CRITICAL Go stdlib CVEs: CVE-2024-24790 (`net/netip`) and CVE-2025-68121 (`crypto/tls`). Stripping the `@esbuild` namespace from the final image removes the attack surface. Fixes #90.
+
+---
+
+
+---
+
+## [2026-05-07] Add app health check endpoint and Docker healthcheck
+**By:** Claude Code
+**What:** Added `app/api/health/route.ts` (`GET /api/health` → `{ status: "ok" }`). Added `healthcheck` to the `app` service in `docker-compose.yml` (curl `/api/health`, 10s interval, 30s start period, 6 retries). Upgraded `cron` depends_on condition from `service_started` to `service_healthy`. Removed the manual readiness poll loop from the `cron` entrypoint — now redundant.
+**Why:** The app service had no health check so Docker couldn't distinguish "container running" from "app ready". The cron sidecar's manual curl loop against `/api/auth/providers` was a fragile workaround. `service_healthy` is the correct pattern.
+
+---
+
+
+---
+
+## [2026-05-07] Fix trivy-action version in docker-publish workflow
+**By:** Claude Code
+**What:** Bumped `aquasecurity/trivy-action` from `0.31.0` to `v0.36.0` in `.github/workflows/docker-publish.yml`.
+**Why:** Version `0.31.0` does not exist as a release tag — GitHub Actions failed to resolve it, breaking every push to Development. `v0.36.0` is the current latest release. Fixes #86.
+
+
+---
+
+## [2026-05-07] Add Docker memory limits and wire Sentry env vars
+**By:** Claude Code
+**What:** Added `deploy.resources.limits.memory` to all four services in `docker-compose.yml`: `db` (512m), `migrate` (256m), `app` (512m), `cron` (64m). Also added `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT` to the app service environment (all optional, default empty).
+**Why:** Repo advisory item 7 — without limits, a memory leak or traffic spike could exhaust Pi RAM and trigger the OOM killer, potentially killing the Postgres process. Limits ensure Docker restarts the affected container cleanly. Sentry vars needed as a follow-up to item 3 — the code was wired up but the vars weren't passed through in Docker.
+
+---
+
+
+---
+
+## [2026-05-07] Add Trivy container image vulnerability scan
+**By:** Claude Code
+**What:** Updated `docker-publish.yml`: added `security-events: write` permission; added `app_primary` output to the tags step (single ref for Trivy); added `Scan app image for vulnerabilities` step using `aquasecurity/trivy-action@0.31.0` (CRITICAL severity, ignore-unfixed, SARIF output); added `Upload Trivy results to GitHub Security tab` step.
+**Why:** Repo advisory item 6 — Docker image contains Alpine Linux and all npm deps; any could carry known CVEs. Scan runs after push, fails on critical fixable CVEs, uploads results to the GitHub Security tab.
+
+---
+
+
+---
+
+## [2026-05-07] Add Dependabot auto-merge workflow
+**By:** Claude Code
+**What:** Added `.github/workflows/dependabot-auto-merge.yml`. Triggers on Dependabot PRs only; uses `dependabot/fetch-metadata` to read the update type; calls `gh pr merge --auto --squash` for patch and minor bumps. Major version bumps are left open for manual review.
+**Why:** Repo advisory item 5 — Dependabot PRs were piling up unmerged. Auto-merge is gated behind CI passing and branch protection rules, so a breaking update can't sneak through.
+
+---
+
+
+---
+
+## [2026-05-07] Add Sentry error tracking
+**By:** Claude Code
+**What:** Installed `@sentry/nextjs`. Added `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` (each guards init behind `SENTRY_DSN` check), `instrumentation.ts` (Next.js 15 hook loading server/edge configs), and updated `next.config.mjs` to wrap with `withSentryConfig` (source map upload disabled when `SENTRY_ORG`/`SENTRY_PROJECT` are absent). `.env.example` updated with three new optional vars.
+**Why:** Repo advisory item 3 — app runs unattended on a Pi; all errors were silent `console.error` calls. Sentry captures unhandled exceptions with stack traces and sends email alerts on first occurrence. All three env vars are optional so self-hosters who don't want Sentry can leave them blank.
+
+---
+
+
+---
+
+## [2026-05-07] Add husky + lint-staged + commitlint pre-commit enforcement
+**By:** Claude Code
+**What:** Installed `husky`, `lint-staged`, `@commitlint/cli`, `@commitlint/config-conventional`. Added `.husky/pre-commit` (runs lint-staged on staged `.ts`/`.tsx` files) and `.husky/commit-msg` (validates Conventional Commits format). `commitlint.config.ts` extends `@commitlint/config-conventional`. `prepare` script added to `package.json` so hooks install on `npm install`. `lint-staged` config in `package.json` runs ESLint with `--max-warnings=0`.
+**Why:** Repo advisory item 2 — CLAUDE.md requires conventional commits and ESLint-clean code on every commit but nothing enforced it. Now a badly formatted commit message or an ESLint error blocks the commit before it reaches GitHub.
+
+---
+
+
+---
+
+## [2026-05-07] Add Vitest unit tests for lib/birthdays and lib/occasions
+**By:** Claude Code
+**What:** Added Vitest test framework (`vitest`, `@vitest/coverage-v8`). 57 tests across `lib/__tests__/birthdays.test.ts` and `lib/__tests__/occasions.test.ts` covering date parsing, next-occurrence rollover, age calculation, money formatting, Easter algorithm, known occasion labels, and occurrence countdown logic. `vitest.config.ts` scopes coverage to the two tested files with 85% line/function and 80% branch thresholds. `pr-checks.yml` extended with a `Tests with coverage` step. Test scripts added to `package.json` (`test`, `test:watch`, `test:coverage`).
+**Why:** Repo advisory (item 1): zero test coverage was the highest-priority gap. Pure date/money logic in these two files is the safest starting point; DB/email/API files require integration tests and are excluded from the coverage scope for now.
+
+---
+
+
+---
+
+## [2026-05-07] Bump version to 1.3.3
+**By:** Claude Code
+**What:** `package.json` version `1.3.1` → `1.3.3` (skipping `1.3.2` which landed on main via a direct hotfix). Prepares Development → main PR.
+**Why:** Version alignment before opening the Development → main PR. Covers: `actions/checkout` v4 → v6 (CI), drizzle-orm 0.45.2 security fix, ESLint config, Docker action upgrades.
+
+---
+
+
+---
+
+## [2026-05-07] Bump version to 1.3.2 — CI and Docker registry fixes
+**By:** Claude Code
+**What:** `package.json` version 1.3.1 → 1.3.2. Patch covers: GHCR migration (primary Docker registry now `ghcr.io/dbwg2009/noted`, Docker Hub kept as mirror), docs-only push skip, and the `[skip ci]` bug that was blocking all Actions on main.
+**Why:** Two infra fixes landed on main that warranted a patch release.
+
+---
+
+
+---
+
+## [2026-05-07] Fix: remove [skip ci] from sync-gemini commit message
+**By:** Claude Code
+**What:** Removed `[skip ci]` from the commit message written by `.github/workflows/sync-gemini.yml`. The workflow only triggers on `paths: ['CLAUDE.md']` so it cannot loop — the flag was redundant. However, GitHub treats `[skip ci]` anywhere in a squash-merge commit body as a signal to skip all Actions for that push, so every Development → main merge was silently blocking all workflows on main (including the Docker build).
+**Why:** Bug: all GitHub Actions on main were being skipped after every squash merge from Development.
+
+---
+
+
+---
+
+## [2026-05-07] Refresh README for public launch
+**By:** Claude Code
+**What:** Complete rewrite of README.md. Added dynamic badges (version, license, Next.js, Docker), three-column screenshots section (dashboard, calendar, person detail — sensitive data redacted), updated features list (now includes Phase 6 Occasions and Phase 7 Shareable Wishlists), rewritten env var table with required/optional column, self-hosting tips (Pi/ARM, uploads, reverse proxy, OpenRouter rate limits), tech stack table, roadmap (phases 8–10), and Contributing/License footer. Added `docs/screenshots/` with three redacted screenshots.
+**Why:** Repo is going public. Old README was stale (referenced phases 0–5 as complete), missing two full feature phases, had no badges or screenshots, and read as a personal quick-start rather than a public project introduction.
+
+---
+
+
+---
+
+## [2026-05-07] Disable auto-delete branches; add Dependabot branch cleanup workflow
+**By:** Claude Code
+**What:** Disabled GitHub's repo-wide "Automatically delete head branches" setting. Added `.github/workflows/cleanup-dependabot-branches.yml` — triggers on merged PRs whose head branch starts with `dependabot/` and deletes that branch via the GitHub API.
+**Why:** Auto-delete was removing feature branches on merge, conflicting with the project rule that stale branches should be reviewed before deletion. Dependabot branches are safe to auto-clean; feature branches are not.
+
+
+---
+
+## [2026-05-07] Migrate Docker registry to GHCR; skip docs-only builds
+**By:** Claude Code
+**What:** Switched primary Docker registry from Docker Hub to GitHub Container Registry (GHCR). Updated `docker-compose.yml` image refs to `ghcr.io/dbwg2009/noted` and `ghcr.io/dbwg2009/noted-migrator`. Updated `.github/workflows/docker-publish.yml`: auth via `GITHUB_TOKEN` (no extra secrets), `Development` pushes go to GHCR only, `main` pushes go to both GHCR and Docker Hub simultaneously in a single build. Added `paths-ignore` so docs/changelog/memory-file-only pushes skip the workflow entirely.
+**Why:** Docker Hub required stored credentials and had no easy way to skip docs-only builds. GHCR is integrated with `GITHUB_TOKEN`, reducing secret surface. Docker Hub kept as a mirror for existing users. Closes #62.
+
+
+---
+
+## [2026-05-07] Add ESLint config + fix pre-existing lint errors
+**By:** Claude Code
+**What:** Added `eslint.config.mjs` (Next.js 15 flat config format, extends `next/core-web-vitals`). Fixed pre-existing `react/no-unescaped-entities` error in `app/login/forgot/page.tsx` (unescaped apostrophe in JSX text).
+**Why:** No ESLint config existed, causing `next lint` to enter interactive setup mode in CI and fail. Pre-existing error would have blocked the lint step regardless.
+
+
+---
+
+## [2026-05-07] Bump drizzle-orm to 0.45.2 (SQL injection security fix)
+**By:** Claude Code
+**What:** `drizzle-orm` bumped from `0.36.4` → `0.45.2`. `package.json` version `1.3.0` → `1.3.1`.
+**Why:** 0.45.2 patches CWE-89 (SQL injection) in `sql.identifier()` and `sql.as()` — values were not properly escaped. Security fix, no API changes to application code. Build verified clean.
+
+
+---
+
+## [2026-05-07] Bump version to 1.3.0 — Phase 7 release
+**By:** Claude Code
+**What:** `package.json` version 1.2.0 → 1.3.0. Added `v1.3.0` row to the versioning table in `CLAUDE.md`. GitHub release `v1.3.0` cut.
+**Why:** Phase 7 (Shareable Wishlists) is complete and merged to main; tagging a stable release point.
+
+---
+
+
+---
+
+## [2026-05-07] Phase 7 — Shareable Wishlists
+**By:** Claude Code
+**What:** Implemented Phase 7 (Shareable Wishlists) in full.
+- `db/schema.ts`: new `wishlist_shares` table — one row per person, UUID token, boolean visibility flags (`showIdea`, `showResearching`, `showChosen`, `showPrices`), optional `expiresAt`.
+- `lib/share-queries.ts`: `getShareByToken`, `getWishlistShareForPerson`, `getSharePageData` (fetches share + person + filtered wishlist items + their products for the public page).
+- `app/people/share-actions.ts`: `upsertWishlistShare` (create-or-update), `regenerateWishlistShare` (delete + re-insert with new UUID token), `revokeWishlistShare`.
+- `components/copy-button.tsx`: minimal client component for clipboard copy with "Copied!" feedback.
+- `app/share/[token]/page.tsx`: public branded read-only page. No auth required. `force-dynamic` to prevent caching. Shows person name, wishlist items, product cards with buy links. Respects `showPrices` and per-status visibility.
+- `app/people/[id]/page.tsx`: new "Share wishlist" section between Reminders and Settings. Shows create form when no share exists; shows link, settings checkboxes, expiry presets (1 month / 3 months / 1 year / Never), regenerate, and revoke when a share exists.
+- GitHub issue #48 opened and linked to milestone "Phase 7: Shareable Wishlists".
+**Why:** Phase 7 per V2_DESIGN.md. User decisions: one link per person (regenerate to invalidate), all statuses on by default, preset expiry, no occasion filtering, branded public page.
+
+---
+
+
+---
+
+## [2026-05-07] Bump version to 1.2.0 — Phase 6 release
+**By:** Claude Code
+**What:** `package.json` version 1.1.0 → 1.2.0. Added `v1.1.0` and `v1.2.0` rows to the versioning table in `CLAUDE.md`. GitHub release `v1.2.0` cut.
+**Why:** Phase 6 (Other Occasions) is complete and deployable; tagging a stable release point.
+
+---
+
+
+---
+
+## [2026-05-07] Phase 6 complete — Other Occasions
+**By:** Claude Code
+**What:** Marked Phase 6 (Other Occasions) as **done** in `CLAUDE.md` and `docs/V2_DESIGN.md`. No code changes — this entry records the phase completion milestone.
+**Why:** All Phase 6 scope shipped: `occasions` table, per-occasion reminders, site-wide occasions with per-person exclusions, dashboard/calendar updates, and person-detail occasion management. Phase 7 (Shareable Wishlists) is now the next pending phase.
+
 
 ---
 

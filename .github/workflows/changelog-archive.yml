@@ -1,0 +1,55 @@
+# When CHANGELOG.md on Development exceeds ~300 lines, moves oldest dated entries to CHANGELOG-legacy.md.
+# Opens a PR (required checks block direct pushes to protected Development).
+# Commits use [changelog-archive] so this workflow does not loop on its own trigger.
+
+name: Changelog archive
+
+on:
+  push:
+    branches: [Development]
+    paths:
+      - "CHANGELOG.md"
+  workflow_dispatch:
+
+concurrency:
+  group: changelog-archive-development
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  archive:
+    if: github.event_name == 'workflow_dispatch' || (github.event.head_commit != null && !contains(github.event.head_commit.message, '[changelog-archive]'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: Development
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Compact CHANGELOG if over limit
+        run: node scripts/compact-changelog.mjs
+
+      - name: Clear persisted checkout credentials before create-pull-request
+        run: git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
+
+      - name: Open PR with changes
+        uses: peter-evans/create-pull-request@v7.0.8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: Development
+          branch: automated/changelog-archive
+          commit-message: "chore: archive old CHANGELOG entries [changelog-archive]"
+          title: "chore: archive old CHANGELOG entries"
+          body: |
+            Automated: moved oldest dated entries from `CHANGELOG.md` to `CHANGELOG-legacy.md` (size limit).
+
+            **Merge after TypeScript & Lint is green.**

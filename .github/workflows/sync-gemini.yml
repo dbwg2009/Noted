@@ -1,29 +1,48 @@
+# Mirrors CLAUDE.md → GEMINI.md via PR so protected branches still pass required checks.
+
 name: Sync GEMINI.md from CLAUDE.md
 
 on:
   push:
     branches: [main, Development]
     paths:
-      - 'CLAUDE.md'
+      - "CLAUDE.md"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-gemini-${{ github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   sync:
     name: Mirror CLAUDE.md → GEMINI.md
+    if: ${{ !contains(github.event.head_commit.message || '', '[gemini-sync]') }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ github.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
 
       - name: Copy CLAUDE.md to GEMINI.md
         run: cp CLAUDE.md GEMINI.md
 
-      - name: Commit if changed
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add GEMINI.md
-          git diff --cached --quiet || git commit -m "chore: sync GEMINI.md from CLAUDE.md"
-          git push
+      - name: Clear persisted checkout credentials before create-pull-request
+        run: git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
+
+      - name: Open PR with changes
+        uses: peter-evans/create-pull-request@v7.0.8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: ${{ github.ref_name }}
+          branch: automated/gemini-sync/${{ github.ref_name }}
+          commit-message: "chore: sync GEMINI.md from CLAUDE.md [gemini-sync]"
+          title: "chore: sync GEMINI.md from CLAUDE.md"
+          body: |
+            Automated copy of `CLAUDE.md` for agents that read `GEMINI.md`.
+
+            **Merge after TypeScript & Lint is green.**

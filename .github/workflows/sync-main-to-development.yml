@@ -1,0 +1,49 @@
+# Keeps Development aligned with main after merges. Uses a PR so required checks can pass (direct push is rejected on protected Development).
+
+name: Sync main into Development
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: sync-main-into-development
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Merge main into Development (working tree)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin
+          git checkout Development
+          git merge origin/main --no-edit
+
+      # checkout@v6 persists Authorization in git config; create-pull-request adds another → HTTP 400 "Duplicate header"
+      - name: Clear persisted checkout credentials before create-pull-request
+        run: git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
+
+      - name: Open PR with merge result
+        uses: peter-evans/create-pull-request@v7.0.8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: Development
+          branch: automated/sync-main-into-development
+          commit-message: "chore: merge main into Development [sync-main]"
+          title: "chore: merge main into Development"
+          body: |
+            Automated: merge `origin/main` into `Development` so the branch matches `main` after squash merges.
+
+            **Merge after TypeScript & Lint is green.**
