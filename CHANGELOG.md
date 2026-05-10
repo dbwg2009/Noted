@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] chore: wire Release Please to manifest config
+**By:** Cursor
+**What:** Updated `.github/workflows/release-please.yml` to use manifest mode with `config-file` / `manifest-file` under `.github/` (removed the workflow-level `release-type: node`, which forced simple mode and ignored `release-please-config.json`). Added `issues: write` to match upstream Release Please permission recommendations.
+**Why:** The repo already maintained `release-please-config.json` (changelog sections, `chore: release ${version}` PR title pattern) and `release-please-manifest.json`, but the action never loaded them; Release PRs now follow that configuration.
+
 ## [2026-05-10] Fix: Codacy object-injection flags on parsePence string indexing
 **By:** Cursor
 **What:** In `app/gift-groups/actions.ts`, `parsePence` now uses `String.prototype.charAt` instead of bracket indexing (`s[i]`) when scanning trimmed amount strings.
