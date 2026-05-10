@@ -23,7 +23,8 @@ Owner / initial admin: **dbwg2009**.
 - **`docs/DESIGN.md`** — full design: goals, features, data model, architecture, build phases, repo layout. **Read this before changing anything non-trivial.**
 - **`docs/V2_DESIGN.md`** — **V2 roadmap**: five new phases (6–10) with schema deltas, new routes, and step-by-step implementation notes. **Read this before starting any V2 phase.** Each phase has a corresponding GitHub milestone.
 - **`docs/DECISIONS.md`** — locked decisions and a change log (single-user, email reminders, UK/GBP, OpenRouter LLM, Docker primary). Update this when a decision changes; do not silently override.
-- **`CHANGELOG.md`** — running log of every significant change: what changed, why, and when. **All AI agents must update this on every commit without exception.** See the file for the entry format.
+- **`CHANGELOG.md`** — running log of every significant change: what changed, why, and when. **All AI agents must update this on every commit without exception.** See the file for the entry format. (Automated GitHub Release notes come from **Release Please** and do not replace this file — see Versioning.)
+- **`.github/release-please-config.json`** + **`.github/release-please-manifest.json`** — Release Please manifest config (semver bump, release PR, GitHub Release body). **`CHANGELOG.md` is not modified by Release Please** (`skip-changelog`).
 - **`README.md`** — quick-start (Docker + native Node).
 - **`db/schema.ts`** — the source of truth for the DB shape.
 - **`lib/auth.ts`** — Auth.js v5 config (Credentials provider for email/password, Drizzle adapter). Previously used Resend magic-link + `ALLOWED_EMAIL`.
@@ -134,15 +135,29 @@ The repo uses **semantic versioning** tied to build phases. All tags and release
 | `v1.2.0` | Phase 6 — Other Occasions | Occasions table, per-occasion reminders, site-wide occasions with exclusions |
 | `v1.3.0` | Phase 7 — Shareable Wishlists | Token-based public wishlist links, configurable visibility, expiry presets |
 
+### Release Please (primary path)
+
+- Workflow: **`.github/workflows/release-please.yml`** runs on every push to **`main`**.
+- It opens or updates a **release PR** (title pattern `chore: release X.Y.Z`) that bumps **`package.json`**, updates **`.github/release-please-manifest.json`**, and **does not edit** root **`CHANGELOG.md`** (`skip-changelog` — the human narrative changelog stays separate).
+- **Merging that release PR** creates the **git tag** and **GitHub Release**. Tags and GitHub release names use the **`v1.2.3`** form **without** the npm package name prefix (config: `include-component-in-tag: false`).
+- Release notes on the GitHub Release are built from **conventional commits** on `main`; the release PR includes a short **intro** (`pull-request-header`) pointing readers at **`CHANGELOG.md`** for fuller context.
+- **Commits on `main` must stay conventional** (`feat:`, `fix:`, etc.) so semver and notes stay correct — especially when using **squash merge** (the squash title/body should reflect those types).
+- Repo setting required: **Allow GitHub Actions to create and approve pull requests** (Settings → Actions → General → Workflow permissions), unless you switch the workflow to a PAT.
+
+### Manual release workflow (optional)
+
+- **`.github/workflows/release.yml`** (`workflow_dispatch`) and **`gh release create`** remain available for edge cases; they do not replace Release Please for normal ships.
+
 **Release rules (enforced — read carefully):**
-- A release **must** be cut for every push or PR that lands on `main` that changes code. Docs-only changes (CLAUDE.md, GEMINI.md, memory files, design docs, README) do not need a release.
+- A **GitHub release** (tag) **must** exist for every push or PR that lands on `main` that changes code — normally by **merging the Release Please release PR** after feature work lands. Docs-only changes (CLAUDE.md, GEMINI.md, memory files, design docs, README) do not need a release.
 - `MAJOR` — **only** when the user explicitly asks. Never bump major on your own initiative.
 - `MINOR` — every completed phase (e.g. `v1.4.0` for Phase 8).
 - `PATCH` — every bug fix or non-phase change that lands on `main`.
-- Release notes format: a short plain-English summary paragraph, then a detailed bullet list. Mention bug fix issue numbers (e.g. `fixes #42`). Do not link closed phase issues.
-- Use `gh release create <tag> --title "vX.Y.Z — <short title>" --notes "..." --latest`.
+- **Human `CHANGELOG.md` entries** should stay in the project’s usual format (summary + bullets, issue refs where relevant). Release Please’s GitHub Release body is complementary, not a substitute.
 
-**Version bump (`package.json`):** Bump just before opening the PR to Development — as the final commit on the feature branch. The version reflects what is about to ship.
+**`package.json` version — do not bump manually:** Agents **must not** change `"version"` in `package.json` to “prepare” a release. **Release Please** sets the version on its **release PR**. If the manifest and `main` drift after an out-of-band release, fix **`.github/release-please-manifest.json`** to match the **latest shipped tag** (do not bump `package.json` preemptively on feature branches for this reason).
+
+**`main` → `Development`:** After merges to `main`, **`.github/workflows/sync-main-to-development.yml`** merges **`main` into `Development`** so the branch does not fall behind squash history. If the job fails (permissions or conflicts), fix branch protection or merge locally.
 
 **GitHub milestones** map 1-to-1 to build phases. Create a new milestone only when a phase starts. Close the milestone as part of the post-release checklist. Milestones 8–10 already exist with due dates.
 
@@ -164,7 +179,7 @@ All process rules are stored as individual files in `.claude/memory/`. The index
 ### Commits
 - Use conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`.
 - Update `CHANGELOG.md` on every commit without exception.
-- Bump `package.json` version as the final commit before opening a PR to Development.
+- **Do not bump `package.json` `"version"`** — Release Please updates it on the release PR (see Versioning).
 - Compact `CHANGELOG.md` into `CHANGELOG-legacy.md` when it exceeds ~300 lines (flag to user first).
 
 ### Pull requests
@@ -181,10 +196,10 @@ All process rules are stored as individual files in `.claude/memory/`. The index
 - Never close an issue without the user's explicit sign-off.
 
 ### Post-release checklist (after user confirms merge to main)
-1. Cut GitHub release (`gh release create`)
+1. **Release:** Merge the **Release Please** release PR when it appears (creates tag + GitHub Release). Use **`gh release create`** or **`release.yml`** only if you are not using that PR for this ship.
 2. Close the related issue
 3. Close the corresponding milestone
-4. Delete stray feature branches (keep `Development` and `main`)
+4. Delete stray feature branches (keep `Development` and `main`). Confirm **`Development`** caught up (sync workflow or manual merge from `main`).
 
 ## Picking up the work
 
@@ -193,9 +208,8 @@ All process rules are stored as individual files in `.claude/memory/`. The index
 3. Check the build phase table above; the first **pending** phase is your next job.
 4. Open an issue for the work before creating a branch.
 5. Branch from `Development`, commit with conventional commit format, update `CHANGELOG.md` on every commit.
-6. Bump `package.json` version as the last commit before opening the PR to Development.
-7. Do not open a PR without being asked.
-8. After user confirms merge to main: cut release, close issue, close milestone, delete stray branches.
+6. Do not open a PR without being asked.
+7. After user confirms merge to main: merge Release Please release PR when ready, close issue, close milestone, delete stray branches; ensure `Development` is synced with `main`.
 
 ## Known gotchas
 
@@ -209,6 +223,7 @@ All process rules are stored as individual files in `.claude/memory/`. The index
 - `lib/people-queries.ts` holds the read queries (`listPeopleSummary`, `getPersonDetail`). Server actions in `app/people/actions.ts` only do writes; don't move them around without updating both pages.
 - Photo uploads use `lib/storage.ts`. Default strategy is `local` (writes to `public/uploads/`, needs a Docker volume for persistence). Set `STORAGE_STRATEGY=base64` for serverless/Vercel deployments (stores the file as a `data:` URI in `photo_url`).
 - The iCal feed is at `/api/ical/[token]`. The token is `users.ical_token` (a UUID). Resetting it invalidates old calendar subscriptions. Token must be non-null for the feed route to work — it is auto-generated on account creation via `defaultRandom()`.
+- **Release Please:** If the release PR fails to open, check **Actions → Workflow permissions** (allow Actions to create PRs). If **`sync-main-to-development`** fails on push, branch protection may block `github-actions[bot]` from pushing to `Development`, or there is a merge conflict to resolve locally.
 
 ## When something is unclear
 

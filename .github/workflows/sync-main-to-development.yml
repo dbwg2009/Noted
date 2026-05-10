@@ -1,0 +1,33 @@
+# Keeps `Development` aligned with `main` after merges (squash on main leaves `Development` behind).
+# If push fails, ensure branch protection allows `github-actions[bot]` to push to `Development`, or resolve merge conflicts locally.
+
+name: Sync main into Development
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: sync-main-into-development
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Merge main into Development and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin
+          git checkout Development
+          git merge origin/main --no-edit
+          git push origin Development

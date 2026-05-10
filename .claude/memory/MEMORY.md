@@ -7,4 +7,4 @@
 - [Release rules](feedback_releases.md) — Cut on every main push; major=user says only; minor=phase; patch=bug fix; summary+bullets format
 - [Branch workflow](feedback_branches.md) — Every branch tied to an issue; branch from Development; phase-N-name or fix-name; flag stale branches before deleting
 - [Planning process](feedback_planning.md) — Summarise scope, ask scope changes, then all questions numbered upfront; wait for explicit go-ahead before building; small fixes skip planning
-- [Commit conventions](feedback_commits.md) — Conventional commits (feat/fix/chore/docs/refactor); CHANGELOG on every commit; bump package.json just before PR to Dev; compact CHANGELOG >300 lines
+- [Commit conventions](feedback_commits.md) — Conventional commits (feat/fix/chore/docs/refactor); CHANGELOG on every commit; do not bump package.json (Release Please); compact CHANGELOG >300 lines

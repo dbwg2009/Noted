@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] chore: Release Please — skip root CHANGELOG, sync main→Development, docs
+**By:** Cursor
+**What:** `release-please-config.json`: `skip-changelog` for root `CHANGELOG.md` (human file only); `include-component-in-tag: false` so GitHub release names/tags are `vX.Y.Z` not `noted: vX.Y.Z`; visible sections for refactor/chore/docs; `pull-request-header` intro pointing to `CHANGELOG.md`. Manifest set to **1.4.0**. New workflow **`sync-main-to-development.yml`** merges `main` into `Development` on each push to `main` (plus `workflow_dispatch`). **CLAUDE.md** and `.claude/memory` (commits, releases, MEMORY index) updated: agents must **not** bump `package.json`; Release Please owns semver on the release PR; post-release checklist references merging the release PR.
+**Why:** Match the owner’s release workflow: automated semver + GitHub Release from conventional commits, narrative changelog unchanged, Development kept in sync after squash merges to main.
+
 ## [2026-05-10] chore: Release Please token fallback for PR creation
 **By:** Cursor
 **What:** `release-please.yml` uses `token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}` and comments document enabling Actions-created PRs or adding the `RELEASE_PLEASE_TOKEN` repo secret.

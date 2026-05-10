@@ -1,16 +1,20 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "node",
+  "pull-request-header": "Shipped changes on `main` since the last tag. For a fuller, narrative history (motivation and context), see `CHANGELOG.md` in the repo.\n\n---\n\n",
   "changelog-sections": [
     { "type": "feat", "section": "Features" },
     { "type": "fix", "section": "Bug Fixes" },
     { "type": "perf", "section": "Performance" },
-    { "type": "refactor", "section": "Refactoring", "hidden": true },
-    { "type": "chore", "section": "Miscellaneous", "hidden": true },
-    { "type": "docs", "section": "Documentation", "hidden": true }
+    { "type": "refactor", "section": "Refactoring" },
+    { "type": "chore", "section": "Miscellaneous" },
+    { "type": "docs", "section": "Documentation" }
   ],
   "pull-request-title-pattern": "chore: release ${version}",
   "packages": {
-    ".": {}
+    ".": {
+      "skip-changelog": true,
+      "include-component-in-tag": false
+    }
   }
 }
