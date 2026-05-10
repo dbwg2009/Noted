@@ -407,13 +407,37 @@ Every significant change to this project is recorded here. **AI agents must add 
 **What:** Added `"overrides": { "postcss": "^8.5.10" }` to `package.json`. Bumped direct devDep from `^8.4.49` → `^8.5.10` to match. Bumped package version `1.3.4` → `1.3.5`. Regenerated `package-lock.json` (drops the nested `node_modules/next/node_modules/postcss@8.4.31`). Fixes #101 (GHSA-qx2v-qp2m-jg93).
 **Why:** Next.js ships an internal copy of `postcss@8.4.31`; the XSS fix (unescaped `</style>` in CSS stringify output) landed in `8.5.10`. Our top-level postcss was already fixed; the override forces the same version into Next.js's nested dep tree.
 
----
+## [2026-05-10] fix: create-pull-request duplicate Authorization header with checkout
+**By:** Cursor
+**What:** **`changelog-archive`**, **`sync-gemini`**, and **`sync-main-to-development`**: **`actions/checkout@v6`** now uses **`persist-credentials: false`** (plus **`token`**) where no follow-up **`git fetch`** is needed; **`sync-main-to-development`** clears **`http.https://github.com/.extraheader`** after the merge step. All three unset that config before **`peter-evans/create-pull-request`** as a safeguard and pass **`token: ${{ secrets.GITHUB_TOKEN }}`** explicitly to the action.
+**Why:** Git was sending two `Authorization` headers (`Duplicate header` / HTTP 400) because checkout persisted credentials and create-pull-request injected its own.
 
 
-## [2026-05-08] Bump version to 1.3.4 and compact CHANGELOG
-**By:** Claude Code
-**What:** `package.json` version `1.3.3` → `1.3.4`. Archived entries from 2026-05-06 and earlier to `CHANGELOG-legacy.md` to keep the active log under 300 lines.
-**Why:** Patch release covering all repo advisory improvements: Vitest unit tests, husky/commitlint hooks, Sentry error tracking, Dependabot auto-merge, Trivy container scanning, Docker memory limits, health check endpoint, npm vulnerability upgrades (Next.js, next-auth, drizzle-kit), CI concurrency groups, and release helper workflow.
 
----
+## [2026-05-10] fix: bot workflows use PRs + setup-node v6 (protected Development)
+**By:** Cursor
+**What:** **`changelog-archive`**, **`sync-gemini`**, and **`sync-main-to-development`** now use **`peter-evans/create-pull-request@v7.0.8`** so updates land via PRs (branch protection was rejecting direct pushes that lacked prior passing checks). **`changelog-archive`** uses **`actions/setup-node@v6`**. Removed **`changelog:compact`** from **`package.json`** — run **`node scripts/compact-changelog.mjs`** locally instead; **CLAUDE.md** / memory updated.
+**Why:** GH006 on protected `Development`; required **TypeScript & Lint** must run on the merge path. `setup-node@v6` per security preference; npm script removed so compaction stays a plain Node script.
+
+
+
+## [2026-05-10] chore: Phase 8 done in CLAUDE + automated CHANGELOG archive on Development
+**By:** Cursor
+**What:** Marked **Phase 8 — Group Gifts** **done** and added **`v1.4.0`** to the release table in **CLAUDE.md**. Added **`scripts/compact-changelog.mjs`** and **`.github/workflows/changelog-archive.yml`** (later updated to open a PR on **`Development`** when **`CHANGELOG.md`** exceeds **300** lines, target **250**, after compacting). Documented in **CLAUDE.md** and **`.claude/memory`**.
+**Why:** Owner request: phase table accuracy and hands-free archival so the main changelog stays readable in agent context.
+
+
+
+## [2026-05-10] chore: Release Please — skip root CHANGELOG, sync main→Development, docs
+**By:** Cursor
+**What:** `release-please-config.json`: `skip-changelog` for root `CHANGELOG.md` (human file only); `include-component-in-tag: false` so GitHub release names/tags are `vX.Y.Z` not `noted: vX.Y.Z`; visible sections for refactor/chore/docs; `pull-request-header` intro pointing to `CHANGELOG.md`. Manifest set to **1.4.0**. New workflow **`sync-main-to-development.yml`** merges `main` into `Development` on each push to `main` (plus `workflow_dispatch`). **CLAUDE.md** and `.claude/memory` (commits, releases, MEMORY index) updated: agents must **not** bump `package.json`; Release Please owns semver on the release PR; post-release checklist references merging the release PR.
+**Why:** Match the owner’s release workflow: automated semver + GitHub Release from conventional commits, narrative changelog unchanged, Development kept in sync after squash merges to main.
+
+
+
+## [2026-05-10] chore: Release Please token fallback for PR creation
+**By:** Cursor
+**What:** `release-please.yml` uses `token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}` and comments document enabling Actions-created PRs or adding the `RELEASE_PLEASE_TOKEN` repo secret.
+**Why:** GitHub rejects `GITHUB_TOKEN` for `POST /repos/.../pulls` unless the repo allows Actions to create/approve pull requests; optional PAT avoids that when the setting cannot be enabled.
+
 
