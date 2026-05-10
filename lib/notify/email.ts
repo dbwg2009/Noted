@@ -196,7 +196,7 @@ async function sendViaResend(to: string, subject: string, text: string, html: st
 export async function sendGroupGiftNotification(toEmail: string, groupTitle: string, groupId: string) {
   const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
   const url = `${baseUrl}/gift-groups/${groupId}`;
-  const subject = `You've been added to a group gift: ${groupTitle}`;
+  const subject = `Group gift invitation: ${groupTitle}`;
   const text = `You've been added as a contributor to the group gift "${groupTitle}".\n\nView it here: ${url}\n\n---\nSent by Noted.`;
   const html = `<!doctype html>
 <html><body style="margin:0;background:#f9fafb;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;">
@@ -213,7 +213,7 @@ export async function sendGroupGiftNotification(toEmail: string, groupTitle: str
 export async function sendGroupGiftInvite(toEmail: string, groupTitle: string, inviteToken: string) {
   const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
   const url = `${baseUrl}/gift-groups/invite/${inviteToken}`;
-  const subject = `You're invited to contribute to a group gift: ${groupTitle}`;
+  const subject = `You have been invited to a group gift: ${groupTitle}`;
   const text = `You've been invited to join a group gift on Noted: "${groupTitle}".\n\nCreate your account and accept the invite here:\n${url}\n\nThis link expires in 30 days.\n\n---\nSent by Noted.`;
   const html = `<!doctype html>
 <html><body style="margin:0;background:#f9fafb;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;">
