@@ -23,7 +23,7 @@ Never) are computed at save time so no cron cleanup is needed.
 
 **`package.json` version:** Do **not** bump manually. **Release Please** updates `"version"` on its release PR to `main` (see `CLAUDE.md` → Versioning). If the manifest drifts after an out-of-band release, fix `.github/release-please-manifest.json` to match the latest shipped tag — do not preemptively bump `package.json` on feature branches.
 
-**CHANGELOG compaction:** When `CHANGELOG.md` exceeds **300 lines**, oldest dated entries move to **`CHANGELOG-legacy.md`** automatically via **`changelog-archive.yml`** on **`Development`** (or run **`npm run changelog:compact`**). If automation is blocked or one entry is enormous, flag the user — do not delete history silently.
+**CHANGELOG compaction:** When `CHANGELOG.md` exceeds **300 lines**, **`changelog-archive.yml`** opens a PR on **`Development`** that moves oldest dated entries to **`CHANGELOG-legacy.md`** (merge after CI). Locally: **`node scripts/compact-changelog.mjs`**. If one entry is enormous or automation stalls, flag the user — do not delete history silently.
 
 **Why:** One source of truth for semver on `main` avoids fighting Release Please. CHANGELOG stays human-authored; GitHub Release bodies from Release Please are separate.
 

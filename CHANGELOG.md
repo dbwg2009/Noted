@@ -13,9 +13,14 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] fix: bot workflows use PRs + setup-node v6 (protected Development)
+**By:** Cursor
+**What:** **`changelog-archive`**, **`sync-gemini`**, and **`sync-main-to-development`** now use **`peter-evans/create-pull-request@v7.0.8`** so updates land via PRs (branch protection was rejecting direct pushes that lacked prior passing checks). **`changelog-archive`** uses **`actions/setup-node@v6`**. Removed **`changelog:compact`** from **`package.json`** — run **`node scripts/compact-changelog.mjs`** locally instead; **CLAUDE.md** / memory updated.
+**Why:** GH006 on protected `Development`; required **TypeScript & Lint** must run on the merge path. `setup-node@v6` per security preference; npm script removed so compaction stays a plain Node script.
+
 ## [2026-05-10] chore: Phase 8 done in CLAUDE + automated CHANGELOG archive on Development
 **By:** Cursor
-**What:** Marked **Phase 8 — Group Gifts** **done** and added **`v1.4.0`** to the release table in **CLAUDE.md**. Added **`scripts/compact-changelog.mjs`** + **`npm run changelog:compact`**, and **`.github/workflows/changelog-archive.yml`** (runs on **`Development`** when **`CHANGELOG.md`** changes, or **`workflow_dispatch`**) to move oldest dated entries to **`CHANGELOG-legacy.md`** when **`CHANGELOG.md`** exceeds **300** lines (target **250**); bot commits use **`[changelog-archive]`** to avoid loops. Documented in **CLAUDE.md** and **`.claude/memory`**.
+**What:** Marked **Phase 8 — Group Gifts** **done** and added **`v1.4.0`** to the release table in **CLAUDE.md**. Added **`scripts/compact-changelog.mjs`** and **`.github/workflows/changelog-archive.yml`** (later updated to open a PR on **`Development`** when **`CHANGELOG.md`** exceeds **300** lines, target **250**, after compacting). Documented in **CLAUDE.md** and **`.claude/memory`**.
 **Why:** Owner request: phase table accuracy and hands-free archival so the main changelog stays readable in agent context.
 
 ## [2026-05-10] chore: Release Please — skip root CHANGELOG, sync main→Development, docs

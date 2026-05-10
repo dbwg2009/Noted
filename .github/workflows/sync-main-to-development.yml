@@ -1,5 +1,4 @@
-# Keeps `Development` aligned with `main` after merges (squash on main leaves `Development` behind).
-# If push fails, ensure branch protection allows `github-actions[bot]` to push to `Development`, or resolve merge conflicts locally.
+# Keeps Development aligned with main after merges. Uses a PR so required checks can pass (direct push is rejected on protected Development).
 
 name: Sync main into Development
 
@@ -14,6 +13,7 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   sync:
@@ -23,11 +23,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Merge main into Development and push
+      - name: Merge main into Development (working tree)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin
           git checkout Development
           git merge origin/main --no-edit
-          git push origin Development
+
+      - name: Open PR with merge result
+        uses: peter-evans/create-pull-request@v7.0.8
+        with:
+          base: Development
+          branch: automated/sync-main-into-development
+          commit-message: "chore: merge main into Development [sync-main]"
+          title: "chore: merge main into Development"
+          body: |
+            Automated: merge `origin/main` into `Development` so the branch matches `main` after squash merges.
+
+            **Merge after TypeScript & Lint is green.**
