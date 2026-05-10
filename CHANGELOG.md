@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] Fix sender display name and reduce promotional classification of digest emails
+**By:** Claude Code
+**What:** Two changes to `lib/notify/email.ts`. (1) `fromAddress()` now strips leading/trailing quote characters from the env var value before returning it, so display names like "Noted Support" survive Docker Compose .env parsing. (2) Removed external retailer URLs and prices from the birthday digest shortlist (both text and HTML renderers); the shortlist now shows item title, kind tag, and retailer name only, linking to the Noted person page for full details. Prices and buy-links are the primary signals Gmail uses to classify emails as promotional.
+**Why:** User reported the digest email landed in the Promotions tab and the sender display name ("Noted Support") was not showing on the help@ password reset email.
+
+---
+
 ## [2026-05-10] Refactor gift-groups queries to eliminate duplication and fix Codacy HIGH
 **By:** Claude Code
 **What:** Extracted a module-level named `fetchGroups(where: SQL)` function from `listGiftGroups` in `lib/gift-groups-queries.ts`. The owned query now calls `fetchGroups` with the user-id condition, and the contributing/pending queries use a `fetchById` helper that delegates to `fetchGroups`. Eliminates the 9-line query duplication Codacy detected and resolves the HIGH "non-serializable expression" issue caused by the inner async arrow function.

@@ -1,15 +1,14 @@
 import { Resend } from "resend";
 import type { DigestUserBlock, ShortlistEntry } from "@/lib/reminders";
-import { poundsFromPence } from "@/lib/birthdays";
 
 const FALLBACK_FROM = "Noted <onboarding@resend.dev>";
 
 export function fromAddress(specificEnvKey: string): string {
-  return (
+  const val =
     process.env[specificEnvKey]?.trim() ||
     process.env.EMAIL_FROM?.trim() ||
-    FALLBACK_FROM
-  );
+    FALLBACK_FROM;
+  return val.replace(/^["']|["']$/g, "");
 }
 
 function escapeHtml(value: string) {
@@ -27,40 +26,27 @@ function describeLead(leadDays: number) {
   return `in ${leadDays} days`;
 }
 
-function priceLabel(entry: ShortlistEntry) {
-  const price = poundsFromPence(entry.pricePence);
-  if (entry.kind === "suggestion") {
-    return price ? `est. ${price}` : "est. price unknown";
-  }
-  return price ?? "price unknown";
-}
-
 function renderShortlistText(shortlist: ShortlistEntry[]) {
-  if (shortlist.length === 0) return "  (no shortlist yet — add wishlist items or run Suggest gifts)\n";
+  if (shortlist.length === 0) return `  (no shortlist yet — add wishlist items or run Suggest gifts)\n`;
   return shortlist
     .map((entry) => {
       const tag = entry.kind === "product" ? "product" : "idea";
       const retailer = entry.retailer ? ` @ ${entry.retailer}` : "";
-      const url = entry.url ? `\n     ${entry.url}` : "";
-      return `  - [${tag}] ${entry.title}${retailer} (${priceLabel(entry)})${url}`;
+      return `  - [${tag}] ${entry.title}${retailer}`;
     })
     .join("\n");
 }
 
 function renderShortlistHtml(shortlist: ShortlistEntry[]) {
   if (shortlist.length === 0) {
-    return `<p style="color:#6b7280;font-size:13px;margin:8px 0 0;">No shortlist yet — add wishlist items or run “Suggest gifts”.</p>`;
+    return `<p style="color:#6b7280;font-size:13px;margin:8px 0 0;">No shortlist yet — add wishlist items or run "Suggest gifts".</p>`;
   }
   return `<ul style="margin:8px 0 0;padding-left:18px;font-size:14px;color:#1f2937;">
 ${shortlist
   .map((entry) => {
     const tag = entry.kind === "product" ? "Product" : "Idea";
     const retailer = entry.retailer ? ` <span style="color:#6b7280;">@ ${escapeHtml(entry.retailer)}</span>` : "";
-    const price = `<span style="color:#6b7280;"> · ${escapeHtml(priceLabel(entry))}</span>`;
-    const link = entry.url
-      ? `<br/><a href="${escapeHtml(entry.url)}" style="color:#2563eb;font-size:13px;">${escapeHtml(entry.url)}</a>`
-      : "";
-    return `<li style="margin-bottom:6px;"><strong>${escapeHtml(entry.title)}</strong> <span style="color:#6b7280;font-size:12px;">[${tag}]</span>${retailer}${price}${link}</li>`;
+    return `<li style="margin-bottom:6px;"><strong>${escapeHtml(entry.title)}</strong> <span style="color:#6b7280;font-size:12px;">[${tag}]</span>${retailer}</li>`;
   })
   .join("\n")}
 </ul>`;
