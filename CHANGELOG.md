@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] Fix: review hardening (register errors, occasions, gift-groups, Cursor permissions)
+**By:** Cursor
+**What:** Register API errors are parsed via `res.text()` + safe `JSON.parse` so non-JSON bodies never throw. `updateOccasion` now blocks preset-kind duplicates the same way as `createOccasion` (excluding the current row). Gift groups: stricter `parsePence`, consistent `personId`/`wishlistItemId` validation on create, duplicate contributor detection by normalized email per group, `acceptInvite` honours pre-linked `userId`, `acceptInviteAction` preserves specific error query params, invite page renders those errors, and invite email failures log `groupId`/`contributorId` plus masked recipient instead of raw email. `.claude/settings.local.json` replaces broad `git stash`/`git checkout` wildcards with scoped allow patterns.
+**Why:** Address still-valid findings from PR/code review: safer client error handling, occasion update parity with create, reduced PII in logs, tighter monetary and relational validation, and narrower local agent permissions.
+
 ## [2026-05-10] Fix: gift-group contributor edits no longer preserve stale account links
 **By:** Cursor
 **What:** Updated `updateContributor` in `app/gift-groups/actions.ts` to treat an email change as a re-invite: it clears any prior `userId` linkage when the email changes, regenerates invite tokens/expiry, and (when an email is present) sends a fresh invite. Also switched the remaining gift-group `<form action={...}>` usages in `app/gift-groups/page.tsx` and `app/gift-groups/[id]/page.tsx` to the existing `ActionForm` wrapper to satisfy Codacy’s “promise-returning function in attribute” warning.

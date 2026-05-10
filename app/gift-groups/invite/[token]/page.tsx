@@ -58,6 +58,42 @@ export default async function InvitePage({
     redirect(`/login?callbackUrl=${callbackUrl}`);
   }
 
+  if (error === "invalid") {
+    return (
+      <main className="mx-auto max-w-md px-4 py-16 text-center">
+        <h1 className="text-xl font-semibold">Invalid invite link</h1>
+        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+          This invite link is not valid. It may have already been used or removed.
+        </p>
+      </main>
+    );
+  }
+
+  if (error === "already_accepted") {
+    return (
+      <main className="mx-auto max-w-md px-4 py-16 text-center">
+        <h1 className="text-xl font-semibold">Already accepted</h1>
+        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+          This invite has already been accepted.
+        </p>
+        <a href={`/gift-groups/${invite.groupId}`} className="mt-4 inline-block text-sm text-brand-blue-600 hover:underline dark:text-brand-blue-400">
+          View group gift →
+        </a>
+      </main>
+    );
+  }
+
+  if (error === "expired") {
+    return (
+      <main className="mx-auto max-w-md px-4 py-16 text-center">
+        <h1 className="text-xl font-semibold">Invite expired</h1>
+        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+          This invite link has expired. Ask the group organiser to resend it.
+        </p>
+      </main>
+    );
+  }
+
   if (error === "wrong_account") {
     return (
       <main className="mx-auto max-w-md px-4 py-16 text-center">

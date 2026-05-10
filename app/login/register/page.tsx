@@ -23,8 +23,23 @@ function RegisterForm() {
         const dest = callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login";
         router.push(dest);
       } else {
-        const json = await res.json();
-        setError(json?.error || "Failed to create account");
+        const raw = await res.text();
+        let parsed: unknown = null;
+        try {
+          parsed = raw ? JSON.parse(raw) : null;
+        } catch {
+          parsed = null;
+        }
+        const fromJson =
+          parsed &&
+          typeof parsed === "object" &&
+          parsed !== null &&
+          "error" in parsed &&
+          typeof (parsed as { error: unknown }).error === "string"
+            ? (parsed as { error: string }).error
+            : null;
+        const trimmed = raw.trim();
+        setError(fromJson || trimmed || res.statusText || "Failed to create account");
       }
     } catch {
       setError("Network error");

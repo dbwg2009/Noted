@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -100,6 +100,28 @@ export async function updateOccasion(formData: FormData) {
     if (!p) return;
   } else if (row.userId !== userId) {
     return;
+  }
+
+  if (kind !== "custom") {
+    const dupeWhere = row.personId
+      ? and(
+          eq(occasions.userId, userId),
+          eq(occasions.personId, row.personId),
+          eq(occasions.kind, kind as OccasionKindValue),
+          ne(occasions.id, id),
+        )
+      : and(
+          eq(occasions.userId, userId),
+          isNull(occasions.personId),
+          eq(occasions.kind, kind as OccasionKindValue),
+          ne(occasions.id, id),
+        );
+    const [dupe] = await db.select({ id: occasions.id }).from(occasions).where(dupeWhere).limit(1);
+    if (dupe) {
+      await setPeopleFlash(`${getKnownOccasionLabel(kind)} already exists for this person.`, "error");
+      if (row.personId) redirect(`/people/${row.personId}`);
+      return;
+    }
   }
 
   await db

@@ -18,8 +18,11 @@
       "Bash(gh api *)",
       "Bash(gh milestone *)",
       "Bash(gh issue *)",
-      "Bash(git stash *)",
-      "Bash(git checkout *)"
+      "Bash(git stash push *)",
+      "Bash(git stash pop)",
+      "Bash(git checkout -b *)",
+      "Bash(git checkout Development)",
+      "Bash(git checkout main)"
     ]
   }
 }
