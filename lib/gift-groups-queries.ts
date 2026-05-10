@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { giftGroups, giftGroupContributors, people, wishlistItems } from "@/db/schema";
 import { and, eq, desc, inArray } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
 async function attachContributors<T extends { id: string }>(groups: T[]) {
   if (groups.length === 0) return groups.map((g) => ({ ...g, contributors: [] as (typeof allContributors), totalRaised: 0 }));
@@ -32,40 +33,47 @@ const groupSelectFields = {
   wishlistItemDescription: wishlistItems.description,
 };
 
-export async function listGiftGroups(userId: string) {
-  const owned = await db
+async function fetchGroups(where: SQL) {
+  return db
     .select({ ...groupSelectFields, ownerId: giftGroups.userId })
     .from(giftGroups)
     .leftJoin(people, eq(giftGroups.personId, people.id))
     .leftJoin(wishlistItems, eq(giftGroups.wishlistItemId, wishlistItems.id))
-    .where(eq(giftGroups.userId, userId))
+    .where(where)
     .orderBy(desc(giftGroups.createdAt));
+}
 
-  // Groups the user is a contributor on (but doesn't own)
+export async function listGiftGroups(userId: string) {
+  const owned = await fetchGroups(eq(giftGroups.userId, userId));
+
+  // Groups the user is a contributor on (but doesn't own), split by acceptance
   const contributingRows = await db
-    .select({ groupId: giftGroupContributors.groupId })
+    .select({ groupId: giftGroupContributors.groupId, inviteAcceptedAt: giftGroupContributors.inviteAcceptedAt, contributorId: giftGroupContributors.id })
     .from(giftGroupContributors)
     .where(and(eq(giftGroupContributors.userId, userId)));
 
-  const contributingIds = contributingRows
-    .map((r) => r.groupId)
-    .filter((id) => !owned.some((g) => g.id === id));
+  const nonOwnedRows = contributingRows.filter((r) => !owned.some((g) => g.id === r.groupId));
+  const acceptedIds = nonOwnedRows.filter((r) => r.inviteAcceptedAt !== null).map((r) => r.groupId);
+  const pendingRows = nonOwnedRows.filter((r) => r.inviteAcceptedAt === null);
+  const pendingIds = pendingRows.map((r) => r.groupId);
 
-  const contributing =
-    contributingIds.length === 0
-      ? []
-      : await db
-          .select({ ...groupSelectFields, ownerId: giftGroups.userId })
-          .from(giftGroups)
-          .leftJoin(people, eq(giftGroups.personId, people.id))
-          .leftJoin(wishlistItems, eq(giftGroups.wishlistItemId, wishlistItems.id))
-          .where(inArray(giftGroups.id, contributingIds))
-          .orderBy(desc(giftGroups.createdAt));
+  const [contributing, pendingGroups, ownedWithContributors] = await Promise.all([
+    acceptedIds.length === 0
+      ? attachContributors([])
+      : fetchGroups(inArray(giftGroups.id, acceptedIds)).then(attachContributors),
+    pendingIds.length === 0
+      ? attachContributors([])
+      : fetchGroups(inArray(giftGroups.id, pendingIds)).then(attachContributors),
+    attachContributors(owned),
+  ]);
 
-  const ownedWithContributors = await attachContributors(owned);
-  const contributingWithContributors = await attachContributors(contributing);
+  // Attach the contributorId so the list page can build accept/decline forms
+  const pendingInvitations = pendingGroups.map((g) => ({
+    ...g,
+    contributorId: pendingRows.find((r) => r.groupId === g.id)!.contributorId,
+  }));
 
-  return { owned: ownedWithContributors, contributing: contributingWithContributors };
+  return { owned: ownedWithContributors, contributing, pendingInvitations };
 }
 
 export async function getGiftGroup(id: string, userId: string) {

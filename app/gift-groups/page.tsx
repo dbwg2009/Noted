@@ -4,7 +4,8 @@ import { auth } from "@/lib/auth";
 import { requireCurrentUserId } from "@/lib/people-queries";
 import { listGiftGroups } from "@/lib/gift-groups-queries";
 import { poundsFromPence } from "@/lib/birthdays";
-import { createGiftGroup } from "./actions";
+import { createGiftGroup, acceptLinkedInvite, declineInvitation } from "./actions";
+import { ActionForm } from "./action-form";
 import { inputCls, STATUS_LABELS, STATUS_COLOURS } from "./constants";
 
 function GroupCard({ g }: { g: { id: string; title: string; status: string; targetAmount: number | null; personName: string | null; wishlistItemDescription: string | null; contributors: unknown[]; totalRaised: number } }) {
@@ -56,15 +57,25 @@ function GroupCard({ g }: { g: { id: string; title: string; status: string; targ
   );
 }
 
-export default async function GiftGroupsPage() {
+export default async function GiftGroupsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const userId = await requireCurrentUserId();
-  const { owned, contributing } = await listGiftGroups(userId);
+  const { owned, contributing, pendingInvitations } = await listGiftGroups(userId);
+  const { error } = await searchParams;
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
+      {error === "invite_expired" && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          This invitation has expired. Ask the group organiser to resend it.
+        </div>
+      )}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Group Gifts</h1>
@@ -120,6 +131,49 @@ export default async function GiftGroupsPage() {
           </div>
         )}
       </section>
+
+      {/* Pending invitations */}
+      {pendingInvitations.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-base font-semibold">Pending invitations</h2>
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+            You&rsquo;ve been invited to contribute to these group gifts.
+          </p>
+          <ul className="mt-3 space-y-3">
+            {pendingInvitations.map((g) => (
+              <li key={g.id} className="card flex flex-wrap items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-semibold">{g.title}</p>
+                  {g.personName && (
+                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+                      For {g.personName}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <ActionForm action={acceptLinkedInvite}>
+                    <input type="hidden" name="contributorId" value={g.contributorId} />
+                    <input type="hidden" name="groupId" value={g.id} />
+                    <button type="submit" className="btn-primary px-4 py-1.5 text-sm">
+                      Accept
+                    </button>
+                  </ActionForm>
+                  <ActionForm action={declineInvitation}>
+                    <input type="hidden" name="contributorId" value={g.contributorId} />
+                    <input type="hidden" name="groupId" value={g.id} />
+                    <button
+                      type="submit"
+                      className="rounded-md border border-neutral-300 px-4 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                    >
+                      Decline
+                    </button>
+                  </ActionForm>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Groups I'm contributing to */}
       {contributing.length > 0 && (

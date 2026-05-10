@@ -193,35 +193,27 @@ async function sendViaResend(to: string, subject: string, text: string, html: st
   return result.data?.id ?? null;
 }
 
-export async function sendGroupGiftNotification(toEmail: string, groupTitle: string, groupId: string) {
-  const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
-  const url = `${baseUrl}/gift-groups/${groupId}`;
-  const subject = `You've been added to a group gift: ${groupTitle}`;
-  const text = `You've been added as a contributor to the group gift "${groupTitle}".\n\nView it here: ${url}\n\n---\nSent by Noted.`;
-  const html = `<!doctype html>
-<html><body style="margin:0;background:#f9fafb;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;">
-  <div style="max-width:560px;margin:24px auto;padding:0 16px;">
-    <h1 style="margin:0 0 12px;font-size:20px;">🎁 You've been added to a group gift</h1>
-    <p style="font-size:15px;margin:0 0 16px;">You've been added as a contributor to <strong>${escapeHtml(groupTitle)}</strong>.</p>
-    <p style="margin:0 0 24px;"><a href="${escapeHtml(url)}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View group gift →</a></p>
-    <p style="margin:0;font-size:12px;color:#6b7280;">Sent by Noted.</p>
-  </div>
-</body></html>`;
-  return sendViaResend(toEmail, subject, text, html, fromAddress("EMAIL_FROM_INVITES"));
-}
 
-export async function sendGroupGiftInvite(toEmail: string, groupTitle: string, inviteToken: string) {
+export async function sendGroupGiftInvite(toEmail: string, groupTitle: string, inviteToken: string, registered: boolean) {
   const baseUrl = process.env.AUTH_URL?.trim() || "http://localhost:3000";
-  const url = `${baseUrl}/gift-groups/invite/${inviteToken}`;
-  const subject = `You're invited to contribute to a group gift: ${groupTitle}`;
-  const text = `You've been invited to join a group gift on Noted: "${groupTitle}".\n\nCreate your account and accept the invite here:\n${url}\n\nThis link expires in 30 days.\n\n---\nSent by Noted.`;
+  const inviteUrl = `${baseUrl}/gift-groups/invite/${inviteToken}`;
+  // Registered users land on the invite page; unregistered go to sign-up first
+  const ctaUrl = registered
+    ? inviteUrl
+    : `${baseUrl}/login/register?callbackUrl=${encodeURIComponent(inviteUrl)}`;
+  const ctaLabel = registered ? "Accept invite" : "Get started";
+  const subtext = registered
+    ? "Log in to Noted to accept or decline."
+    : "Create a free Noted account to accept or decline.";
+  const subject = `You have been invited to a group gift: ${groupTitle}`;
+  const text = `You've been invited to contribute to "${groupTitle}" on Noted.\n\n${subtext}\n${ctaUrl}\n\nThis link expires in 30 days.\n\n---\nSent by Noted.`;
   const html = `<!doctype html>
 <html><body style="margin:0;background:#f9fafb;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;">
   <div style="max-width:560px;margin:24px auto;padding:0 16px;">
-    <h1 style="margin:0 0 12px;font-size:20px;">🎁 You're invited to a group gift</h1>
+    <h1 style="margin:0 0 12px;font-size:20px;">You have been invited to a group gift</h1>
     <p style="font-size:15px;margin:0 0 8px;">You've been invited to contribute to <strong>${escapeHtml(groupTitle)}</strong> on Noted.</p>
-    <p style="font-size:14px;color:#6b7280;margin:0 0 20px;">Create an account (or log in) to view and manage your contribution.</p>
-    <p style="margin:0 0 24px;"><a href="${escapeHtml(url)}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Accept invite →</a></p>
+    <p style="font-size:14px;color:#6b7280;margin:0 0 20px;">${escapeHtml(subtext)}</p>
+    <p style="margin:0 0 24px;"><a href="${escapeHtml(ctaUrl)}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">${escapeHtml(ctaLabel)} →</a></p>
     <p style="font-size:12px;color:#6b7280;margin:0;">This link expires in 30 days. Sent by Noted.</p>
   </div>
 </body></html>`;
