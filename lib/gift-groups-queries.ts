@@ -41,31 +41,41 @@ export async function listGiftGroups(userId: string) {
     .where(eq(giftGroups.userId, userId))
     .orderBy(desc(giftGroups.createdAt));
 
-  // Groups the user is a contributor on (but doesn't own)
+  // Groups the user is a contributor on (but doesn't own), split by acceptance
   const contributingRows = await db
-    .select({ groupId: giftGroupContributors.groupId })
+    .select({ groupId: giftGroupContributors.groupId, inviteAcceptedAt: giftGroupContributors.inviteAcceptedAt, contributorId: giftGroupContributors.id })
     .from(giftGroupContributors)
     .where(and(eq(giftGroupContributors.userId, userId)));
 
-  const contributingIds = contributingRows
-    .map((r) => r.groupId)
-    .filter((id) => !owned.some((g) => g.id === id));
+  const nonOwnedRows = contributingRows.filter((r) => !owned.some((g) => g.id === r.groupId));
+  const acceptedIds = nonOwnedRows.filter((r) => r.inviteAcceptedAt !== null).map((r) => r.groupId);
+  const pendingRows = nonOwnedRows.filter((r) => r.inviteAcceptedAt === null);
+  const pendingIds = pendingRows.map((r) => r.groupId);
 
-  const contributing =
-    contributingIds.length === 0
+  const fetchGroups = async (ids: string[]) =>
+    ids.length === 0
       ? []
-      : await db
+      : db
           .select({ ...groupSelectFields, ownerId: giftGroups.userId })
           .from(giftGroups)
           .leftJoin(people, eq(giftGroups.personId, people.id))
           .leftJoin(wishlistItems, eq(giftGroups.wishlistItemId, wishlistItems.id))
-          .where(inArray(giftGroups.id, contributingIds))
+          .where(inArray(giftGroups.id, ids))
           .orderBy(desc(giftGroups.createdAt));
 
-  const ownedWithContributors = await attachContributors(owned);
-  const contributingWithContributors = await attachContributors(contributing);
+  const [contributing, pendingGroups, ownedWithContributors] = await Promise.all([
+    fetchGroups(acceptedIds).then(attachContributors),
+    fetchGroups(pendingIds).then(attachContributors),
+    attachContributors(owned),
+  ]);
 
-  return { owned: ownedWithContributors, contributing: contributingWithContributors };
+  // Attach the contributorId so the list page can build accept/decline forms
+  const pendingInvitations = pendingGroups.map((g) => ({
+    ...g,
+    contributorId: pendingRows.find((r) => r.groupId === g.id)!.contributorId,
+  }));
+
+  return { owned: ownedWithContributors, contributing, pendingInvitations };
 }
 
 export async function getGiftGroup(id: string, userId: string) {

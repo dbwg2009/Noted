@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { giftGroups, giftGroupContributors, people, wishlistItems, users } from "@/db/schema";
 import { requireCurrentUserId } from "@/lib/people-queries";
-import { sendGroupGiftNotification, sendGroupGiftInvite } from "@/lib/notify/email";
+import { sendGroupGiftInvite } from "@/lib/notify/email";
 
 function newInvite() {
   return { inviteToken: randomUUID(), inviteExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) };
@@ -125,31 +125,30 @@ export async function addContributor(formData: FormData) {
         revalidatePath(`/gift-groups/${groupId}`);
         return;
       }
-      // Link by userId; only mark accepted after notification succeeds so
-      // resendInvite can retry if the email fails.
+      // Registered user: link by userId, generate token, require explicit in-app accept
+      const { inviteToken, inviteExpiresAt } = newInvite();
       await db.insert(giftGroupContributors).values({
         groupId,
         userId: existingUser.id,
         name,
         email,
         contributionAmount,
+        inviteToken,
+        inviteExpiresAt,
       });
       try {
-        await sendGroupGiftNotification(email, group.title, groupId);
-        await db
-          .update(giftGroupContributors)
-          .set({ inviteAcceptedAt: new Date() })
-          .where(and(eq(giftGroupContributors.groupId, groupId), eq(giftGroupContributors.userId, existingUser.id)));
+        await sendGroupGiftInvite(email, group.title, inviteToken, true);
       } catch (err) {
-        console.error(`[gift-groups] sendGroupGiftNotification failed for ${email}:`, err);
+        console.error(`[gift-groups] sendGroupGiftInvite failed for ${email}:`, err);
       }
     } else {
+      // Unregistered user: invite link goes to sign-up
       const { inviteToken, inviteExpiresAt } = newInvite();
       await db
         .insert(giftGroupContributors)
         .values({ groupId, name, email, contributionAmount, inviteToken, inviteExpiresAt });
       try {
-        await sendGroupGiftInvite(email, group.title, inviteToken);
+        await sendGroupGiftInvite(email, group.title, inviteToken, false);
       } catch (err) {
         console.error(`[gift-groups] sendGroupGiftInvite failed for ${email}:`, err);
       }
@@ -210,7 +209,11 @@ export async function resendInvite(formData: FormData) {
   if (!group || group.userId !== userId) return;
 
   const [contributor] = await db
-    .select({ email: giftGroupContributors.email, inviteAcceptedAt: giftGroupContributors.inviteAcceptedAt })
+    .select({
+      email: giftGroupContributors.email,
+      userId: giftGroupContributors.userId,
+      inviteAcceptedAt: giftGroupContributors.inviteAcceptedAt,
+    })
     .from(giftGroupContributors)
     .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
   if (!contributor?.email || contributor.inviteAcceptedAt) return;
@@ -222,7 +225,7 @@ export async function resendInvite(formData: FormData) {
     .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
 
   try {
-    await sendGroupGiftInvite(contributor.email, group.title, inviteToken);
+    await sendGroupGiftInvite(contributor.email, group.title, inviteToken, !!contributor.userId);
   } catch (err) {
     console.error(`[gift-groups] resendInvite sendGroupGiftInvite failed for ${contributor.email}:`, err);
   }
@@ -315,4 +318,41 @@ export async function updateMyContribution(formData: FormData) {
     .where(eq(giftGroupContributors.id, contributorId));
 
   revalidatePath(`/gift-groups/${groupId}`);
+}
+
+export async function acceptLinkedInvite(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const contributorId = formData.get("contributorId") as string;
+  const groupId = formData.get("groupId") as string;
+
+  const [row] = await db
+    .select({ userId: giftGroupContributors.userId })
+    .from(giftGroupContributors)
+    .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
+  if (!row || row.userId !== userId) return;
+
+  await db
+    .update(giftGroupContributors)
+    .set({ inviteAcceptedAt: new Date() })
+    .where(eq(giftGroupContributors.id, contributorId));
+
+  revalidatePath("/gift-groups");
+  revalidatePath(`/gift-groups/${groupId}`);
+  redirect(`/gift-groups/${groupId}`);
+}
+
+export async function declineInvitation(formData: FormData) {
+  const userId = await requireCurrentUserId();
+  const contributorId = formData.get("contributorId") as string;
+  const groupId = formData.get("groupId") as string;
+
+  const [row] = await db
+    .select({ userId: giftGroupContributors.userId })
+    .from(giftGroupContributors)
+    .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
+  if (!row || row.userId !== userId) return;
+
+  await db.delete(giftGroupContributors).where(eq(giftGroupContributors.id, contributorId));
+
+  revalidatePath("/gift-groups");
 }

@@ -13,6 +13,13 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] In-app accept/decline for existing users + register link for new users
+**By:** Claude Code
+**What:** When an existing registered user is added as a contributor, they now get an invite token (same as unregistered users) and must explicitly accept or decline via the app rather than being auto-accepted. A new "Pending invitations" section on `/gift-groups` shows these with Accept/Decline buttons. Unregistered users now receive a "Get started" link pointing to `/login/register?callbackUrl=...` instead of the invite page. New `acceptLinkedInvite` and `declineInvitation` server actions added.
+**Why:** User feedback — existing users should be able to accept or decline in-app; non-members should land on sign-up not login.
+
+---
+
 ## [2026-05-10] Per-email-type from addresses with shared fallback
 **By:** Claude Code
 **What:** Added `EMAIL_FROM_REMINDERS`, `EMAIL_FROM_INVITES`, and `EMAIL_FROM_AUTH` env vars. Each email type uses its specific var if set, falling back to `EMAIL_FROM`, then to the hardcoded Resend test address. Updated `lib/notify/email.ts` (`fromAddress()` helper), `app/api/auth/forgot/route.ts`, `.env.example`, and `docker-compose.yml`.
