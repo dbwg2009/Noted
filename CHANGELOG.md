@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-10] Fix: gift-group contributor edits no longer preserve stale account links
+**By:** Cursor
+**What:** Updated `updateContributor` in `app/gift-groups/actions.ts` to treat an email change as a re-invite: it clears any prior `userId` linkage when the email changes, regenerates invite tokens/expiry, and (when an email is present) sends a fresh invite. Also switched the remaining gift-group `<form action={...}>` usages in `app/gift-groups/page.tsx` and `app/gift-groups/[id]/page.tsx` to the existing `ActionForm` wrapper to satisfy Codacy’s “promise-returning function in attribute” warning.
+**Why:** Codacy flagged a security flaw where editing a contributor’s email could leave them incorrectly linked to the previous user account. Separately, Codacy was marking server actions used directly in form `action` props as error-prone; `ActionForm` already wraps these safely elsewhere.
+
 ## [2026-05-10] Fix: reminder email showed empty shortlist even when wishlist items exist
 **By:** Claude Code
 **What:** `buildShortlistForPerson` in `lib/reminders.ts` now includes active (non-purchased/given) wishlist items directly in the shortlist, not just AI-found products and AI suggestions. Wishlist items are ordered after products but before suggestions. Added a third `ShortlistEntry` kind `"wishlist"` and updated `lib/notify/email.ts` to label them as "Wishlist" in the email.

@@ -169,6 +169,16 @@ export async function updateContributor(formData: FormData) {
   const [group] = await db.select({ userId: giftGroups.userId }).from(giftGroups).where(eq(giftGroups.id, groupId));
   if (!group || group.userId !== userId) return;
 
+  const [existingContributor] = await db
+    .select({
+      email: giftGroupContributors.email,
+      userId: giftGroupContributors.userId,
+      inviteAcceptedAt: giftGroupContributors.inviteAcceptedAt,
+    })
+    .from(giftGroupContributors)
+    .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
+  if (!existingContributor) return;
+
   const name = (formData.get("name") as string | null)?.trim();
   if (!name) return;
 
@@ -176,10 +186,71 @@ export async function updateContributor(formData: FormData) {
   const contributionAmount = parsePence(formData.get("contributionAmount"));
   const paid = formData.get("paid") === "on";
 
+  const emailChanged = (existingContributor.email ?? "").toLowerCase() !== (email ?? "").toLowerCase();
+  let nextUserId: string | null | undefined;
+  let nextInviteToken: string | null | undefined;
+  let nextInviteExpiresAt: Date | null | undefined;
+  let nextInviteAcceptedAt: Date | null | undefined;
+  let sendInviteEmail: string | null = null;
+  let inviteIsLinkedUser = false;
+
+  if (emailChanged) {
+    if (!email) {
+      nextUserId = null;
+      nextInviteToken = null;
+      nextInviteExpiresAt = null;
+      nextInviteAcceptedAt = null;
+    } else {
+      const [existingUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+      if (existingUser) {
+        const [already] = await db
+          .select({ id: giftGroupContributors.id })
+          .from(giftGroupContributors)
+          .where(
+            and(
+              eq(giftGroupContributors.groupId, groupId),
+              eq(giftGroupContributors.userId, existingUser.id),
+            ),
+          );
+        if (already && already.id !== contributorId) return;
+        nextUserId = existingUser.id;
+        inviteIsLinkedUser = true;
+      } else {
+        nextUserId = null;
+      }
+
+      const { inviteToken, inviteExpiresAt } = newInvite();
+      nextInviteToken = inviteToken;
+      nextInviteExpiresAt = inviteExpiresAt;
+      nextInviteAcceptedAt = null;
+      sendInviteEmail = email;
+    }
+  }
+
   await db
     .update(giftGroupContributors)
-    .set({ name, email, contributionAmount, paid })
+    .set({
+      name,
+      email,
+      contributionAmount,
+      paid,
+      ...(nextUserId !== undefined ? { userId: nextUserId } : {}),
+      ...(nextInviteToken !== undefined ? { inviteToken: nextInviteToken } : {}),
+      ...(nextInviteExpiresAt !== undefined ? { inviteExpiresAt: nextInviteExpiresAt } : {}),
+      ...(nextInviteAcceptedAt !== undefined ? { inviteAcceptedAt: nextInviteAcceptedAt } : {}),
+    })
     .where(and(eq(giftGroupContributors.id, contributorId), eq(giftGroupContributors.groupId, groupId)));
+
+  if (sendInviteEmail) {
+    const [groupTitle] = await db.select({ title: giftGroups.title }).from(giftGroups).where(eq(giftGroups.id, groupId));
+    if (groupTitle?.title && nextInviteToken) {
+      try {
+        await sendGroupGiftInvite(sendInviteEmail, groupTitle.title, nextInviteToken, inviteIsLinkedUser);
+      } catch (err) {
+        console.error(`[gift-groups] updateContributor sendGroupGiftInvite failed for ${sendInviteEmail}:`, err);
+      }
+    }
+  }
 
   revalidatePath(`/gift-groups/${groupId}`);
 }

@@ -88,7 +88,7 @@ export default async function GiftGroupsPage({
       {/* Create group */}
       <details className="card mt-6">
         <summary className="cursor-pointer text-sm font-medium">+ Create new group gift</summary>
-        <form action={createGiftGroup} className="mt-4 grid gap-3 md:grid-cols-2">
+        <ActionForm action={createGiftGroup} className="mt-4 grid gap-3 md:grid-cols-2">
           <input
             name="title"
             required
@@ -115,7 +115,7 @@ export default async function GiftGroupsPage({
           <button type="submit" className="btn-primary w-fit px-4 py-2 text-sm">
             Create group
           </button>
-        </form>
+        </ActionForm>
       </details>
 
       {/* Groups I manage */}
