@@ -16,6 +16,17 @@
 
 ---
 
+## Why Noted?
+
+Forgetting a birthday, scrambling for a last-minute gift, or buying something the person already has — it's a rite of passage. Every "smart" app that promises to fix this either wants your contacts, pushes ads, or charges a monthly fee to access your own data. Noted runs on your own hardware (a Raspberry Pi handles it fine), stores everything in your own Postgres database, and phones home to nobody.
+
+The AI side uses OpenRouter's free-tier models to suggest real, in-budget products and pull listings from eBay — so links are to actual items at actual prices, not hallucinated URLs. If OpenRouter's rate limit kicks in, the eBay fallback takes over automatically. No SerpAPI, no scraping, no paid tiers required for the core workflow. MIT licensed, no lock-in.
+
+![Noted demo](docs/demo.gif)
+<!-- Drop a screen recording here as docs/demo.gif — recorded separately -->
+
+---
+
 ## Screenshots
 
 | Dashboard | Calendar | Person detail |
