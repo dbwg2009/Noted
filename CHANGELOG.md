@@ -13,6 +13,11 @@ Every significant change to this project is recorded here. **AI agents must add 
 
 ---
 
+## [2026-05-14] docs: pre-launch repo polish
+**By:** Claude Code
+**What:** Added "Why Noted?" hook section and demo GIF placeholder to `README.md`. Added `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1, enforcement contact: dbwg2009@gmail.com). README badges and `CONTRIBUTING.md` were already present — left untouched.
+**Why:** Pre-launch polish pass before promoting Noted to r/selfhosted, awesome-selfhosted, selfh.st, and Show HN.
+
 ## [2026-05-10] chore: wire Release Please to manifest config
 **By:** Cursor
 **What:** Updated `.github/workflows/release-please.yml` to use manifest mode with `config-file` / `manifest-file` under `.github/` (removed the workflow-level `release-type: node`, which forced simple mode and ignored `release-please-config.json`). Added `issues: write` to match upstream Release Please permission recommendations.
